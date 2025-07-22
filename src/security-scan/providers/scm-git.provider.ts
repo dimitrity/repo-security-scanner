@@ -1,0 +1,255 @@
+import { ScmProvider } from '../interfaces/scm.interface';
+import simpleGit from 'simple-git';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+export class GitScmProvider implements ScmProvider {
+  async cloneRepository(repoUrl: string, targetPath: string): Promise<void> {
+    await simpleGit().clone(repoUrl, targetPath);
+  }
+
+  async fetchRepoMetadata(repoUrl: string): Promise<{
+    name: string;
+    description: string;
+    defaultBranch: string;
+    lastCommit: {
+      hash: string;
+      timestamp: string;
+    };
+  }> {
+    try {
+      // Parse repository URL to extract owner and repo name
+      const repoInfo = this.parseRepoUrl(repoUrl);
+      
+      // Try to fetch metadata from Git hosting platform APIs
+      const apiMetadata = await this.fetchFromGitApi(repoInfo);
+      if (apiMetadata) {
+        return apiMetadata;
+      }
+
+      // Fallback: Use git commands to get basic information
+      const gitMetadata = await this.fetchFromGitCommands(repoUrl);
+      if (gitMetadata) {
+        return gitMetadata;
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch repository metadata for ${repoUrl}:`, error);
+    }
+    
+    // Return fallback metadata if all else fails
+    return this.getFallbackMetadata(repoUrl);
+  }
+
+  private parseRepoUrl(repoUrl: string): { platform: string; owner: string; repo: string } | null {
+    try {
+      const url = new URL(repoUrl);
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      
+      if (pathParts.length >= 2) {
+        const owner = pathParts[0];
+        const repo = pathParts[1].replace('.git', '');
+        
+        let platform = 'unknown';
+        if (url.hostname.includes('github.com')) {
+          platform = 'github';
+        } else if (url.hostname.includes('gitlab.com')) {
+          platform = 'gitlab';
+        } else if (url.hostname.includes('bitbucket.org')) {
+          platform = 'bitbucket';
+        }
+        
+        return { platform, owner, repo };
+      }
+    } catch (error) {
+      console.warn('Failed to parse repository URL:', error);
+    }
+    
+    return null;
+  }
+
+  private async fetchFromGitApi(repoInfo: { platform: string; owner: string; repo: string } | null): Promise<any> {
+    if (!repoInfo) return null;
+
+    try {
+      switch (repoInfo.platform) {
+        case 'github':
+          return await this.fetchFromGitHubApi(repoInfo.owner, repoInfo.repo);
+        case 'gitlab':
+          return await this.fetchFromGitLabApi(repoInfo.owner, repoInfo.repo);
+        case 'bitbucket':
+          return await this.fetchFromBitbucketApi(repoInfo.owner, repoInfo.repo);
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch from ${repoInfo.platform} API:`, error);
+      return null;
+    }
+  }
+
+  private async fetchFromGitHubApi(owner: string, repo: string): Promise<any> {
+    try {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+      if (!response.ok) {
+        throw new Error(`GitHub API returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return {
+        name: data.name,
+        description: data.description || 'No description available',
+        defaultBranch: data.default_branch || 'main',
+        lastCommit: {
+          hash: data.updated_at ? 'latest' : 'unknown', // GitHub API doesn't provide latest commit hash directly
+          timestamp: data.updated_at || new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      console.warn('GitHub API fetch failed:', error);
+      return null;
+    }
+  }
+
+  private async fetchFromGitLabApi(owner: string, repo: string): Promise<any> {
+    try {
+      // GitLab API requires authentication for private repos, but we can try public repos
+      const response = await fetch(`https://gitlab.com/api/v4/projects/${encodeURIComponent(`${owner}/${repo}`)}`);
+      if (!response.ok) {
+        throw new Error(`GitLab API returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return {
+        name: data.name,
+        description: data.description || 'No description available',
+        defaultBranch: data.default_branch || 'main',
+        lastCommit: {
+          hash: data.last_activity_at ? 'latest' : 'unknown',
+          timestamp: data.last_activity_at || new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      console.warn('GitLab API fetch failed:', error);
+      return null;
+    }
+  }
+
+  private async fetchFromBitbucketApi(owner: string, repo: string): Promise<any> {
+    try {
+      const response = await fetch(`https://api.bitbucket.org/2.0/repositories/${owner}/${repo}`);
+      if (!response.ok) {
+        throw new Error(`Bitbucket API returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return {
+        name: data.name,
+        description: data.description || 'No description available',
+        defaultBranch: data.mainbranch?.name || 'main',
+        lastCommit: {
+          hash: data.updated_on ? 'latest' : 'unknown',
+          timestamp: data.updated_on || new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      console.warn('Bitbucket API fetch failed:', error);
+      return null;
+    }
+  }
+
+  private async fetchFromGitCommands(repoUrl: string): Promise<any> {
+    try {
+      // Create a temporary directory for shallow clone
+      const { dir } = await import('tmp-promise');
+      const tmpDir = await dir({ unsafeCleanup: true });
+      
+      try {
+        // Shallow clone to get basic information
+        await simpleGit().clone(repoUrl, tmpDir.path, ['--depth', '1']);
+        
+        const git = simpleGit(tmpDir.path);
+        
+        // Get repository name from remote
+        const remotes = await git.getRemotes(true);
+        const originRemote = remotes.find(remote => remote.name === 'origin');
+        const repoName = originRemote?.refs?.fetch?.split('/').pop()?.replace('.git', '') || 'unknown';
+        
+        // Get default branch
+        const defaultBranch = await git.revparse(['--abbrev-ref', 'HEAD']);
+        
+        // Get latest commit information
+        const log = await git.log({ maxCount: 1 });
+        const lastCommit = log.latest ? {
+          hash: log.latest.hash,
+          timestamp: log.latest.date,
+        } : {
+          hash: 'unknown',
+          timestamp: new Date().toISOString(),
+        };
+        
+        // Try to get description from README or other files
+        const description = await this.extractDescription(tmpDir.path);
+        
+        return {
+          name: repoName,
+          description: description || 'No description available',
+          defaultBranch: defaultBranch || 'main',
+          lastCommit,
+        };
+      } finally {
+        await tmpDir.cleanup();
+      }
+    } catch (error) {
+      console.warn('Git commands fetch failed:', error);
+      return null;
+    }
+  }
+
+  private async extractDescription(repoPath: string): Promise<string> {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Try to read README files
+      const readmeFiles = ['README.md', 'README.txt', 'README.rst', 'readme.md'];
+      
+      for (const readmeFile of readmeFiles) {
+        const readmePath = path.join(repoPath, readmeFile);
+        if (fs.existsSync(readmePath)) {
+          const content = fs.readFileSync(readmePath, 'utf8');
+          // Extract first paragraph or first few lines as description
+          const lines = content.split('\n').filter(line => line.trim());
+          if (lines.length > 0) {
+            // Remove markdown formatting and return first meaningful line
+            const firstLine = lines[0].replace(/^#+\s*/, '').replace(/[*`]/g, '').trim();
+            if (firstLine && firstLine.length > 10) {
+              return firstLine.substring(0, 200) + (firstLine.length > 200 ? '...' : '');
+            }
+          }
+        }
+      }
+      
+      return 'No description available';
+    } catch (error) {
+      console.warn('Failed to extract description:', error);
+      return 'No description available';
+    }
+  }
+
+  private getFallbackMetadata(repoUrl: string): any {
+    // Extract repo name from URL as fallback
+    const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'unknown';
+    
+    return {
+      name: repoName,
+      description: 'Repository information unavailable',
+      defaultBranch: 'main',
+      lastCommit: {
+        hash: 'unknown',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+} 

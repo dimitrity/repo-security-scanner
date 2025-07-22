@@ -1,12 +1,8 @@
 import { Module } from '@nestjs/common';
-import { SecurityScanController } from './security-scan.controller';
-import { SecurityScanService } from './security-scan.service';
-import { ConfigModule } from './config.module';
-
+import { ConfigModule } from './config/config.module';
+import { SecurityScanModule } from './security-scan/security-scan.module';
 
 @Module({
-  imports: [ConfigModule],
-  controllers: [SecurityScanController],
-  providers: [SecurityScanService],
+  imports: [ConfigModule, SecurityScanModule],
 })
 export class AppModule {}

@@ -1,6 +1,6 @@
 import { Body, Controller, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { SecurityScanService } from './security-scan.service';
-import { ApiKeyGuard } from './api-key.guard';
+import { ApiKeyGuard } from './guards/api-key.guard';
 import { ScanRequestDto } from './dto/scan-request.dto';
 
 @UseGuards(ApiKeyGuard)

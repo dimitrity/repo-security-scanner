@@ -3,9 +3,13 @@ import simpleGit from 'simple-git';
 
 // Mock simple-git
 jest.mock('simple-git', () => {
-  return jest.fn(() => ({
+  const mockGit = jest.fn(() => ({
     clone: jest.fn(),
+    getRemotes: jest.fn(),
+    revparse: jest.fn(),
+    log: jest.fn(),
   }));
+  return mockGit;
 });
 
 describe('GitScmProvider', () => {
@@ -84,7 +88,23 @@ describe('GitScmProvider', () => {
   describe('fetchRepoMetadata', () => {
     const testRepoUrl = 'https://github.com/test/repo';
 
-    it('should return mock metadata structure', async () => {
+    beforeEach(() => {
+      // Mock fetch for API calls
+      global.fetch = jest.fn();
+    });
+
+    it('should return metadata structure', async () => {
+      // Mock GitHub API response
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          name: 'test-repo',
+          description: 'Test repository',
+          default_branch: 'main',
+          updated_at: '2024-01-01T00:00:00Z'
+        })
+      });
+
       const metadata = await provider.fetchRepoMetadata(testRepoUrl);
 
       expect(metadata).toHaveProperty('name');
@@ -95,55 +115,95 @@ describe('GitScmProvider', () => {
       expect(metadata.lastCommit).toHaveProperty('timestamp');
     });
 
-    it('should return expected mock values', async () => {
+    it('should fetch from GitHub API for GitHub URLs', async () => {
+      const mockResponse = {
+        name: 'test-repo',
+        description: 'Test repository',
+        default_branch: 'main',
+        updated_at: '2024-01-01T00:00:00Z'
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
+      });
+
       const metadata = await provider.fetchRepoMetadata(testRepoUrl);
-
-      expect(metadata.name).toBe('mock-repo');
-      expect(metadata.description).toBe('A mock repository');
-      expect(metadata.defaultBranch).toBe('main');
-      expect(metadata.lastCommit.hash).toBe('abc123');
-      expect(metadata.lastCommit.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-    });
-
-    it('should return consistent timestamp format', async () => {
-      const metadata1 = await provider.fetchRepoMetadata(testRepoUrl);
-      const metadata2 = await provider.fetchRepoMetadata(testRepoUrl);
-
-      // Both should be valid ISO date strings
-      expect(new Date(metadata1.lastCommit.timestamp)).toBeInstanceOf(Date);
-      expect(new Date(metadata2.lastCommit.timestamp)).toBeInstanceOf(Date);
       
-      // Should have the same format (both should be valid ISO strings)
-      expect(metadata1.lastCommit.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-      expect(metadata2.lastCommit.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      expect(global.fetch).toHaveBeenCalledWith('https://api.github.com/repos/test/repo');
+      expect(metadata.name).toBe('test-repo');
+      expect(metadata.description).toBe('Test repository');
+      expect(metadata.defaultBranch).toBe('main');
     });
 
-    it('should handle different repository URLs', async () => {
-      const urls = [
-        'https://github.com/user/repo',
-        'https://gitlab.com/user/repo',
-        'https://bitbucket.org/user/repo',
-        'https://github.com/user/repo.git',
-      ];
+    it('should fetch from GitLab API for GitLab URLs', async () => {
+      const mockResponse = {
+        name: 'test-repo',
+        description: 'Test repository',
+        default_branch: 'main',
+        last_activity_at: '2024-01-01T00:00:00Z'
+      };
 
-      for (const url of urls) {
-        const metadata = await provider.fetchRepoMetadata(url);
-        expect(metadata.name).toBe('mock-repo');
-        expect(metadata.description).toBe('A mock repository');
-      }
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      const metadata = await provider.fetchRepoMetadata('https://gitlab.com/test/repo');
+      
+      expect(global.fetch).toHaveBeenCalledWith('https://gitlab.com/api/v4/projects/test%2Frepo');
+      expect(metadata.name).toBe('test-repo');
+      expect(metadata.description).toBe('Test repository');
     });
 
-    it('should handle empty repository URL', async () => {
-      const metadata = await provider.fetchRepoMetadata('');
-      expect(metadata.name).toBe('mock-repo');
+    it('should fetch from Bitbucket API for Bitbucket URLs', async () => {
+      const mockResponse = {
+        name: 'test-repo',
+        description: 'Test repository',
+        mainbranch: { name: 'main' },
+        updated_on: '2024-01-01T00:00:00Z'
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      const metadata = await provider.fetchRepoMetadata('https://bitbucket.org/test/repo');
+      
+      expect(global.fetch).toHaveBeenCalledWith('https://api.bitbucket.org/2.0/repositories/test/repo');
+      expect(metadata.name).toBe('test-repo');
+      expect(metadata.description).toBe('Test repository');
     });
 
-    it('should handle null repository URL', async () => {
-      const metadata = await provider.fetchRepoMetadata(null as any);
-      expect(metadata.name).toBe('mock-repo');
+    it('should handle API failures gracefully', async () => {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('API Error'));
+
+      const metadata = await provider.fetchRepoMetadata(testRepoUrl);
+      
+      expect(metadata.name).toBe('repo');
+      expect(metadata.description).toBe('Repository information unavailable');
+      expect(metadata.lastCommit.hash).toBe('unknown');
+    });
+
+    it('should handle malformed URLs', async () => {
+      const metadata = await provider.fetchRepoMetadata('invalid-url');
+      
+      expect(metadata.name).toBe('invalid-url');
+      expect(metadata.description).toBe('Repository information unavailable');
     });
 
     it('should return metadata with correct types', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          name: 'test-repo',
+          description: 'Test repository',
+          default_branch: 'main',
+          updated_at: '2024-01-01T00:00:00Z'
+        })
+      });
+
       const metadata = await provider.fetchRepoMetadata(testRepoUrl);
 
       expect(typeof metadata.name).toBe('string');
@@ -154,6 +214,16 @@ describe('GitScmProvider', () => {
     });
 
     it('should return non-empty values', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          name: 'test-repo',
+          description: 'Test repository',
+          default_branch: 'main',
+          updated_at: '2024-01-01T00:00:00Z'
+        })
+      });
+
       const metadata = await provider.fetchRepoMetadata(testRepoUrl);
 
       expect(metadata.name.length).toBeGreaterThan(0);
@@ -174,13 +244,24 @@ describe('GitScmProvider', () => {
       };
       mockGit.mockReturnValue(mockGitInstance as any);
 
+      // Mock GitHub API response
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          name: 'test-repo',
+          description: 'Test repository',
+          default_branch: 'main',
+          updated_at: '2024-01-01T00:00:00Z'
+        })
+      });
+
       // Clone repository
       await provider.cloneRepository(testRepoUrl, testTargetPath);
       expect(mockGitInstance.clone).toHaveBeenCalledWith(testRepoUrl, testTargetPath);
 
       // Fetch metadata
       const metadata = await provider.fetchRepoMetadata(testRepoUrl);
-      expect(metadata.name).toBe('mock-repo');
+      expect(metadata.name).toBe('test-repo');
     });
 
     it('should handle multiple operations in sequence', async () => {

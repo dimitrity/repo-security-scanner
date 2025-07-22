@@ -1,4 +1,4 @@
-import { SecurityScanner } from './scanners.interface';
+import { SecurityScanner } from '../interfaces/scanners.interface';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';

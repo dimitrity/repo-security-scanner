@@ -1,24 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ScanResultDto } from './dto/scan-result.dto';
 import * as tmp from 'tmp-promise';
-import { ScmProvider } from './scm.interface';
-import { SecurityScanner } from './scanners.interface';
-import { GitScmProvider } from './scm-git.provider';
-import { SemgrepScanner } from './scanner-semgrep.service';
+import { ScmProvider } from './interfaces/scm.interface';
+import { SecurityScanner } from './interfaces/scanners.interface';
+import { GitScmProvider } from './providers/scm-git.provider';
+import { SemgrepScanner } from './providers/scanner-semgrep.service';
 import * as fs from 'fs';
 
 @Injectable()
 export class SecurityScanService {
   private readonly logger = new Logger(SecurityScanService.name);
-  private readonly scmProvider: ScmProvider;
-  private readonly scanners: SecurityScanner[];
   private lastScanPath: string | null = null; // For demo: store last scan path
 
-  constructor() {
-    // Default to Git and Semgrep; can be replaced with DI or config
-    this.scmProvider = new GitScmProvider();
-    this.scanners = [new SemgrepScanner()];
-  }
+  constructor(
+    private readonly scmProvider: GitScmProvider,
+    @Inject('SCANNERS') private readonly scanners: SecurityScanner[],
+  ) {}
 
   async scanRepository(repoUrl: string): Promise<ScanResultDto> {
     // 1. Clone the repository to a temp directory
