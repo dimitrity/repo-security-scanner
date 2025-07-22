@@ -37,13 +37,21 @@ export class SecurityScanService {
       this.logger.log(`Change detection result:`, changeInfo);
       
       if (!changeInfo.hasChanges) {
-        this.logger.log(`No changes detected for ${repoUrl}, skipping scan`);
+        this.logger.log(`No changes detected for ${repoUrl}, returning no-change finding instead of performing scan`);
         const metadata = await this.scmProvider.fetchRepoMetadata(repoUrl);
         
         return {
           repository: metadata,
           scanner: { name: 'Change Detection', version: '1.0' },
-          findings: [],
+          findings: [
+            {
+              ruleId: 'CHANGE-DETECTION-001',
+              message: 'No changes detected for the repo',
+              filePath: 'N/A',
+              line: 0,
+              severity: 'info',
+            },
+          ],
           changeDetection: {
             ...changeInfo,
             scanSkipped: true,

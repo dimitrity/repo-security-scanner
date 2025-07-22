@@ -182,6 +182,7 @@ curl -X GET http://localhost:3000/scan/statistics \
 - Should return `changeDetection.scanSkipped: true`
 - Should return `changeDetection.reason: "No changes detected since last scan"`
 - Should return `scanner.name: "Change Detection"`
+- Should return a finding with message "No changes detected for the repo"
 
 ### Force Scan
 - Should bypass change detection

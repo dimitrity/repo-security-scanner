@@ -153,7 +153,7 @@ describe('SecurityScanService', () => {
           });
         });
 
-        it('should skip scan and return change detection info', async () => {
+        it('should skip scan and return no-change finding', async () => {
           const result = await service.scanRepository(testRepoUrl);
 
           expect(gitScmProvider.hasChangesSince).toHaveBeenCalledWith(testRepoUrl, 'abc123');
@@ -164,7 +164,15 @@ describe('SecurityScanService', () => {
           expect(result).toEqual({
             repository: testMetadata,
             scanner: { name: 'Change Detection', version: '1.0' },
-            findings: [],
+            findings: [
+              {
+                ruleId: 'CHANGE-DETECTION-001',
+                message: 'No changes detected for the repo',
+                filePath: 'N/A',
+                line: 0,
+                severity: 'info',
+              },
+            ],
             changeDetection: {
               hasChanges: false,
               lastCommitHash: 'abc123',

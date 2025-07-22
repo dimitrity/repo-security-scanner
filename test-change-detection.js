@@ -38,6 +38,16 @@ try {
       
       if (scanResult2.changeDetection?.scanSkipped) {
         console.log('✅ Scan correctly skipped - no changes detected');
+        if (scanResult2.findings && scanResult2.findings.length > 0) {
+          const noChangeFinding = scanResult2.findings.find(f => f.message === 'No changes detected for the repo');
+          if (noChangeFinding) {
+            console.log('✅ No-change finding correctly returned');
+          } else {
+            console.log('❌ No-change finding not found in results');
+          }
+        } else {
+          console.log('❌ No findings returned for skipped scan');
+        }
       } else {
         console.log('❌ Scan was not skipped - change detection may not be working');
       }

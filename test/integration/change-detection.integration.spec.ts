@@ -66,7 +66,15 @@ describe('Change Detection Integration', () => {
       expect(response.body.changeDetection.hasChanges).toBe(false);
       expect(response.body.changeDetection.reason).toBe('No changes detected since last scan');
       expect(response.body.scanner.name).toBe('Change Detection');
-      expect(response.body.findings).toEqual([]);
+      expect(response.body.findings).toEqual([
+        {
+          ruleId: 'CHANGE-DETECTION-001',
+          message: 'No changes detected for the repo',
+          filePath: 'N/A',
+          line: 0,
+          severity: 'info',
+        },
+      ]);
     });
 
     it('should perform scan when changes are detected', async () => {

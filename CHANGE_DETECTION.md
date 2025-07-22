@@ -51,7 +51,15 @@ X-API-Key: your-api-key
     "name": "Change Detection",
     "version": "1.0"
   },
-  "findings": [],
+  "findings": [
+    {
+      "ruleId": "CHANGE-DETECTION-001",
+      "message": "No changes detected for the repo",
+      "filePath": "N/A",
+      "line": 0,
+      "severity": "info"
+    }
+  ],
   "changeDetection": {
     "hasChanges": false,
     "lastCommitHash": "abc123def456",
