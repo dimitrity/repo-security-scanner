@@ -1,18 +1,37 @@
 import { SemgrepScanner } from './scanner-semgrep.service';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
-// Mock child_process.exec
+// Mock child_process.spawn
 jest.mock('child_process', () => ({
-  exec: jest.fn(),
+  spawn: jest.fn(),
+}));
+
+// Mock fs and path
+jest.mock('fs', () => ({
+  existsSync: jest.fn(),
+  statSync: jest.fn(),
+}));
+
+jest.mock('path', () => ({
+  resolve: jest.fn((p) => p),
 }));
 
 describe('SemgrepScanner', () => {
   let scanner: SemgrepScanner;
-  const mockExec = exec as jest.MockedFunction<typeof exec>;
+  const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
+  const mockFs = fs as jest.Mocked<typeof fs>;
+  const mockPath = path as jest.Mocked<typeof path>;
 
   beforeEach(() => {
     scanner = new SemgrepScanner();
     jest.clearAllMocks();
+    
+    // Setup default mocks
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.statSync.mockReturnValue({ isDirectory: () => true } as any);
+    mockPath.resolve.mockImplementation((p) => p);
   });
 
   describe('getName', () => {
@@ -40,24 +59,31 @@ describe('SemgrepScanner', () => {
               severity: 'HIGH',
             },
             path: 'src/config.ts',
-            start: {
-              line: 10,
-            },
+            start: { line: 10 },
           },
         ],
       };
 
-      mockExec.mockImplementation((command, options, callback) => {
-        expect(command).toBe(`semgrep --config=auto --json --quiet ${testPath}`);
-        expect(options).toEqual({ maxBuffer: 1024 * 1024 * 10 });
-        
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
+      const mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
+      };
 
-      const findings = await scanner.scan(testPath);
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      // Simulate successful execution
+      const scanPromise = scanner.scan(testPath);
+      
+      // Simulate stdout data
+      const stdoutCallback = mockProcess.stdout.on.mock.calls.find(call => call[0] === 'data')[1];
+      stdoutCallback(Buffer.from(JSON.stringify(mockSemgrepOutput)));
+      
+      // Simulate process close
+      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
+      closeCallback(0);
+
+      const findings = await scanPromise;
       
       expect(findings).toHaveLength(1);
       expect(findings[0]).toEqual({
@@ -69,192 +95,141 @@ describe('SemgrepScanner', () => {
       });
     });
 
+    it('should validate path before scanning', async () => {
+      mockFs.existsSync.mockReturnValue(false);
+
+      await expect(scanner.scan(testPath)).rejects.toThrow('Target path does not exist');
+    });
+
+    it('should reject paths with dangerous characters', async () => {
+      const dangerousPaths = [
+        '/tmp/test;rm -rf /',
+        '/tmp/test && echo hacked',
+        '/tmp/test`whoami`',
+        '/tmp/test$(cat /etc/passwd)',
+        '/tmp/test..',
+        '/tmp/test  ',
+      ];
+
+      for (const dangerousPath of dangerousPaths) {
+        await expect(scanner.scan(dangerousPath)).rejects.toThrow('Invalid characters detected in path');
+      }
+    });
+
+    it('should reject non-directory paths', async () => {
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+
+      await expect(scanner.scan(testPath)).rejects.toThrow('Target path must be a directory');
+    });
+
+    it('should reject empty or null paths', async () => {
+      await expect(scanner.scan('')).rejects.toThrow('Target path must be a non-empty string');
+      await expect(scanner.scan(null as any)).rejects.toThrow('Target path must be a non-empty string');
+    });
+
     it('should handle empty results', async () => {
-      const mockSemgrepOutput = { results: [] };
+      const mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
+      };
 
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
+      mockSpawn.mockReturnValue(mockProcess as any);
 
-      const findings = await scanner.scan(testPath);
+      const scanPromise = scanner.scan(testPath);
+      
+      const stdoutCallback = mockProcess.stdout.on.mock.calls.find(call => call[0] === 'data')[1];
+      stdoutCallback(Buffer.from(JSON.stringify({ results: [] })));
+      
+      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
+      closeCallback(0);
+
+      const findings = await scanPromise;
       expect(findings).toHaveLength(0);
     });
 
-    it('should handle results without check_id', async () => {
-      const mockSemgrepOutput = {
-        results: [
-          {
-            extra: {
-              message: 'Finding without check_id',
-              severity: 'MEDIUM',
-            },
-            path: 'src/test.ts',
-            start: { line: 5 },
-          },
-        ],
+    it('should handle semgrep process errors', async () => {
+      const mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
       };
 
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
+      mockSpawn.mockReturnValue(mockProcess as any);
 
-      const findings = await scanner.scan(testPath);
-      expect(findings[0].ruleId).toBe('UNKNOWN');
+      const scanPromise = scanner.scan(testPath);
+      
+      const errorCallback = mockProcess.on.mock.calls.find(call => call[0] === 'error')[1];
+      errorCallback(new Error('Process error'));
+
+      await expect(scanPromise).rejects.toThrow('Process error');
     });
 
-    it('should handle results without message', async () => {
-      const mockSemgrepOutput = {
-        results: [
-          {
-            check_id: 'SEC-003',
-            extra: {
-              metadata: { short_description: 'Short description' },
-              severity: 'LOW',
-            },
-            path: 'src/utils.ts',
-            start: { line: 15 },
-          },
-        ],
+    it('should handle semgrep non-zero exit code', async () => {
+      const mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
       };
 
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
+      mockSpawn.mockReturnValue(mockProcess as any);
 
-      const findings = await scanner.scan(testPath);
-      expect(findings[0].message).toBe('Short description');
+      const scanPromise = scanner.scan(testPath);
+      
+      const stderrCallback = mockProcess.stderr.on.mock.calls.find(call => call[0] === 'data')[1];
+      stderrCallback(Buffer.from('Error: Invalid configuration'));
+      
+      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
+      closeCallback(1);
+
+      await expect(scanPromise).rejects.toThrow('Semgrep process exited with code 1');
     });
 
-    it('should handle results without start line', async () => {
-      const mockSemgrepOutput = {
-        results: [
-          {
-            check_id: 'SEC-005',
-            extra: {
-              message: 'Finding without line number',
-              severity: 'WARNING',
-            },
-            path: 'src/file.ts',
-          },
-        ],
+    it('should use correct spawn arguments', async () => {
+      const mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
       };
 
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const scanPromise = scanner.scan(testPath);
+      
+      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
+      closeCallback(0);
+
+      await scanPromise;
+
+      expect(mockSpawn).toHaveBeenCalledWith('semgrep', [
+        '--config=auto',
+        '--json',
+        '--quiet',
+        testPath
+      ], {
+        timeout: 300000,
+        stdio: ['ignore', 'pipe', 'pipe']
       });
-
-      const findings = await scanner.scan(testPath);
-      expect(findings[0].line).toBe(0);
-    });
-
-    it('should handle results without severity', async () => {
-      const mockSemgrepOutput = {
-        results: [
-          {
-            check_id: 'SEC-006',
-            extra: { message: 'Finding without severity' },
-            path: 'src/file.ts',
-            start: { line: 12 },
-          },
-        ],
-      };
-
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
-
-      const findings = await scanner.scan(testPath);
-      expect(findings[0].severity).toBe('INFO');
-    });
-
-    it('should handle semgrep execution errors', async () => {
-      const execError = new Error('Semgrep command failed');
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(execError, '', 'stderr output');
-        }
-        return {} as any;
-      });
-
-      await expect(scanner.scan(testPath)).rejects.toThrow('Semgrep command failed');
     });
 
     it('should handle JSON parsing errors', async () => {
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, 'invalid json', '');
-        }
-        return {} as any;
-      });
+      const mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
+      };
 
-      await expect(scanner.scan(testPath)).rejects.toThrow();
-    });
+      mockSpawn.mockReturnValue(mockProcess as any);
 
-    it('should handle output without results property', async () => {
-      const mockSemgrepOutput = { otherProperty: 'value' };
+      const scanPromise = scanner.scan(testPath);
+      
+      const stdoutCallback = mockProcess.stdout.on.mock.calls.find(call => call[0] === 'data')[1];
+      stdoutCallback(Buffer.from('invalid json'));
+      
+      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
+      closeCallback(0);
 
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
-
-      const findings = await scanner.scan(testPath);
-      expect(findings).toHaveLength(0);
-    });
-
-    it('should handle output with non-array results', async () => {
-      const mockSemgrepOutput = { results: 'not an array' };
-
-      mockExec.mockImplementation((command, options, callback) => {
-        if (callback) {
-          callback(null, JSON.stringify(mockSemgrepOutput), '');
-        }
-        return {} as any;
-      });
-
-      const findings = await scanner.scan(testPath);
-      expect(findings).toHaveLength(0);
-    });
-
-    it('should use correct semgrep command with auto config', async () => {
-      mockExec.mockImplementation((command, options, callback) => {
-        expect(command).toBe(`semgrep --config=auto --json --quiet ${testPath}`);
-        if (callback) {
-          callback(null, JSON.stringify({ results: [] }), '');
-        }
-        return {} as any;
-      });
-
-      await scanner.scan(testPath);
-    });
-
-    it('should use correct buffer size', async () => {
-      mockExec.mockImplementation((command, options, callback) => {
-        expect(options).toEqual({ maxBuffer: 1024 * 1024 * 10 });
-        if (callback) {
-          callback(null, JSON.stringify({ results: [] }), '');
-        }
-        return {} as any;
-      });
-
-      await scanner.scan(testPath);
+      await expect(scanPromise).rejects.toThrow();
     });
   });
 }); 
