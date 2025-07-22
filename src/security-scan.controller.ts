@@ -3,7 +3,7 @@ import { SecurityScanService } from './security-scan.service';
 import { ApiKeyGuard } from './api-key.guard';
 import { ScanRequestDto } from './dto/scan-request.dto';
 
-//@UseGuards(ApiKeyGuard)
+@UseGuards(ApiKeyGuard)
 @Controller('scan')
 export class SecurityScanController {
   constructor(private readonly scanService: SecurityScanService) {}
