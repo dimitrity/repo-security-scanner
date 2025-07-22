@@ -9,4 +9,15 @@ export interface ScmProvider {
       timestamp: string;
     };
   }>;
+  getLastCommitHash(repoUrl: string): Promise<string>;
+  hasChangesSince(repoUrl: string, lastCommitHash: string): Promise<{
+    hasChanges: boolean;
+    lastCommitHash: string;
+    changeSummary?: {
+      filesChanged: number;
+      additions: number;
+      deletions: number;
+      commits: number;
+    };
+  }>;
 } 

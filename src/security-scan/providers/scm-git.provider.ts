@@ -252,4 +252,101 @@ export class GitScmProvider implements ScmProvider {
       },
     };
   }
+
+  async getLastCommitHash(repoUrl: string): Promise<string> {
+    try {
+      // Try to get from API first
+      const repoInfo = this.parseRepoUrl(repoUrl);
+      if (repoInfo) {
+        const apiMetadata = await this.fetchFromGitApi(repoInfo);
+        if (apiMetadata && apiMetadata.lastCommit?.hash && apiMetadata.lastCommit.hash !== 'unknown') {
+          return apiMetadata.lastCommit.hash;
+        }
+      }
+
+      // Fallback: Use git commands
+      const { dir } = await import('tmp-promise');
+      const tmpDir = await dir({ unsafeCleanup: true });
+      
+      try {
+        await simpleGit().clone(repoUrl, tmpDir.path, ['--depth', '1']);
+        const git = simpleGit(tmpDir.path);
+        const log = await git.log({ maxCount: 1 });
+        return log.latest?.hash || 'unknown';
+      } finally {
+        await tmpDir.cleanup();
+      }
+    } catch (error) {
+      console.warn(`Failed to get last commit hash for ${repoUrl}:`, error);
+      return 'unknown';
+    }
+  }
+
+  async hasChangesSince(repoUrl: string, lastCommitHash: string): Promise<{
+    hasChanges: boolean;
+    lastCommitHash: string;
+    changeSummary?: {
+      filesChanged: number;
+      additions: number;
+      deletions: number;
+      commits: number;
+    };
+  }> {
+    try {
+      // Get current last commit hash
+      const currentLastCommit = await this.getLastCommitHash(repoUrl);
+      
+      if (currentLastCommit === 'unknown' || lastCommitHash === 'unknown') {
+        return {
+          hasChanges: true, // Assume changes if we can't determine
+          lastCommitHash: currentLastCommit,
+        };
+      }
+
+      // If hashes are the same, no changes
+      if (currentLastCommit === lastCommitHash) {
+        return {
+          hasChanges: false,
+          lastCommitHash: currentLastCommit,
+        };
+      }
+
+      // Get detailed change information
+      const { dir } = await import('tmp-promise');
+      const tmpDir = await dir({ unsafeCleanup: true });
+      
+      try {
+        await simpleGit().clone(repoUrl, tmpDir.path);
+        const git = simpleGit(tmpDir.path);
+        
+        // Get commit range
+        const log = await git.log({
+          from: lastCommitHash,
+          to: currentLastCommit,
+        });
+
+        // Get diff stats
+        const diffStats = await git.diffSummary([lastCommitHash, currentLastCommit]);
+        
+        return {
+          hasChanges: true,
+          lastCommitHash: currentLastCommit,
+          changeSummary: {
+            filesChanged: diffStats.files.length,
+            additions: diffStats.insertions,
+            deletions: diffStats.deletions,
+            commits: log.total,
+          },
+        };
+      } finally {
+        await tmpDir.cleanup();
+      }
+    } catch (error) {
+      console.warn(`Failed to check changes for ${repoUrl}:`, error);
+      return {
+        hasChanges: true, // Assume changes if we can't determine
+        lastCommitHash: await this.getLastCommitHash(repoUrl),
+      };
+    }
+  }
 } 

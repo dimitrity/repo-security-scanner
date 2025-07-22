@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Post, Get, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { SecurityScanService } from './security-scan.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { ScanRequestDto } from './dto/scan-request.dto';
@@ -12,5 +12,21 @@ export class SecurityScanController {
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async scanRepository(@Body() body: ScanRequestDto): Promise<any> {
     return this.scanService.scanRepository(body.repoUrl);
+  }
+
+  @Post('force')
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async forceScanRepository(@Body() body: ScanRequestDto): Promise<any> {
+    return this.scanService.forceScanRepository(body.repoUrl);
+  }
+
+  @Get('statistics')
+  async getScanStatistics(): Promise<any> {
+    return this.scanService.getScanStatistics();
+  }
+
+  @Get('records')
+  async getAllScanRecords(): Promise<any> {
+    return this.scanService.getAllScanRecords();
   }
 } 

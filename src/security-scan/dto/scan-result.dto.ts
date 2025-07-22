@@ -19,4 +19,16 @@ export class ScanResultDto {
     line: number;
     severity: string;
   }>;
+  changeDetection?: {
+    hasChanges: boolean;
+    lastCommitHash: string;
+    changeSummary?: {
+      filesChanged: number;
+      additions: number;
+      deletions: number;
+      commits: number;
+    };
+    scanSkipped?: boolean;
+    reason?: string;
+  };
 } 

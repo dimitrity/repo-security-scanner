@@ -4,6 +4,7 @@ import { SecurityScanService } from './security-scan.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { GitScmProvider } from './providers/scm-git.provider';
 import { SemgrepScanner } from './providers/scanner-semgrep.service';
+import { ScanStorageService } from './providers/scan-storage.service';
 import { SecurityScanner } from './interfaces/scanners.interface';
 
 @Module({
@@ -13,6 +14,7 @@ import { SecurityScanner } from './interfaces/scanners.interface';
     ApiKeyGuard,
     GitScmProvider,
     SemgrepScanner,
+    ScanStorageService,
     {
       provide: 'SCANNERS',
       useFactory: (semgrepScanner: SemgrepScanner): SecurityScanner[] => {
