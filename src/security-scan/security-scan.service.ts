@@ -31,7 +31,10 @@ export class SecurityScanService {
 
     if (!forceScan && lastScanRecord) {
       this.logger.log(`Checking for changes since last scan of ${repoUrl}`);
+      this.logger.log(`Last scan commit hash: ${lastScanRecord.lastCommitHash}`);
+      
       const changeInfo = await this.scmProvider.hasChangesSince(repoUrl, lastScanRecord.lastCommitHash);
+      this.logger.log(`Change detection result:`, changeInfo);
       
       if (!changeInfo.hasChanges) {
         this.logger.log(`No changes detected for ${repoUrl}, skipping scan`);
@@ -49,11 +52,14 @@ export class SecurityScanService {
         };
       }
       
+      this.logger.log(`Changes detected for ${repoUrl}, proceeding with scan`);
       changeDetection = {
         ...changeInfo,
         scanSkipped: false,
         reason: undefined,
       };
+    } else {
+      this.logger.log(`No previous scan record found for ${repoUrl} or force scan requested`);
     }
 
     // 2. Clone the repository to a temp directory

@@ -255,20 +255,12 @@ export class GitScmProvider implements ScmProvider {
 
   async getLastCommitHash(repoUrl: string): Promise<string> {
     try {
-      // Try to get from API first
-      const repoInfo = this.parseRepoUrl(repoUrl);
-      if (repoInfo) {
-        const apiMetadata = await this.fetchFromGitApi(repoInfo);
-        if (apiMetadata && apiMetadata.lastCommit?.hash && apiMetadata.lastCommit.hash !== 'unknown') {
-          return apiMetadata.lastCommit.hash;
-        }
-      }
-
-      // Fallback: Use git commands
+      // Use git commands for reliable commit hash
       const { dir } = await import('tmp-promise');
       const tmpDir = await dir({ unsafeCleanup: true });
       
       try {
+        // Clone with depth 1 to get latest commit
         await simpleGit().clone(repoUrl, tmpDir.path, ['--depth', '1']);
         const git = simpleGit(tmpDir.path);
         const log = await git.log({ maxCount: 1 });
@@ -316,17 +308,63 @@ export class GitScmProvider implements ScmProvider {
       const tmpDir = await dir({ unsafeCleanup: true });
       
       try {
+        // Clone full repository for detailed analysis
         await simpleGit().clone(repoUrl, tmpDir.path);
         const git = simpleGit(tmpDir.path);
         
-        // Get commit range
-        const log = await git.log({
-          from: lastCommitHash,
-          to: currentLastCommit,
-        });
+        // Check if the old commit exists in the repository
+        try {
+          await git.show([lastCommitHash, '--oneline', '--no-patch']);
+        } catch (commitError) {
+          // If old commit doesn't exist, assume changes
+          console.warn(`Old commit ${lastCommitHash} not found in repository`);
+          return {
+            hasChanges: true,
+            lastCommitHash: currentLastCommit,
+            changeSummary: {
+              filesChanged: 0,
+              additions: 0,
+              deletions: 0,
+              commits: 0,
+            },
+          };
+        }
+
+        // Get commit range - use more reliable method
+        let commits = 0;
+        try {
+          const log = await git.log({
+            from: lastCommitHash,
+            to: currentLastCommit,
+          });
+          commits = log.total;
+        } catch (logError) {
+          // If log range fails, try alternative approach
+          console.warn('Log range failed, trying alternative method:', logError);
+          try {
+            const log = await git.log({
+              from: `${lastCommitHash}..${currentLastCommit}`,
+            });
+            commits = log.total;
+          } catch (altLogError) {
+            console.warn('Alternative log method also failed:', altLogError);
+            commits = 0;
+          }
+        }
 
         // Get diff stats
-        const diffStats = await git.diffSummary([lastCommitHash, currentLastCommit]);
+        let diffStats: any = { files: [], insertions: 0, deletions: 0 };
+        try {
+          diffStats = await git.diffSummary([lastCommitHash, currentLastCommit]);
+        } catch (diffError) {
+          console.warn('Diff summary failed, trying alternative method:', diffError);
+          try {
+            diffStats = await git.diffSummary([`${lastCommitHash}..${currentLastCommit}`]);
+          } catch (altDiffError) {
+            console.warn('Alternative diff method also failed:', altDiffError);
+            diffStats = { files: [], insertions: 0, deletions: 0 };
+          }
+        }
         
         return {
           hasChanges: true,
@@ -335,7 +373,7 @@ export class GitScmProvider implements ScmProvider {
             filesChanged: diffStats.files.length,
             additions: diffStats.insertions,
             deletions: diffStats.deletions,
-            commits: log.total,
+            commits: commits,
           },
         };
       } finally {
