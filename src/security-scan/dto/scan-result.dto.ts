@@ -1,3 +1,4 @@
+
 export class ScanResultDto {
   repository: {
     name: string;

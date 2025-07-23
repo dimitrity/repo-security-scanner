@@ -417,4 +417,51 @@ export class SecurityScanService {
 
     return grouped;
   }
+
+  /**
+   * Get code context for a specific file and line in a repository
+   */
+  async getCodeContextForFile(repoUrl: string, filePath: string, line: number, contextLines: number = 3): Promise<any> {
+    const repoDir = await tmp.dir({ unsafeCleanup: true });
+    const repoPath = repoDir.path;
+    
+    try {
+      this.logger.log(`Cloning repo ${repoUrl} for code context`);
+      await this.scmProvider.cloneRepository(repoUrl, repoPath);
+      
+      // Fetch repository metadata for absolute web path conversion
+      const metadata = await this.scmProvider.fetchRepoMetadata(repoUrl);
+      
+      // Get enhanced code context
+      const codeContext = this.getEnhancedCodeContext(filePath, line, repoPath, repoUrl, metadata, contextLines);
+      
+      if (!codeContext) {
+        return {
+          error: 'File not found or unable to get code context',
+          filePath,
+          line,
+          repoUrl
+        };
+      }
+      
+      return {
+        repository: {
+          name: metadata.name,
+          url: repoUrl
+        },
+        codeContext
+      };
+      
+    } catch (error) {
+      this.logger.error(`Failed to get code context: ${error.message}`);
+      throw new Error(`Failed to get code context: ${error.message}`);
+    } finally {
+      // Clean up the temporary directory
+      try {
+        await repoDir.cleanup();
+      } catch (cleanupError) {
+        this.logger.warn(`Failed to cleanup temp directory: ${cleanupError.message}`);
+      }
+    }
+  }
 } 
