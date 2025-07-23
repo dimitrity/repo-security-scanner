@@ -4,6 +4,7 @@ import { SecurityScanService } from './security-scan.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { GitScmProvider } from './providers/scm-git.provider';
 import { SemgrepScanner } from './providers/scanner-semgrep.service';
+import { GitleaksScanner } from './providers/scanner-gitleaks.service';
 import { ScanStorageService } from './providers/scan-storage.service';
 import { SecurityScanner } from './interfaces/scanners.interface';
 
@@ -14,13 +15,14 @@ import { SecurityScanner } from './interfaces/scanners.interface';
     ApiKeyGuard,
     GitScmProvider,
     SemgrepScanner,
+    GitleaksScanner,
     ScanStorageService,
     {
       provide: 'SCANNERS',
-      useFactory: (semgrepScanner: SemgrepScanner): SecurityScanner[] => {
-        return [semgrepScanner];
+      useFactory: (semgrepScanner: SemgrepScanner, gitleaksScanner: GitleaksScanner): SecurityScanner[] => {
+        return [semgrepScanner, gitleaksScanner];
       },
-      inject: [SemgrepScanner],
+      inject: [SemgrepScanner, GitleaksScanner],
     },
   ],
   exports: [SecurityScanService],

@@ -12,6 +12,33 @@ export class SemgrepScanner implements SecurityScanner {
   }
 
   /**
+   * Convert absolute path to repository-relative path
+   */
+  private getRelativePath(absolutePath: string, targetPath: string): string {
+    const path = require('path');
+    
+    try {
+      // If the path is already relative, return it as-is
+      if (!path.isAbsolute(absolutePath)) {
+        return absolutePath;
+      }
+      
+      // Convert absolute path to relative path from the target directory
+      const relativePath = path.relative(targetPath, absolutePath);
+      
+      // If the relative path goes outside the target directory, use the original path
+      if (relativePath.startsWith('..')) {
+        return absolutePath;
+      }
+      
+      return relativePath;
+    } catch (error) {
+      // If path conversion fails, return the original path
+      return absolutePath;
+    }
+  }
+
+  /**
    * Validates and sanitizes the target path to prevent command injection
    * @param targetPath The path to validate
    * @returns The sanitized absolute path
@@ -101,7 +128,7 @@ export class SemgrepScanner implements SecurityScanner {
             const findings = semgrepOutput.results.map((result: any) => ({
               ruleId: result.check_id || 'UNKNOWN',
               message: result.extra?.message || result.extra?.metadata?.short_description || 'No message',
-              filePath: result.path,
+              filePath: this.getRelativePath(result.path, targetPath),
               line: result.start?.line || 0,
               severity: result.extra?.severity || 'INFO',
             }));

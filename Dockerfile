@@ -39,9 +39,15 @@ RUN apk add --no-cache git python3 py3-pip build-base && \
 # Set PATH for the virtual environment
 ENV PATH="/venv/bin:$PATH"
 
-# Install semgrep as root, then change ownership
+# Install semgrep and gitleaks as root, then change ownership
 RUN pip install semgrep && \
-    chown -R nestjs:nodejs /venv
+    chown -R nestjs:nodejs /venv && \
+    # Install Gitleaks
+    apk add --no-cache curl && \
+    curl -sSfL https://github.com/zricethezav/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz | tar -xz -C /tmp && \
+    mv /tmp/gitleaks /usr/local/bin/ && \
+    chmod +x /usr/local/bin/gitleaks && \
+    chown nestjs:nodejs /usr/local/bin/gitleaks
 
 # Copy only necessary files from builder
 COPY --from=builder /app/package*.json ./

@@ -194,24 +194,186 @@ Scans a repository for security vulnerabilities with intelligent change detectio
       "timestamp": "2024-01-01T12:00:00Z"
     }
   },
-  "scanner": {
-    "name": "Semgrep",
-    "version": "latest"
+  "summary": {
+    "totalIssues": 5,
+    "scanners": [
+      {
+        "name": "Semgrep",
+        "version": "latest",
+        "issuesFound": 2,
+        "summary": "Semgrep found 2 issues"
+      },
+      {
+        "name": "Gitleaks",
+        "version": "latest",
+        "issuesFound": 3,
+        "summary": "Gitleaks found 3 issues"
+      }
+    ]
   },
-  "findings": [
-    {
-      "ruleId": "security.weak-crypto",
-      "message": "Weak cryptographic algorithm detected",
-      "filePath": "src/auth.js",
-      "line": 15,
-      "severity": "high"
-    }
-  ],
+  "details": {
+    "scanners": [
+      {
+        "name": "Semgrep",
+        "version": "latest",
+        "totalIssues": 2,
+        "severityBreakdown": {
+          "high": 2,
+          "medium": 0,
+          "low": 0,
+          "info": 0
+        },
+        "findings": {
+          "high": [
+            {
+              "ruleId": "security.weak-crypto",
+              "message": "Weak cryptographic algorithm detected",
+              "filePath": "src/auth.js",
+              "line": 15,
+              "severity": "high",
+              "scanner": "Semgrep",
+              "codeContext": {
+                "filePath": "src/auth.js",
+                "line": 15,
+                "startLine": 12,
+                "endLine": 18,
+                "context": [
+                  {
+                    "lineNumber": 12,
+                    "content": "// Weak crypto example",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 13,
+                    "content": "const crypto = require('crypto');",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 14,
+                    "content": "",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 15,
+                    "content": "const hash = crypto.createHash('md5').update('password').digest('hex');",
+                    "isTargetLine": true
+                  },
+                  {
+                    "lineNumber": 16,
+                    "content": "",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 17,
+                    "content": "// This is vulnerable to rainbow table attacks",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 18,
+                    "content": "console.log('Hash:', hash);",
+                    "isTargetLine": false
+                  }
+                ]
+              }
+            }
+          ],
+          "medium": [],
+          "low": [],
+          "info": []
+        }
+      },
+      {
+        "name": "Gitleaks",
+        "version": "latest",
+        "totalIssues": 3,
+        "severityBreakdown": {
+          "high": 2,
+          "medium": 0,
+          "low": 0,
+          "info": 1
+        },
+        "findings": {
+          "high": [
+            {
+              "ruleId": "gitleaks.aws-access-token",
+              "message": "const awsKey = 'AKIAIOSFODNN7EXAMPLE';",
+              "filePath": "config/aws.js",
+              "line": 3,
+              "severity": "high",
+              "secret": "AKIAIOSFODNN7EXAMPLE",
+              "scanner": "Gitleaks",
+              "codeContext": {
+                "filePath": "config/aws.js",
+                "line": 3,
+                "startLine": 1,
+                "endLine": 6,
+                "context": [
+                  {
+                    "lineNumber": 1,
+                    "content": "// AWS Configuration",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 2,
+                    "content": "",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 3,
+                    "content": "const awsKey = 'AKIAIOSFODNN7EXAMPLE';",
+                    "isTargetLine": true
+                  },
+                  {
+                    "lineNumber": 4,
+                    "content": "const awsSecret = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY';",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 5,
+                    "content": "",
+                    "isTargetLine": false
+                  },
+                  {
+                    "lineNumber": 6,
+                    "content": "module.exports = { awsKey, awsSecret };",
+                    "isTargetLine": false
+                  }
+                ]
+              }
+            }
+          ],
+          "medium": [],
+          "low": [],
+          "info": [
+            {
+              "ruleId": "gitleaks.scan-summary",
+              "message": "Gitleaks scan completed - found 2 potential secret(s)",
+              "filePath": "N/A",
+              "line": 0,
+              "severity": "info",
+              "scanner": "Gitleaks",
+              "scanStatus": "completed_with_secrets",
+              "exitCode": 1,
+              "secretsFound": 2,
+              "codeContext": null
+            }
+          ]
+        }
+      }
+    ]
+  },
   "changeDetection": {
     "hasChanges": true,
     "lastCommitHash": "abc123def456",
     "scanSkipped": false
-  }
+  },
+  "scanner": {
+    "name": "Multiple Scanners",
+    "version": "latest"
+  },
+  "findings": [
+    // ... all findings in flat array (backward compatibility)
+  ]
 }
 ```
 
@@ -248,6 +410,72 @@ Scans a repository for security vulnerabilities with intelligent change detectio
   }
 }
 ```
+
+### Response Format
+
+The API now returns a structured output with two main sections:
+
+#### Summary Section
+Provides a high-level overview of all scan results:
+- **totalIssues**: Total number of issues found across all scanners
+- **scanners**: Array of scanner summaries with issue counts and human-readable summaries
+
+#### Details Section
+Organized by scanner and severity for easy navigation:
+- **scanners**: Array of detailed scanner results
+  - **name**: Scanner name (e.g., "Semgrep", "Gitleaks")
+  - **version**: Scanner version
+  - **totalIssues**: Total issues found by this scanner
+  - **severityBreakdown**: Count of issues by severity (high, medium, low, info)
+  - **findings**: Issues grouped by severity level
+
+#### Code Context
+Each finding includes clickable code context when available:
+- **filePath**: Path to the file containing the issue
+- **line**: Line number where the issue was found
+- **codeContext**: Enhanced context with:
+  - **startLine/endLine**: Range of lines shown
+  - **context**: Array of lines with line numbers and highlighting
+  - **isTargetLine**: Boolean indicating the problematic line
+
+#### AllFindings Dictionary (NEW)
+The response now includes an `allFindings` object that organizes findings by scanner name:
+```json
+{
+  "allFindings": {
+    "Semgrep": [
+      {
+        "ruleId": "security.weak-crypto",
+        "message": "Weak cryptographic algorithm detected",
+        "filePath": "src/auth.js",
+        "line": 15,
+        "severity": "high",
+        "scanner": "Semgrep"
+      }
+    ],
+    "Gitleaks": [
+      {
+        "ruleId": "gitleaks.aws-access-token",
+        "message": "AWS access key detected",
+        "filePath": "config/aws.js",
+        "line": 3,
+        "severity": "high",
+        "scanner": "Gitleaks",
+        "secret": "AKIAIOSFODNN7EXAMPLE"
+      }
+    ]
+  }
+}
+```
+
+**Benefits of Dictionary Structure:**
+- **Easy Scanner Access**: Get findings for a specific scanner: `response.allFindings['Semgrep']`
+- **Clear Organization**: Findings are naturally grouped by their source scanner
+- **Extensible**: Easy to add new scanners without affecting existing structure
+- **Type Safety**: Predictable structure for frontend applications
+
+#### Backward Compatibility
+The response maintains backward compatibility with the original `findings` array and `scanner` object.
 
 #### 2. Force Scan Repository
 

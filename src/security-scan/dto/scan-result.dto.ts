@@ -12,6 +12,24 @@ export class ScanResultDto {
     name: string;
     version: string;
   };
+  // New primary properties with updated terminology
+  securityIssues: Array<{
+    ruleId: string;
+    message: string;
+    filePath: string;
+    line: number;
+    severity: string;
+  }>;
+  allSecurityIssues: {
+    [scannerName: string]: Array<{
+      ruleId: string;
+      message: string;
+      filePath: string;
+      line: number;
+      severity: string;
+    }>;
+  };
+  // Legacy compatibility properties
   findings: Array<{
     ruleId: string;
     message: string;
@@ -19,6 +37,15 @@ export class ScanResultDto {
     line: number;
     severity: string;
   }>;
+  allFindings?: {
+    [scannerName: string]: Array<{
+      ruleId: string;
+      message: string;
+      filePath: string;
+      line: number;
+      severity: string;
+    }>;
+  };
   changeDetection?: {
     hasChanges: boolean;
     lastCommitHash: string;
