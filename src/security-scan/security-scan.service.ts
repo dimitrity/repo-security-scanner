@@ -4,6 +4,7 @@ import * as tmp from 'tmp-promise';
 import { SecurityScanner } from './interfaces/scanners.interface';
 import { GitScmProvider } from './providers/scm-git.provider';
 import { ScanStorageService } from './providers/scan-storage.service';
+import { WebhookService } from './providers/webhook.service';
 import * as fs from 'fs';
 
 @Injectable()
@@ -14,9 +15,31 @@ export class SecurityScanService {
     private readonly scmProvider: GitScmProvider,
     @Inject('SCANNERS') private readonly scanners: SecurityScanner[],
     private readonly scanStorage: ScanStorageService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   async scanRepository(repoUrl: string, forceScan: boolean = false): Promise<ScanResultDto> {
+    const scanStartTime = Date.now();
+    
+    try {
+      const result = await this.performScan(repoUrl, forceScan);
+      
+      // Send success webhook notification
+      const scanDuration = Date.now() - scanStartTime;
+      this.sendWebhookNotification(repoUrl, result, scanDuration);
+      
+      return result;
+    } catch (error) {
+      // Send failure webhook notification
+      const scanDuration = Date.now() - scanStartTime;
+      this.sendWebhookNotification(repoUrl, null, scanDuration, error.message);
+      
+      // Re-throw the error to maintain existing error handling
+      throw error;
+    }
+  }
+
+  private async performScan(repoUrl: string, forceScan: boolean = false): Promise<ScanResultDto> {
     // 1. Check for changes since last scan
     const lastScanRecord = this.scanStorage.getLastScanRecord(repoUrl);
     let changeDetection = {
@@ -429,6 +452,24 @@ export class SecurityScanService {
       } catch (cleanupError) {
         this.logger.warn(`Failed to cleanup temp directory: ${cleanupError.message}`);
       }
+    }
+  }
+
+  /**
+   * Send webhook notification for scan completion
+   * Handles errors gracefully to avoid affecting the main scan flow
+   */
+  private async sendWebhookNotification(
+    repoUrl: string,
+    scanResult: any,
+    scanDuration: number,
+    error?: string
+  ): Promise<void> {
+    try {
+      await this.webhookService.sendScanCompletedWebhook(repoUrl, scanResult, scanDuration, error);
+    } catch (webhookError) {
+      // Log webhook errors but don't let them affect the scan result
+      this.logger.warn(`Webhook notification failed: ${webhookError.message}`);
     }
   }
 } 

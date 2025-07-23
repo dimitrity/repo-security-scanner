@@ -27,6 +27,7 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 - 🔄 **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
 - 📈 **Scan Statistics**: Track scanning activity and repository history
 - ⚡ **Force Scan Option**: Bypass change detection when needed
+- 🔔 **Webhook Notifications**: Automatic notifications when scans complete or fail
 
 ### 🛡️ Security Scanners
 
@@ -151,6 +152,8 @@ The application works out of the box with sensible defaults. Optional configurat
 export PORT="3000"                              # Application port (default: 3000)
 export API_KEYS="your-custom-api-key"          # Custom API key (optional)
 export GITHUB_TOKEN="your-github-token"        # Enhanced GitHub metadata (optional)
+export WEBHOOK_URL="https://your-server.com/webhook"  # Webhook notification URL (optional)
+export WEBHOOK_SECRET="your-webhook-secret"    # Webhook HMAC secret for verification (optional)
 ```
 
 For Docker deployment, you can set these in your `docker-compose.yml` or pass them as environment variables.
@@ -173,6 +176,126 @@ Access the web interface at `http://localhost:3000`
 3. Click "🔍 Scan Repository" or "⚡ Force Scan"
 4. View results with embedded code context
 5. Click on any finding to see detailed code snippets
+
+## 🔔 Webhook Notifications
+
+The Repository Security Scanner can send HTTP webhook notifications when scans complete or fail. This is useful for integrating with CI/CD pipelines, notification systems, or other automation tools.
+
+### Webhook Configuration
+
+Configure webhook notifications using environment variables:
+
+```bash
+# Basic webhook configuration
+export WEBHOOK_URL="https://your-server.com/webhook"
+export WEBHOOK_SECRET="your-webhook-secret-for-verification"
+
+# Multiple webhooks (comma-separated)
+export WEBHOOK_URL="https://webhook1.com,https://webhook2.com"
+```
+
+### Webhook Payload
+
+Webhooks are sent as HTTP POST requests with the following JSON payload:
+
+#### Successful Scan
+```json
+{
+  "event": "scan.completed",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "scanId": "scan_1704110400000_abc123",
+  "repository": {
+    "name": "owner/repository",
+    "url": "https://github.com/owner/repository",
+    "branch": "main"
+  },
+  "summary": {
+    "totalSecurityIssues": 5,
+    "scanDuration": 30000,
+    "scanners": [
+      {
+        "name": "Semgrep",
+        "securityIssuesFound": 3
+      },
+      {
+        "name": "Gitleaks", 
+        "securityIssuesFound": 2
+      }
+    ]
+  },
+  "status": "success"
+}
+```
+
+#### Failed Scan
+```json
+{
+  "event": "scan.failed",
+  "timestamp": "2024-01-01T12:00:00.000Z", 
+  "scanId": "scan_1704110400000_def456",
+  "repository": {
+    "name": "owner/repository",
+    "url": "https://github.com/owner/repository"
+  },
+  "summary": {
+    "totalSecurityIssues": 0,
+    "scanDuration": 5000,
+    "scanners": []
+  },
+  "status": "failed",
+  "error": "Repository not accessible"
+}
+```
+
+### Webhook Security
+
+Webhooks include security headers for verification:
+
+- **`X-Webhook-Signature`**: HMAC-SHA256 signature of the payload (when `WEBHOOK_SECRET` is configured)
+- **`X-Webhook-Timestamp`**: ISO timestamp of when the webhook was sent
+- **`X-Webhook-Event`**: Event type (`scan.completed` or `scan.failed`)
+- **`User-Agent`**: `repo-security-scanner/1.0`
+
+#### Verifying Webhook Signatures
+
+If you configure a `WEBHOOK_SECRET`, verify the signature:
+
+```javascript
+const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expectedSignature = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+```
+
+### Webhook Examples
+
+#### Slack Integration
+```bash
+# Send notifications to Slack
+export WEBHOOK_URL="https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+```
+
+#### Discord Integration  
+```bash
+# Send notifications to Discord
+export WEBHOOK_URL="https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK"
+```
+
+#### Custom Server
+```bash
+# Send to your custom endpoint
+export WEBHOOK_URL="https://your-api.com/security-scan-webhook"
+export WEBHOOK_SECRET="your-secret-key"
+```
 
 ## 🔌 API Documentation
 
@@ -527,24 +650,26 @@ repo-security-scanner-app/
 │   │   │   └── api-key.guard.spec.ts        # Comprehensive guard tests
 │   │   ├── interfaces/               # TypeScript contracts
 │   │   │   ├── scanners.interface.ts        # Scanner service contracts
-│   │   │   └── scm.interface.ts             # SCM provider contracts
+│   │   │   ├── scm.interface.ts             # SCM provider contracts
+│   │   │   └── webhook.interface.ts         # Webhook notification contracts
 │   │   ├── providers/                # Service implementations
 │   │   │   ├── scm-git.provider.ts          # Git repository management
 │   │   │   ├── scanner-semgrep.service.ts   # Semgrep static analysis
 │   │   │   ├── scanner-gitleaks.service.ts  # Gitleaks secret detection
-│   │   │   └── scan-storage.service.ts      # In-memory scan history
+│   │   │   ├── scan-storage.service.ts      # In-memory scan history
+│   │   │   └── webhook.service.ts           # Webhook notification delivery
 │   │   ├── security-scan.controller.ts      # REST API endpoints
 │   │   ├── security-scan.service.ts         # Core business logic
 │   │   └── security-scan.module.ts          # Module configuration
 │   ├── config/                       # Configuration management
 │   │   ├── config.service.ts                # Environment & API key config
 │   │   └── config.module.ts                 # Configuration module
+│   ├── ui/                           # Frontend web interface
+│   │   ├── index.html               # Main UI application
+│   │   ├── script.js               # Frontend JavaScript logic
+│   │   └── style.css               # GitHub-inspired styling
 │   ├── app.module.ts                 # Root application module
 │   └── main.ts                      # Application bootstrap
-├── public/                           # Frontend web interface
-│   ├── index.html                   # Main UI application
-│   ├── script.js                   # Frontend JavaScript logic
-│   └── style.css                   # GitHub-inspired styling
 ├── test/                            # Comprehensive test suites
 │   ├── integration/                 # Integration test scenarios
 │   │   ├── security-scan.integration.spec.ts  # API integration tests
@@ -745,6 +870,8 @@ docker-compose down
 docker build -t repo-security-scanner .
 
 # Run container
+docker run -p 3000:3000  repo-security-scanner
+
 docker run -d \
   --name security-scanner \
   -p 3000:3000 \
@@ -762,6 +889,8 @@ docker logs -f security-scanner
 | `PORT` | Application port | `3000` | No |
 | `API_KEYS` | Custom API key | `your-secure-production-key-2025` | No |
 | `GITHUB_TOKEN` | GitHub API token for enhanced metadata | - | No |
+| `WEBHOOK_URL` | Webhook notification URL(s) | - | No |
+| `WEBHOOK_SECRET` | Webhook HMAC verification secret | - | No |
 
 ## 🔒 Security Features
 
