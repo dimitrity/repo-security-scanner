@@ -58,9 +58,35 @@ export class GitleaksScanner implements SecurityScanner {
 
     // Security check: ensure path is within expected bounds
     const currentDir = process.cwd();
-    if (!resolvedPath.startsWith(currentDir) && !resolvedPath.startsWith('/tmp')) {
+    const isInCurrentDir = resolvedPath.startsWith(currentDir);
+    const isInTempDir = this.isInTempDirectory(resolvedPath);
+    
+    if (!isInCurrentDir && !isInTempDir) {
       throw new Error(`Target path is outside allowed directories: ${resolvedPath}`);
     }
+  }
+
+  /**
+   * Check if a path is in a temporary directory (cross-platform)
+   * @param resolvedPath The absolute path to check
+   * @returns true if the path is in a temporary directory
+   */
+  private isInTempDirectory(resolvedPath: string): boolean {
+    const os = require('os');
+    const tmpDir = os.tmpdir();
+    
+    // Check common temporary directory patterns
+    const tempPaths = [
+      '/tmp',           // Linux/Unix standard
+      tmpDir,           // OS-specific temp directory (e.g., /var/folders on macOS)
+      '/temp',          // Windows alternative
+      '/var/tmp',       // Unix alternative
+    ];
+    
+    // Also check for any path containing 'tmp-' pattern (from tmp-promise)
+    const hasTmpPattern = resolvedPath.includes('/tmp-');
+    
+    return tempPaths.some(tempPath => resolvedPath.startsWith(tempPath)) || hasTmpPattern;
   }
 
   private async checkGitleaksInstallation(): Promise<void> {
@@ -239,7 +265,7 @@ export class GitleaksScanner implements SecurityScanner {
     return {
       ruleId: `gitleaks.${gitleaksFinding.RuleID || 'unknown'}`,
       message: gitleaksFinding.Finding || 'Secret detected',
-      filePath: this.getRelativePath(gitleaksFinding.File || 'unknown', targetPath),
+      filePath: gitleaksFinding.File || 'unknown',
       line: gitleaksFinding.Line || 0,
       severity: this.mapGitleaksSeverity(gitleaksFinding.RuleID),
       secret: gitleaksFinding.Secret || 'hidden',
@@ -256,32 +282,7 @@ export class GitleaksScanner implements SecurityScanner {
     };
   }
 
-  /**
-   * Convert absolute path to repository-relative path
-   */
-  private getRelativePath(absolutePath: string, targetPath: string): string {
-    const path = require('path');
-    
-    try {
-      // If the path is already relative, return it as-is
-      if (!path.isAbsolute(absolutePath)) {
-        return absolutePath;
-      }
-      
-      // Convert absolute path to relative path from the target directory
-      const relativePath = path.relative(targetPath, absolutePath);
-      
-      // If the relative path goes outside the target directory, use the original path
-      if (relativePath.startsWith('..')) {
-        return absolutePath;
-      }
-      
-      return relativePath;
-    } catch (error) {
-      // If path conversion fails, return the original path
-      return absolutePath;
-    }
-  }
+
 
   private mapGitleaksSeverity(ruleId: string): string {
     // Map Gitleaks rule IDs to severity levels

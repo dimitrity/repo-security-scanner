@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  security-scanner:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - API_KEY=${API_KEY:-test-for-arnica-987}
+    volumes:
+      # Optional: Mount logs directory if you want to persist logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - scanner-network
+
+networks:
+  scanner-network:
+    driver: bridge 

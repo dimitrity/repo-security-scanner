@@ -20,6 +20,17 @@ export class ScanResultDto {
     filePath: string;
     line: number;
     severity: string;
+    codeContext?: {
+      filePath: string;
+      line: number;
+      startLine: number;
+      endLine: number;
+      context: Array<{
+        lineNumber: number;
+        content: string;
+        isTargetLine: boolean;
+      }>;
+    };
   }>;
   allSecurityIssues: {
     [scannerName: string]: Array<{
@@ -28,6 +39,17 @@ export class ScanResultDto {
       filePath: string;
       line: number;
       severity: string;
+      codeContext?: {
+        filePath: string;
+        line: number;
+        startLine: number;
+        endLine: number;
+        context: Array<{
+          lineNumber: number;
+          content: string;
+          isTargetLine: boolean;
+        }>;
+      };
     }>;
   };
   // Legacy compatibility properties
@@ -37,6 +59,17 @@ export class ScanResultDto {
     filePath: string;
     line: number;
     severity: string;
+    codeContext?: {
+      filePath: string;
+      line: number;
+      startLine: number;
+      endLine: number;
+      context: Array<{
+        lineNumber: number;
+        content: string;
+        isTargetLine: boolean;
+      }>;
+    };
   }>;
   allFindings?: {
     [scannerName: string]: Array<{
@@ -45,6 +78,17 @@ export class ScanResultDto {
       filePath: string;
       line: number;
       severity: string;
+      codeContext?: {
+        filePath: string;
+        line: number;
+        startLine: number;
+        endLine: number;
+        context: Array<{
+          lineNumber: number;
+          content: string;
+          isTargetLine: boolean;
+        }>;
+      };
     }>;
   };
   changeDetection?: {

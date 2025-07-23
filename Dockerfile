@@ -32,7 +32,7 @@ RUN addgroup -g 1001 -S nodejs && \
 WORKDIR /app
 
 # Install required packages as root
-RUN apk add --no-cache git python3 py3-pip build-base && \
+RUN apk add --no-cache git python3 py3-pip build-base curl && \
     python3 -m venv /venv && \
     chown -R nestjs:nodejs /venv
 
@@ -42,8 +42,7 @@ ENV PATH="/venv/bin:$PATH"
 # Install semgrep and gitleaks as root, then change ownership
 RUN pip install semgrep && \
     chown -R nestjs:nodejs /venv && \
-    # Install Gitleaks
-    apk add --no-cache curl && \
+    # Install Gitleaks (curl already installed above)
     curl -sSfL https://github.com/zricethezav/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz | tar -xz -C /tmp && \
     mv /tmp/gitleaks /usr/local/bin/ && \
     chmod +x /usr/local/bin/gitleaks && \
@@ -53,6 +52,9 @@ RUN pip install semgrep && \
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+
+# Copy static web UI files
+COPY --from=builder /app/public ./public
 
 # Change ownership of application files to non-root user
 RUN chown -R nestjs:nodejs /app
@@ -65,6 +67,10 @@ ENV NODE_ENV=production
 
 # Switch to non-root user for security
 USER nestjs
+
+# Health check for the web interface
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/ || exit 1
 
 # Start the NestJS microservice
 CMD ["node", "dist/main.js"] 

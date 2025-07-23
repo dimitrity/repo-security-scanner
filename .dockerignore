@@ -1,0 +1,33 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.DS_Store
+*.log
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test files
+test
+coverage
+.nyc_output
+
+# CI/CD
+.github
+
+# Documentation (keep WEB_UI_README.md as it's useful)
+*.md
+!WEB_UI_README.md
+
+# Temporary files
+tmp
+temp 

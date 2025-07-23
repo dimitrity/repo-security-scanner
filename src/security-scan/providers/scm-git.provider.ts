@@ -1,3 +1,4 @@
+import { Injectable, Logger } from '@nestjs/common';
 import { ScmProvider } from '../interfaces/scm.interface';
 import simpleGit from 'simple-git';
 import { exec } from 'child_process';
@@ -5,7 +6,9 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+@Injectable()
 export class GitScmProvider implements ScmProvider {
+  private readonly logger = new Logger(GitScmProvider.name);
   async cloneRepository(repoUrl: string, targetPath: string): Promise<void> {
     await simpleGit().clone(repoUrl, targetPath);
   }
@@ -35,7 +38,7 @@ export class GitScmProvider implements ScmProvider {
         return gitMetadata;
       }
     } catch (error) {
-      console.warn(`Failed to fetch repository metadata for ${repoUrl}:`, error);
+      this.logger.warn(`Failed to fetch repository metadata for ${repoUrl}:`, error);
     }
     
     // Return fallback metadata if all else fails
@@ -63,7 +66,7 @@ export class GitScmProvider implements ScmProvider {
         return { platform, owner, repo };
       }
     } catch (error) {
-      console.warn('Failed to parse repository URL:', error);
+              this.logger.warn('Failed to parse repository URL:', error);
     }
     
     return null;
@@ -84,7 +87,7 @@ export class GitScmProvider implements ScmProvider {
           return null;
       }
     } catch (error) {
-      console.warn(`Failed to fetch from ${repoInfo.platform} API:`, error);
+      this.logger.warn(`Failed to fetch from ${repoInfo.platform} API:`, error);
       return null;
     }
   }
@@ -107,7 +110,7 @@ export class GitScmProvider implements ScmProvider {
         },
       };
     } catch (error) {
-      console.warn('GitHub API fetch failed:', error);
+              this.logger.warn('GitHub API fetch failed:', error);
       return null;
     }
   }
@@ -131,7 +134,7 @@ export class GitScmProvider implements ScmProvider {
         },
       };
     } catch (error) {
-      console.warn('GitLab API fetch failed:', error);
+              this.logger.warn('GitLab API fetch failed:', error);
       return null;
     }
   }
@@ -154,7 +157,7 @@ export class GitScmProvider implements ScmProvider {
         },
       };
     } catch (error) {
-      console.warn('Bitbucket API fetch failed:', error);
+              this.logger.warn('Bitbucket API fetch failed:', error);
       return null;
     }
   }
@@ -202,7 +205,7 @@ export class GitScmProvider implements ScmProvider {
         await tmpDir.cleanup();
       }
     } catch (error) {
-      console.warn('Git commands fetch failed:', error);
+      this.logger.warn('Git commands fetch failed:', error);
       return null;
     }
   }
@@ -233,7 +236,7 @@ export class GitScmProvider implements ScmProvider {
       
       return 'No description available';
     } catch (error) {
-      console.warn('Failed to extract description:', error);
+              this.logger.warn('Failed to extract description:', error);
       return 'No description available';
     }
   }
@@ -269,7 +272,7 @@ export class GitScmProvider implements ScmProvider {
         await tmpDir.cleanup();
       }
     } catch (error) {
-      console.warn(`Failed to get last commit hash for ${repoUrl}:`, error);
+      this.logger.warn(`Failed to get last commit hash for ${repoUrl}:`, error);
       return 'unknown';
     }
   }
@@ -317,7 +320,7 @@ export class GitScmProvider implements ScmProvider {
           await git.show([lastCommitHash, '--oneline', '--no-patch']);
         } catch (commitError) {
           // If old commit doesn't exist, assume changes
-          console.warn(`Old commit ${lastCommitHash} not found in repository`);
+          this.logger.warn(`Old commit ${lastCommitHash} not found in repository`);
           return {
             hasChanges: true,
             lastCommitHash: currentLastCommit,
@@ -340,14 +343,14 @@ export class GitScmProvider implements ScmProvider {
           commits = log.total;
         } catch (logError) {
           // If log range fails, try alternative approach
-          console.warn('Log range failed, trying alternative method:', logError);
+          this.logger.warn('Log range failed, trying alternative method:', logError);
           try {
             const log = await git.log({
               from: `${lastCommitHash}..${currentLastCommit}`,
             });
             commits = log.total;
           } catch (altLogError) {
-            console.warn('Alternative log method also failed:', altLogError);
+            this.logger.warn('Alternative log method also failed:', altLogError);
             commits = 0;
           }
         }
@@ -357,11 +360,11 @@ export class GitScmProvider implements ScmProvider {
         try {
           diffStats = await git.diffSummary([lastCommitHash, currentLastCommit]);
         } catch (diffError) {
-          console.warn('Diff summary failed, trying alternative method:', diffError);
+          this.logger.warn('Diff summary failed, trying alternative method:', diffError);
           try {
             diffStats = await git.diffSummary([`${lastCommitHash}..${currentLastCommit}`]);
           } catch (altDiffError) {
-            console.warn('Alternative diff method also failed:', altDiffError);
+            this.logger.warn('Alternative diff method also failed:', altDiffError);
             diffStats = { files: [], insertions: 0, deletions: 0 };
           }
         }
@@ -380,7 +383,7 @@ export class GitScmProvider implements ScmProvider {
         await tmpDir.cleanup();
       }
     } catch (error) {
-      console.warn(`Failed to check changes for ${repoUrl}:`, error);
+      this.logger.warn(`Failed to check changes for ${repoUrl}:`, error);
       return {
         hasChanges: true, // Assume changes if we can't determine
         lastCommitHash: await this.getLastCommitHash(repoUrl),

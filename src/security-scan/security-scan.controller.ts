@@ -1,27 +1,36 @@
-import { Body, Controller, Post, Get, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Post, Get, UseGuards, UsePipes, ValidationPipe, Res } from '@nestjs/common';
 import { SecurityScanService } from './security-scan.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { ScanRequestDto } from './dto/scan-request.dto';
 import { CodeContextRequestDto } from './dto/code-context-request.dto';
+import { Response } from 'express';
+import { join } from 'path';
 
-@UseGuards(ApiKeyGuard)
-@Controller('scan')
+@Controller()
 export class SecurityScanController {
   constructor(private readonly scanService: SecurityScanService) {}
 
-  @Post()
+  @Get()
+  serveUI(@Res() res: Response) {
+    res.sendFile(join(process.cwd(), 'public', 'index.html'));
+  }
+
+  @UseGuards(ApiKeyGuard)
+  @Post('scan')
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async scanRepository(@Body() body: ScanRequestDto): Promise<any> {
     return this.scanService.scanRepository(body.repoUrl);
   }
 
-  @Post('force')
+  @UseGuards(ApiKeyGuard)
+  @Post('scan/force')
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async forceScanRepository(@Body() body: ScanRequestDto): Promise<any> {
     return this.scanService.forceScanRepository(body.repoUrl);
   }
 
-  @Post('context')
+  @UseGuards(ApiKeyGuard)
+  @Post('scan/context')
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async getCodeContext(@Body() body: CodeContextRequestDto): Promise<any> {
     return this.scanService.getCodeContextForFile(
@@ -32,12 +41,14 @@ export class SecurityScanController {
     );
   }
 
-  @Get('statistics')
+  @UseGuards(ApiKeyGuard)
+  @Get('scan/statistics')
   async getScanStatistics(): Promise<any> {
     return this.scanService.getScanStatistics();
   }
 
-  @Get('records')
+  @UseGuards(ApiKeyGuard)
+  @Get('scan/records')
   async getAllScanRecords(): Promise<any> {
     return this.scanService.getAllScanRecords();
   }

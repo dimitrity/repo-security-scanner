@@ -1,17 +1,14 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ScanResultDto } from './dto/scan-result.dto';
 import * as tmp from 'tmp-promise';
-import { ScmProvider } from './interfaces/scm.interface';
 import { SecurityScanner } from './interfaces/scanners.interface';
 import { GitScmProvider } from './providers/scm-git.provider';
-import { SemgrepScanner } from './providers/scanner-semgrep.service';
 import { ScanStorageService } from './providers/scan-storage.service';
 import * as fs from 'fs';
 
 @Injectable()
 export class SecurityScanService {
   private readonly logger = new Logger(SecurityScanService.name);
-  private lastScanPath: string | null = null; // For demo: store last scan path
 
   constructor(
     private readonly scmProvider: GitScmProvider,
@@ -112,16 +109,31 @@ export class SecurityScanService {
           this.logger.log(`Running ${scannerInfo.name} scanner...`);
           const findings = await scanner.scan(repoPath);
           
-          // Add scanner information and convert to absolute web URLs
-          const findingsWithScanner = findings.map(finding => ({
-            ...finding,
-            scanner: scannerInfo.name,
-            filePath: this.convertToAbsoluteWebPath(finding.filePath, repoUrl, metadata),
-          }));
+          // Add code context to each finding
+          const findingsWithContext = await Promise.all(
+            findings.map(async (finding) => {
+              try {
+                this.logger.log(`Extracting context for file: ${finding.filePath}, line: ${finding.line}`);
+                const codeContext = await this.extractCodeContext(repoPath, finding.filePath, finding.line);
+                this.logger.log(`Context extraction result: ${codeContext ? 'SUCCESS' : 'NULL'} for ${finding.filePath}`);
+                return {
+                  ...finding,
+                  scanner: scannerInfo.name,
+                  codeContext,
+                };
+              } catch (error) {
+                this.logger.warn(`Failed to extract code context for ${finding.filePath}:${finding.line}: ${error.message}`);
+                return {
+                  ...finding,
+                  scanner: scannerInfo.name,
+                };
+              }
+            })
+          );
           
           // Store findings by scanner name
-          allFindings[scannerInfo.name] = findingsWithScanner;
-          scannerInfos.push({ ...scannerInfo, findings: findingsWithScanner });
+          allFindings[scannerInfo.name] = findingsWithContext;
+          scannerInfos.push({ ...scannerInfo, findings: findingsWithContext });
           this.logger.log(`${scannerInfo.name} found ${findings.length} issues`);
           
         } catch (error) {
@@ -161,40 +173,64 @@ export class SecurityScanService {
     }
   }
 
-  getCodeContext(filePath: string, line: number, context: number = 3): string[] {
-    if (!this.lastScanPath) return [];
-    const absPath = require('path').join(this.lastScanPath, filePath);
-    if (!fs.existsSync(absPath)) return [];
-    const lines = fs.readFileSync(absPath, 'utf-8').split('\n');
-    const start = Math.max(0, line - 1 - context);
-    const end = Math.min(lines.length, line + context);
-    return lines.slice(start, end);
-  }
+
 
   /**
-   * Get enhanced code context for a finding with line numbers and highlighting
+   * Extract code context for a specific file and line
    */
-  private getEnhancedCodeContext(filePath: string, line: number, repoPath: string, repoUrl?: string, metadata?: any, contextLines: number = 3): any {
-    if (!filePath || filePath === 'N/A' || !line || line === 0) {
-      return null;
-    }
-
+  private async extractCodeContext(repoPath: string, filePath: string, line: number, contextLines: number = 5): Promise<any> {
     try {
-      // Extract relative path from absolute web URL if needed
-      const relativePath = this.extractRelativePathFromWebUrl(filePath, repoUrl, metadata);
-      const fullPath = require('path').join(repoPath, relativePath);
+      let fullFilePath: string;
+      let repositoryRelativePath: string;
       
-      if (!fs.existsSync(fullPath)) {
+      // Handle different path formats from scanners
+      if (require('path').isAbsolute(filePath)) {
+        // If the path is absolute, it might be a temporary path from the scanner
+        // Extract the repository-relative path
+        if (filePath.startsWith(repoPath)) {
+          // Path is within the repo directory
+          repositoryRelativePath = require('path').relative(repoPath, filePath);
+          fullFilePath = filePath;
+        } else {
+          // Path might be from a different temp directory (common with scanners)
+          // Try to find the relative part by looking for common directory patterns
+          const pathParts = filePath.split(require('path').sep);
+          const tempDirIndex = pathParts.findIndex(part => part.startsWith('tmp-'));
+          
+          if (tempDirIndex !== -1 && tempDirIndex + 1 < pathParts.length) {
+            // Extract path after temp directory
+            repositoryRelativePath = pathParts.slice(tempDirIndex + 1).join(require('path').sep);
+            fullFilePath = require('path').join(repoPath, repositoryRelativePath);
+          } else {
+            // Fallback: use the file as-is if it exists
+            if (require('fs').existsSync(filePath)) {
+              repositoryRelativePath = require('path').basename(filePath);
+              fullFilePath = filePath;
+            } else {
+              this.logger.warn(`Cannot determine repository-relative path for: ${filePath}`);
+              return null;
+            }
+          }
+        }
+      } else {
+        // Path is already relative to repository
+        repositoryRelativePath = filePath;
+        fullFilePath = require('path').join(repoPath, filePath);
+      }
+      
+      // Check if file exists
+      if (!require('fs').existsSync(fullFilePath)) {
+        this.logger.warn(`File not found for context extraction: ${fullFilePath}`);
         return null;
       }
 
-      const fileContent = fs.readFileSync(fullPath, 'utf-8').split('\n');
+      // Read and process file content for code context
+      const fileContent = require('fs').readFileSync(fullFilePath, 'utf-8').split('\n');
       const startLine = Math.max(0, line - 1 - contextLines);
       const endLine = Math.min(fileContent.length, line + contextLines);
       
-      // Use the absolute web URL in the response
-      return {
-        filePath: filePath, // This is now the absolute web URL
+      const codeContext = {
+        filePath: repositoryRelativePath, // Return the repository-relative path
         line,
         startLine: startLine + 1,
         endLine: endLine,
@@ -204,61 +240,18 @@ export class SecurityScanService {
           isTargetLine: startLine + index + 1 === line
         }))
       };
+      
+      return codeContext;
+      
     } catch (error) {
-      this.logger.warn(`Failed to get code context for ${filePath}:${line}: ${error.message}`);
+      this.logger.error(`Failed to extract code context for ${filePath}:${line}: ${error.message}`);
       return null;
     }
   }
 
-  /**
-   * Extract relative file path from absolute web URL
-   */
-  private extractRelativePathFromWebUrl(filePath: string, repoUrl?: string, metadata?: any): string {
-    // If it's already a relative path, return as-is
-    if (!filePath.startsWith('http')) {
-      return filePath;
-    }
 
-    try {
-      const url = new URL(filePath);
-      const pathParts = url.pathname.split('/');
-      
-      // For GitHub: /owner/repo/blob/branch/path/to/file.js
-      // For GitLab: /owner/repo/-/blob/branch/path/to/file.js  
-      // For Bitbucket: /owner/repo/src/branch/path/to/file.js
-      
-      let startIndex = -1;
-      if (url.hostname.includes('github.com')) {
-        // Find 'blob' and take everything after the branch
-        const blobIndex = pathParts.findIndex(part => part === 'blob');
-        if (blobIndex >= 0 && blobIndex + 2 < pathParts.length) {
-          startIndex = blobIndex + 2; // Skip 'blob' and branch name
-        }
-      } else if (url.hostname.includes('gitlab')) {
-        // Find 'blob' and take everything after the branch  
-        const blobIndex = pathParts.findIndex(part => part === 'blob');
-        if (blobIndex >= 0 && blobIndex + 2 < pathParts.length) {
-          startIndex = blobIndex + 2; // Skip 'blob' and branch name
-        }
-      } else if (url.hostname.includes('bitbucket')) {
-        // Find 'src' and take everything after the branch
-        const srcIndex = pathParts.findIndex(part => part === 'src');
-        if (srcIndex >= 0 && srcIndex + 2 < pathParts.length) {
-          startIndex = srcIndex + 2; // Skip 'src' and branch name
-        }
-      }
-      
-      if (startIndex >= 0) {
-        return pathParts.slice(startIndex).join('/');
-      }
-      
-      // Fallback: return the original path
-      return filePath;
-    } catch (error) {
-      this.logger.warn(`Failed to extract relative path from web URL: ${error.message}`);
-      return filePath;
-    }
-  }
+
+
 
   /**
    * Get scan statistics
@@ -281,46 +274,7 @@ export class SecurityScanService {
     return this.scanRepository(repoUrl, true);
   }
 
-  /**
-   * Convert relative file path to absolute web repository URL
-   */
-  private convertToAbsoluteWebPath(filePath: string, repoUrl: string, metadata: any): string {
-    // If filePath is N/A or empty, return as-is
-    if (!filePath || filePath === 'N/A' || filePath === 'unknown') {
-      return filePath;
-    }
 
-    try {
-      // Parse repository URL to determine platform
-      const url = new URL(repoUrl);
-      const hostname = url.hostname.toLowerCase();
-      
-      // Remove .git suffix if present
-      let cleanPath = url.pathname.replace(/\.git$/, '');
-      if (cleanPath.startsWith('/')) {
-        cleanPath = cleanPath.substring(1);
-      }
-
-      // Get default branch from metadata
-      const defaultBranch = metadata?.defaultBranch || 'main';
-
-      // Construct absolute web URL based on platform
-      if (hostname.includes('github.com')) {
-        return `https://github.com/${cleanPath}/blob/${defaultBranch}/${filePath}`;
-      } else if (hostname.includes('gitlab.com') || hostname.includes('gitlab.')) {
-        return `https://${hostname}/${cleanPath}/-/blob/${defaultBranch}/${filePath}`;
-      } else if (hostname.includes('bitbucket.org')) {
-        return `https://bitbucket.org/${cleanPath}/src/${defaultBranch}/${filePath}`;
-      } else {
-        // For unknown platforms, try a generic format or fallback to relative path
-        return `${repoUrl.replace(/\.git$/, '')}/blob/${defaultBranch}/${filePath}`;
-      }
-    } catch (error) {
-      this.logger.warn(`Failed to convert file path to absolute web URL: ${error.message}`);
-      // Fallback to relative path if conversion fails
-      return filePath;
-    }
-  }
 
   /**
    * Create structured output with summary and detailed findings
@@ -404,12 +358,7 @@ export class SecurityScanService {
     findings.forEach(finding => {
       const severity = finding.severity?.toLowerCase() || 'low';
       if (grouped[severity as keyof typeof grouped]) {
-        // Add code context to each finding  
-        const findingWithContext = {
-          ...finding,
-          codeContext: this.getEnhancedCodeContext(finding.filePath, finding.line, repoPath, repoUrl, metadata)
-        };
-        grouped[severity as keyof typeof grouped].push(findingWithContext);
+        grouped[severity as keyof typeof grouped].push(finding);
       } else {
         grouped.low.push(finding);
       }
@@ -429,13 +378,14 @@ export class SecurityScanService {
       this.logger.log(`Cloning repo ${repoUrl} for code context`);
       await this.scmProvider.cloneRepository(repoUrl, repoPath);
       
-      // Fetch repository metadata for absolute web path conversion
+      // Fetch repository metadata
       const metadata = await this.scmProvider.fetchRepoMetadata(repoUrl);
       
-      // Get enhanced code context
-      const codeContext = this.getEnhancedCodeContext(filePath, line, repoPath, repoUrl, metadata, contextLines);
+      // Construct the full file path from repository-relative path
+      const fullFilePath = require('path').join(repoPath, filePath);
       
-      if (!codeContext) {
+      // Check if file exists
+      if (!require('fs').existsSync(fullFilePath)) {
         return {
           error: 'File not found or unable to get code context',
           filePath,
@@ -443,6 +393,23 @@ export class SecurityScanService {
           repoUrl
         };
       }
+
+      // Read and process file content for code context
+      const fileContent = require('fs').readFileSync(fullFilePath, 'utf-8').split('\n');
+      const startLine = Math.max(0, line - 1 - contextLines);
+      const endLine = Math.min(fileContent.length, line + contextLines);
+      
+      const codeContext = {
+        filePath: filePath, // Return the repository-relative path
+        line,
+        startLine: startLine + 1,
+        endLine: endLine,
+        context: fileContent.slice(startLine, endLine).map((content, index) => ({
+          lineNumber: startLine + index + 1,
+          content: content,
+          isTargetLine: startLine + index + 1 === line
+        }))
+      };
       
       return {
         repository: {

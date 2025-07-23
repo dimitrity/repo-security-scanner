@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Security Scanner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <h1>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h5A1.5 1.5 0 0 1 12 7.5v1A1.5 1.5 0 0 1 10.5 10h-5A1.5 1.5 0 0 1 4 8.5v-1zM5.5 7a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-5z"/>
+                        <path d="M6.5 2.5A2.5 2.5 0 0 1 9 0h2.5A2.5 2.5 0 0 1 14 2.5v1A2.5 2.5 0 0 1 11.5 6H11a.5.5 0 0 1 0-1h.5A1.5 1.5 0 0 0 13 3.5v-1A1.5 1.5 0 0 0 11.5 1H9A1.5 1.5 0 0 0 7.5 2.5V3a.5.5 0 0 1-1 0v-.5z"/>
+                        <path d="M2 5.5A2.5 2.5 0 0 1 4.5 3H5a.5.5 0 0 1 0 1h-.5A1.5 1.5 0 0 0 3 5.5v1A1.5 1.5 0 0 0 4.5 8H5a.5.5 0 0 1 0 1h-.5A2.5 2.5 0 0 1 2 6.5v-1z"/>
+                    </svg>
+                    Repository Security Scanner
+                </h1>
+                <p>Scan repositories for security vulnerabilities</p>
+            </div>
+        </header>
+
+        <!-- Scan Form -->
+        <section class="scan-form">
+            <div class="form-group">
+                <label for="repoUrl">Repository URL:</label>
+                <input type="text" id="repoUrl" placeholder="https://github.com/user/repository" value="">
+                <div class="button-group">
+                    <button id="scanBtn" onclick="scanRepository()">🔍 Scan Repository</button>
+                    <button id="forceScanBtn" onclick="forceScanRepository()">⚡ Force Scan</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Scanning repository...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error hidden">
+            <h3>❌ Error</h3>
+            <p id="errorText"></p>
+        </div>
+
+        <!-- Repository Info -->
+        <section id="repoInfo" class="repo-info hidden">
+            <h2>📋 Repository Information</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Name:</label>
+                    <span id="repoName"></span>
+                </div>
+                <div class="info-item">
+                    <label>Description:</label>
+                    <span id="repoDescription"></span>
+                </div>
+                <div class="info-item">
+                    <label>Default Branch:</label>
+                    <span id="repoDefaultBranch"></span>
+                </div>
+                <div class="info-item">
+                    <label>Last Commit:</label>
+                    <span id="repoLastCommit"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scan Summary -->
+        <section id="scanSummary" class="scan-summary hidden">
+            <h2>📊 Scan Summary</h2>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalIssues">0</span>
+                    <span class="stat-label">Total Issues</span>
+                </div>
+                <div class="stat-item critical">
+                    <span class="stat-number" id="criticalIssues">0</span>
+                    <span class="stat-label">Critical</span>
+                </div>
+                <div class="stat-item high">
+                    <span class="stat-number" id="highIssues">0</span>
+                    <span class="stat-label">High</span>
+                </div>
+                <div class="stat-item medium">
+                    <span class="stat-number" id="mediumIssues">0</span>
+                    <span class="stat-label">Medium</span>
+                </div>
+                <div class="stat-item low">
+                    <span class="stat-number" id="lowIssues">0</span>
+                    <span class="stat-label">Low</span>
+                </div>
+                <div class="stat-item info">
+                    <span class="stat-number" id="infoIssues">0</span>
+                    <span class="stat-label">Info</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security Issues by Severity -->
+        <section id="securityIssues" class="security-issues hidden">
+            <h2>🚨 Security Issues</h2>
+            <div id="issueGroups"></div>
+        </section>
+
+        <!-- Code Context Modal -->
+        <div id="codeModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Code Context</h3>
+                    <button class="close-btn" onclick="closeCodeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="code-info">
+                        <span><strong>File:</strong> <span id="modalFile"></span></span>
+                        <span><strong>Line:</strong> <span id="modalLine"></span></span>
+                    </div>
+                    <div id="codeContext" class="code-context">
+                        <div class="loading-context">Loading code context...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay for Modal -->
+        <div id="modalOverlay" class="modal-overlay hidden" onclick="closeCodeModal()"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
