@@ -7,8 +7,10 @@ import { SemgrepScanner } from './providers/scanner-semgrep.service';
 import { GitleaksScanner } from './providers/scanner-gitleaks.service';
 import { ScanStorageService } from './providers/scan-storage.service';
 import { SecurityScanner } from './interfaces/scanners.interface';
+import { ConfigModule } from '../config/config.module';
 
 @Module({
+  imports: [ConfigModule],
   controllers: [SecurityScanController],
   providers: [
     SecurityScanService,
