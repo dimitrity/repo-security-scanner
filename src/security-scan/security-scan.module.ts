@@ -6,6 +6,8 @@ import { GitScmProvider } from './providers/scm-git.provider';
 import { SemgrepScanner } from './providers/scanner-semgrep.service';
 import { GitleaksScanner } from './providers/scanner-gitleaks.service';
 import { ScanStorageService } from './providers/scan-storage.service';
+import { MCPGitHubService } from './providers/mcp-github.service';
+import { MCPToolsService } from './providers/mcp-tools.service';
 import { SecurityScanner } from './interfaces/scanners.interface';
 import { ConfigModule } from '../config/config.module';
 
@@ -19,6 +21,8 @@ import { ConfigModule } from '../config/config.module';
     SemgrepScanner,
     GitleaksScanner,
     ScanStorageService,
+    MCPGitHubService,
+    MCPToolsService,
     {
       provide: 'SCANNERS',
       useFactory: (semgrepScanner: SemgrepScanner, gitleaksScanner: GitleaksScanner): SecurityScanner[] => {

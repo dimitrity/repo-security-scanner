@@ -7,6 +7,10 @@ services:
       - NODE_ENV=production
       - API_KEYS=${API_KEYS:-your-secure-production-key-2025}
       - PORT=3000
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_APP_ID=${GITHUB_APP_ID:-}
+      - GITHUB_PRIVATE_KEY=${GITHUB_PRIVATE_KEY:-}
+      - GITHUB_INSTALLATION_ID=${GITHUB_INSTALLATION_ID:-}
     volumes:
       # Optional: Mount logs directory if you want to persist logs
       - ./logs:/app/logs

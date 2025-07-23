@@ -27,6 +27,7 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 - 🔄 **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
 - 📈 **Scan Statistics**: Track scanning activity and repository history
 - ⚡ **Force Scan Option**: Bypass change detection when needed
+- 🔗 **GitHub MCP Integration**: Model Context Protocol connectivity for enhanced GitHub integration
 
 ### 🛡️ Security Scanners
 
@@ -150,7 +151,10 @@ The application works out of the box with sensible defaults. Optional configurat
 # Optional environment variables
 export PORT="3000"                              # Application port (default: 3000)
 export API_KEYS="your-custom-api-key"          # Custom API key (optional)
-export GITHUB_TOKEN="your-github-token"        # Enhanced GitHub metadata (optional)
+export GITHUB_TOKEN="your-github-token"        # GitHub Personal Access Token (optional)
+export GITHUB_APP_ID="123456"                  # GitHub App ID for enhanced authentication (optional)
+export GITHUB_PRIVATE_KEY="-----BEGIN..."     # GitHub App Private Key (optional)
+export GITHUB_INSTALLATION_ID="12345678"      # GitHub App Installation ID (optional)
 ```
 
 For Docker deployment, you can set these in your `docker-compose.yml` or pass them as environment variables.
@@ -173,6 +177,123 @@ Access the web interface at `http://localhost:3000`
 3. Click "🔍 Scan Repository" or "⚡ Force Scan"
 4. View results with embedded code context
 5. Click on any finding to see detailed code snippets
+
+## 🔗 GitHub MCP Integration
+
+The Repository Security Scanner includes Model Context Protocol (MCP) integration for enhanced GitHub connectivity. This provides standardized access to GitHub repositories, commits, pull requests, and other resources.
+
+### MCP GitHub Features
+
+- **Repository Information**: Get detailed repository metadata and statistics
+- **Commit History**: Access commit history with file change information
+- **Pull Request Management**: List and analyze pull requests
+- **File Content Access**: Retrieve file contents from any repository
+- **Search Capabilities**: Search across GitHub repositories
+- **Rate Limit Monitoring**: Track GitHub API usage and limits
+
+### GitHub Authentication
+
+Configure GitHub authentication using environment variables:
+
+#### Personal Access Token (Recommended for Personal Use)
+```bash
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+```
+
+#### GitHub App (Recommended for Organizations)
+```bash
+export GITHUB_APP_ID="123456"
+export GITHUB_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+...
+-----END PRIVATE KEY-----"
+export GITHUB_INSTALLATION_ID="12345678"
+```
+
+### MCP API Endpoints
+
+#### Get Available Tools
+```bash
+GET /mcp/tools
+x-api-key: your-api-key
+```
+
+#### Execute MCP Tool
+```bash
+POST /mcp/tools/execute
+Content-Type: application/json
+x-api-key: your-api-key
+
+{
+  "name": "github_get_repository",
+  "arguments": {
+    "owner": "microsoft",
+    "repo": "vscode"
+  }
+}
+```
+
+#### Check GitHub Connection Status
+```bash
+GET /mcp/github/status
+x-api-key: your-api-key
+```
+
+### Available MCP Tools
+
+1. **`github_get_repository`** - Get repository information
+2. **`github_list_commits`** - List repository commits
+3. **`github_get_commit`** - Get specific commit details
+4. **`github_list_pull_requests`** - List pull requests
+5. **`github_get_file_content`** - Get file content
+6. **`github_search_repositories`** - Search repositories
+7. **`github_parse_url`** - Parse GitHub URLs
+8. **`github_get_rate_limit`** - Check API rate limits
+
+### Example MCP Usage
+
+#### Get Repository Information
+```bash
+curl -X POST http://localhost:3000/mcp/tools/execute \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-secure-production-key-2025" \
+  -d '{
+    "name": "github_get_repository",
+    "arguments": {
+      "owner": "microsoft",
+      "repo": "vscode"
+    }
+  }'
+```
+
+#### List Recent Commits
+```bash
+curl -X POST http://localhost:3000/mcp/tools/execute \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-secure-production-key-2025" \
+  -d '{
+    "name": "github_list_commits",
+    "arguments": {
+      "owner": "microsoft",
+      "repo": "vscode",
+      "limit": 10
+    }
+  }'
+```
+
+#### Search Repositories
+```bash
+curl -X POST http://localhost:3000/mcp/tools/execute \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-secure-production-key-2025" \
+  -d '{
+    "name": "github_search_repositories",
+    "arguments": {
+      "query": "security scanner javascript",
+      "sort": "stars",
+      "limit": 5
+    }
+  }'
+```
 
 ## 🔌 API Documentation
 
@@ -761,7 +882,10 @@ docker logs -f security-scanner
 |----------|-------------|---------|----------|
 | `PORT` | Application port | `3000` | No |
 | `API_KEYS` | Custom API key | `your-secure-production-key-2025` | No |
-| `GITHUB_TOKEN` | GitHub API token for enhanced metadata | - | No |
+| `GITHUB_TOKEN` | GitHub Personal Access Token | - | No |
+| `GITHUB_APP_ID` | GitHub App ID for organization auth | - | No |
+| `GITHUB_PRIVATE_KEY` | GitHub App Private Key | - | No |
+| `GITHUB_INSTALLATION_ID` | GitHub App Installation ID | - | No |
 
 ## 🔒 Security Features
 
