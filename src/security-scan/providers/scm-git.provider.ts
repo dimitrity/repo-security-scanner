@@ -38,7 +38,7 @@ export class GitScmProvider implements ScmProvider {
         return gitMetadata;
       }
     } catch (error) {
-      this.logger.warn(`Failed to fetch repository metadata for ${repoUrl}:`, error);
+      this.logger.warn('Failed to fetch repository metadata:', { repoUrl, error });
     }
     
     // Return fallback metadata if all else fails
@@ -87,7 +87,7 @@ export class GitScmProvider implements ScmProvider {
           return null;
       }
     } catch (error) {
-      this.logger.warn(`Failed to fetch from ${repoInfo.platform} API:`, error);
+      this.logger.warn('Failed to fetch from API:', { platform: repoInfo.platform, error });
       return null;
     }
   }
@@ -272,7 +272,7 @@ export class GitScmProvider implements ScmProvider {
         await tmpDir.cleanup();
       }
     } catch (error) {
-      this.logger.warn(`Failed to get last commit hash for ${repoUrl}:`, error);
+      this.logger.warn('Failed to get last commit hash:', { repoUrl, error });
       return 'unknown';
     }
   }
@@ -320,7 +320,7 @@ export class GitScmProvider implements ScmProvider {
           await git.show([lastCommitHash, '--oneline', '--no-patch']);
         } catch (commitError) {
           // If old commit doesn't exist, assume changes
-          this.logger.warn(`Old commit ${lastCommitHash} not found in repository`);
+          this.logger.warn('Old commit not found in repository', { lastCommitHash });
           return {
             hasChanges: true,
             lastCommitHash: currentLastCommit,
@@ -383,7 +383,7 @@ export class GitScmProvider implements ScmProvider {
         await tmpDir.cleanup();
       }
     } catch (error) {
-      this.logger.warn(`Failed to check changes for ${repoUrl}:`, error);
+      this.logger.warn('Failed to check changes:', { repoUrl, error });
       return {
         hasChanges: true, // Assume changes if we can't determine
         lastCommitHash: await this.getLastCommitHash(repoUrl),
