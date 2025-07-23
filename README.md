@@ -40,20 +40,12 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 - **Features**: Entropy-based detection, custom patterns, Git history scanning
 - **Detects**: AWS keys, GitHub tokens, passwords, private keys, etc.
 
-### 🔐 Production-Ready Security
+### 🔐 Security Features
 
-#### API Key Authentication
-- **Multi-Key Support**: Configure multiple API keys for different use cases
-- **Environment-Based**: Automatic development fallback, production enforcement
-- **Secure Validation**: 16-256 character keys with format validation
-- **Audit Logging**: Security-focused logging with key truncation
-- **Dynamic Management**: Runtime key addition/removal capabilities
-
-#### Security Features
-- **Input Validation**: Comprehensive request sanitization
+- **API Key Authentication**: Simple and secure API access control
+- **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
-- **Rate Limiting Ready**: Infrastructure for API rate limiting
-- **Secrets Management**: Integration with cloud secret services
+- **Safe Scanner Execution**: Isolated scanner process execution
 
 ### 🌍 Repository Platform Support
 
@@ -112,95 +104,56 @@ winget install gitleaks
 
 #### 3. Configuration
 
-**Development Mode (No configuration needed):**
-The application uses a development fallback API key automatically.
+**Simple Setup:**
+The application is preconfigured with a default API key. For production, you can optionally set your own:
 
-**Production Mode - Create `.env` file:**
 ```bash
-# API Configuration
+# Optional: Create .env file for custom configuration
 PORT=3000
-NODE_ENV=production
+API_KEYS=your-custom-api-key-here
 
-# Security (Required in Production)
-# Multiple API keys (recommended)
-API_KEYS=primary-prod-key-2024-abc123,backup-key-def456
-
-# Legacy single API key (backward compatibility)
-API_KEY=your-secure-api-key-here
-
-# Optional: Enhanced metadata support  
+# Optional: Enhanced GitHub metadata support  
 GITHUB_TOKEN=your-github-token
 ```
 
-**API Key Requirements:**
-- Minimum 16 characters
-- Maximum 256 characters
-- Alphanumeric, dashes (-), and underscores (_) only
-- Case sensitive
+**Note:** The frontend and backend are automatically synchronized with the same API key.
 
 ### 🏃‍♂️ Running the Application
 
-#### Development Mode
+#### Local Development
 ```bash
+# Start development server
 npm run start:dev
-```
 
-#### Production Mode
-```bash
+# Or build and run
 npm run build
 npm run start:prod
 ```
 
-#### Docker
+#### Docker (Recommended)
 ```bash
-# Using Docker Compose (Recommended)
+# Start with Docker Compose
 docker-compose up -d
 
-# Or build and run manually
-docker build -t repo-security-scanner .
+# View logs
+docker-compose logs -f
 
-# Development mode (uses fallback API key)
-docker run -p 3000:3000 repo-security-scanner
-
-# Production mode (requires API key)
-docker run -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e API_KEYS=your-production-key-here \
-  repo-security-scanner
+# Stop
+docker-compose down
 ```
 
 ### 🔧 Environment Configuration
 
-#### Quick Setup
-- **Development**: No configuration needed - uses `dev-api-key-for-testing`
-- **Production**: Set `API_KEYS` environment variable
+The application works out of the box with sensible defaults. Optional configuration:
 
-#### Advanced Configuration
 ```bash
-# Multiple API keys (recommended for production)
-export API_KEYS="primary-key-2024-abc123,backup-key-def456,monitor-key-ghi789"
-
-# Single API key (legacy support)
-export API_KEY="your-single-api-key-here"
-
-# Environment settings
-export NODE_ENV="production"
-export PORT="3000"
+# Optional environment variables
+export PORT="3000"                              # Application port (default: 3000)
+export API_KEYS="your-custom-api-key"          # Custom API key (optional)
+export GITHUB_TOKEN="your-github-token"        # Enhanced GitHub metadata (optional)
 ```
 
-#### Cloud Deployment Examples
-```bash
-# AWS with Secrets Manager
-API_KEYS=$(aws secretsmanager get-secret-value --secret-id prod/scanner/keys --query SecretString --output text)
-
-# Kubernetes with secrets
-kubectl create secret generic scanner-keys --from-literal=api-keys="key1,key2"
-
-# Docker with environment file
-docker run --env-file .env repo-security-scanner
-```
-
-📖 **For detailed configuration guide, see [Environment Configuration](ENVIRONMENT_CONFIGURATION.md)**
+For Docker deployment, you can set these in your `docker-compose.yml` or pass them as environment variables.
 
 ## 🌐 Web Interface
 
@@ -225,23 +178,13 @@ Access the web interface at `http://localhost:3000`
 
 ### 🔐 Authentication
 
-All API endpoints require the `x-api-key` header:
+All API endpoints require the `x-api-key` header. The default API key is `your-secure-production-key-2025`:
 
-#### Development Mode
 ```bash
-curl -H "x-api-key: dev-api-key-for-testing" http://localhost:3000/scan/statistics
+curl -H "x-api-key: your-secure-production-key-2025" http://localhost:3000/scan/statistics
 ```
 
-#### Production Mode
-```bash
-curl -H "x-api-key: your-production-api-key" http://localhost:3000/scan/statistics
-```
-
-#### Security Features
-- **Multiple Key Support**: Configure primary, backup, and monitoring keys
-- **Key Validation**: Automatic format and security validation
-- **Audit Logging**: Failed authentication attempts logged for security monitoring
-- **Environment Separation**: Different keys for dev/staging/production
+You can customize the API key by setting the `API_KEYS` environment variable.
 
 ### Endpoints
 
@@ -294,10 +237,9 @@ x-api-key: your-api-key-here
 ```
 
 **🔐 Authentication:**
-- **Development**: Use `dev-api-key-for-testing` 
-- **Production**: Configure via `API_KEYS` environment variable
-- All API endpoints require the `x-api-key` header (except static UI)
-- See [Environment Configuration Guide](ENVIRONMENT_CONFIGURATION.md) for details
+- Use API key `your-secure-production-key-2025` in the `x-api-key` header
+- Customize by setting the `API_KEYS` environment variable
+- All API endpoints require authentication (except static UI)
 
 ### 📄 API Response Format
 
@@ -581,7 +523,7 @@ repo-security-scanner-app/
 │   │   │   ├── scan-result.dto.ts           # Scan response structure  
 │   │   │   └── code-context-request.dto.ts  # Code context requests
 │   │   ├── guards/                   # Authentication & authorization
-│   │   │   ├── api-key.guard.ts             # Production-ready API key auth
+│   │   │   ├── api-key.guard.ts             # API key authentication
 │   │   │   └── api-key.guard.spec.ts        # Comprehensive guard tests
 │   │   ├── interfaces/               # TypeScript contracts
 │   │   │   ├── scanners.interface.ts        # Scanner service contracts
@@ -621,7 +563,7 @@ repo-security-scanner-app/
 #### 1. **Presentation Layer**
 - **Web UI**: Modern GitHub-style interface with real-time updates
 - **REST Controller**: Type-safe API endpoints with validation
-- **Authentication Guard**: Multi-key API authentication with audit logging
+- **Authentication Guard**: Simple API key authentication
 
 #### 2. **Business Logic Layer**  
 - **Security Scan Service**: Orchestrates scanning workflows
@@ -663,13 +605,11 @@ export class SecurityScanService {
 }
 ```
 
-#### **ApiKeyGuard** (Production-Ready)
+#### **ApiKeyGuard**
 ```typescript
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  // Multi-key authentication
-  // Security audit logging
-  // Environment-based validation
+  // Simple API key validation
 }
 ```
 
@@ -723,7 +663,7 @@ sequenceDiagram
 #### **Authentication Flow**
 1. **API Key Validation**: Multi-key support with format validation
 2. **Request Sanitization**: Input validation and path traversal protection  
-3. **Audit Logging**: Security event tracking with key truncation
+3. **Simple Validation**: Basic API key checking
 4. **Environment Separation**: Development fallback vs production enforcement
 
 #### **Scanner Isolation**
@@ -786,8 +726,8 @@ export class SecurityScanModule {}
 git clone <repository-url>
 cd repo-security-scanner-app
 
-# Set environment variables
-echo "API_KEY=your-secure-api-key" > .env
+# Optional: Set custom API key
+echo "API_KEYS=your-custom-api-key" > .env
 
 # Start with Docker Compose
 docker-compose up -d
@@ -808,8 +748,7 @@ docker build -t repo-security-scanner .
 docker run -d \
   --name security-scanner \
   -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e API_KEY=your-secure-api-key \
+  -e API_KEYS=your-custom-api-key \
   repo-security-scanner
 
 # View logs
@@ -821,8 +760,7 @@ docker logs -f security-scanner
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `PORT` | Application port | `3000` | No |
-| `NODE_ENV` | Environment mode | `development` | No |
-| `API_KEY` | API authentication key | - | **Yes** |
+| `API_KEYS` | Custom API key | `your-secure-production-key-2025` | No |
 | `GITHUB_TOKEN` | GitHub API token for enhanced metadata | - | No |
 
 ## 🔒 Security Features
@@ -928,18 +866,12 @@ brew install semgrep gitleaks  # macOS
 
 #### API Key Issues
 ```bash
-# Check if API keys are properly configured
-echo $API_KEYS
-
-# Test development key
-curl -H "x-api-key: dev-api-key-for-testing" http://localhost:3000/scan/statistics
-
-# Test production key
-curl -H "x-api-key: your-production-key" http://localhost:3000/scan/statistics
+# Test API connection
+curl -H "x-api-key: your-secure-production-key-2025" http://localhost:3000/scan/statistics
 
 # Common API key errors:
 # 401 "Missing API key" - No x-api-key header provided
-# 401 "Invalid API key" - Key doesn't match configured keys
+# 401 "Invalid API key" - Key doesn't match configured key
 ```
 
 #### Permission Issues
@@ -994,22 +926,18 @@ Track these key metrics in production:
 - **Scanner Performance**: Individual scanner execution times
 - **Repository Coverage**: Number of unique repositories scanned
 
-### Production Deployment Checklist
-- [ ] **API Keys**: Configure strong, unique API keys
-- [ ] **Environment**: Set `NODE_ENV=production`
-- [ ] **Security**: Enable HTTPS and proper CORS
-- [ ] **Monitoring**: Set up health checks and alerting
-- [ ] **Logging**: Configure centralized log aggregation
-- [ ] **Backup**: Implement scan history backup
-- [ ] **Scaling**: Configure horizontal scaling if needed
+### Deployment Checklist
+- [ ] **Environment**: Configure custom API key if needed
+- [ ] **Security**: Enable HTTPS for production
+- [ ] **Monitoring**: Set up basic health checks
+- [ ] **Access**: Ensure scanners (Semgrep, Gitleaks) are installed
 
 ## 📚 Additional Resources
 
-- **[Environment Configuration Guide](ENVIRONMENT_CONFIGURATION.md)**: Comprehensive deployment configuration
-- **[Scanner Documentation](https://semgrep.dev/)**: Semgrep official documentation
-- **[Secret Detection Guide](https://github.com/gitleaks/gitleaks)**: Gitleaks configuration and usage
-- **[NestJS Documentation](https://nestjs.com/)**: Framework documentation
-- **[Docker Hub](https://hub.docker.com/)**: Container deployment guides
+- **[Semgrep Documentation](https://semgrep.dev/)**: Static analysis scanner
+- **[Gitleaks Documentation](https://github.com/gitleaks/gitleaks)**: Secret detection scanner
+- **[NestJS Documentation](https://nestjs.com/)**: Backend framework
+- **[Docker Documentation](https://docs.docker.com/)**: Container deployment
 
 ## 🤝 Contributing
 
@@ -1027,7 +955,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 <p align="center">
-  <strong>🔒 Secure by Design | 🚀 Production Ready | 🧪 Thoroughly Tested</strong>
+  <strong>🔒 Secure by Design | ⚡ Easy to Use | 🧪 Thoroughly Tested</strong>
 </p>
 
 #### Repository Access Issues
@@ -1071,7 +999,6 @@ NODE_ENV=development npm run start:dev
 ## 🆘 Support
 
 - **Issues**: [Create GitHub issues](https://github.com/your-org/repo-security-scanner/issues) for bugs and feature requests
-- **Documentation**: See [Environment Configuration Guide](ENVIRONMENT_CONFIGURATION.md) for detailed setup
 - **Security**: Report security vulnerabilities privately to maintainers
 - **Community**: Join discussions for questions and contributions
 

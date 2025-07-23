@@ -15,7 +15,7 @@ async function bootstrap() {
   });
 
   // Serve static files
-  app.useStaticAssets(join(__dirname, '..', 'public'));
+  app.useStaticAssets(join(__dirname, 'ui'));
   
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   
