@@ -1,6 +1,6 @@
 // Configuration
 const API_BASE_URL = window.location.origin;
-const API_KEY = 'test-for-arnica-987'; // This should be configurable in production
+const API_KEY = 'your-secure-production-key-2025'; // This matches the backend configuration
 
 // Global state
 let currentScanData = null;
