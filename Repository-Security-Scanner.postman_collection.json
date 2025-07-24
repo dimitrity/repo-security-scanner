@@ -47,6 +47,11 @@
       "type": "string"
     },
     {
+      "key": "test_repo_bitbucket",
+      "value": "https://bitbucket.org/atlassian/atlassian-frontend",
+      "type": "string"
+    },
+    {
       "key": "test_repo_private",
       "value": "https://github.com/example/private-repo",
       "type": "string"
@@ -123,6 +128,30 @@
               "path": ["scan"]
             },
             "description": "Scans a public GitLab repository for security vulnerabilities"
+          },
+          "response": []
+        },
+        {
+          "name": "Scan Bitbucket Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_bitbucket}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Scans a public Bitbucket repository for security vulnerabilities"
           },
           "response": []
         },

@@ -18,7 +18,7 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 ### 🚀 Key Features
 
 - 🔍 **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
-- 🏗️ **SCM Abstraction Layer**: Pluggable architecture supporting multiple source control platforms
+- 🏗️ **Multi-Platform SCM Support**: GitHub, GitLab, and Bitbucket with intelligent provider selection
 - 🌐 **Modern Web UI**: GitHub-style interface with instant code context viewing
 - 📱 **Embedded Code Context**: View code snippets directly in scan results without additional API calls
 - 🚀 **Intelligent Change Detection**: Skip scans when no repository changes detected
@@ -170,6 +170,22 @@ GITHUB_TOKEN=your-github-token
 
 **Note:** The frontend and backend are automatically synchronized with the same API key.
 
+**Enhanced SCM Support:**
+```bash
+# Optional: Enhanced GitHub metadata support  
+GITHUB_TOKEN=your-github-token
+
+# Optional: GitLab support (SaaS or self-hosted)
+GITLAB_TOKEN=your-gitlab-token
+# Alternative GitLab token environment variable
+GITLAB_ACCESS_TOKEN=your-gitlab-access-token
+
+# Optional: Bitbucket support
+BITBUCKET_TOKEN=your-bitbucket-app-password
+# Alternative Bitbucket token environment variable  
+BITBUCKET_APP_PASSWORD=your-bitbucket-app-password
+```
+
 ### 🏃‍♂️ Running the Application
 
 #### Local Development
@@ -199,11 +215,25 @@ docker-compose down
 The application works out of the box with sensible defaults. Optional configuration:
 
 ```bash
-# Optional environment variables
+# Basic Configuration
 export PORT="3000"                              # Application port (default: 3000)
 export API_KEYS="your-custom-api-key"          # Custom API key (optional)
-export GITHUB_TOKEN="your-github-token"        # Enhanced GitHub metadata (optional)
+
+# SCM Platform Authentication (Optional)
+export GITHUB_TOKEN="your-github-token"        # Enhanced GitHub metadata and private repos
+export GITLAB_TOKEN="your-gitlab-token"        # GitLab SaaS and self-hosted support
+export BITBUCKET_TOKEN="your-bitbucket-token"  # Bitbucket private repos and enhanced metadata
+
+# Alternative environment variable names also supported:
+export GITLAB_ACCESS_TOKEN="your-gitlab-token"
+export BITBUCKET_APP_PASSWORD="your-bitbucket-app-password"
 ```
+
+**Supported Repository Platforms:**
+- ✅ **GitHub** (github.com) - Public repos work without authentication, private repos require `GITHUB_TOKEN`
+- ✅ **GitLab** (gitlab.com + self-hosted) - Public repos work without authentication, private repos require `GITLAB_TOKEN`
+- ✅ **Bitbucket** (bitbucket.org) - Public repos work without authentication, private repos require `BITBUCKET_TOKEN`
+- ✅ **Generic Git** - Any Git repository accessible via HTTPS/SSH
 
 For Docker deployment, you can set these in your `docker-compose.yml` or pass them as environment variables.
 

@@ -12,6 +12,9 @@ services:
       - GITLAB_ACCESS_TOKEN=${GITLAB_ACCESS_TOKEN:-}
       # GitHub configuration (existing)
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      # Bitbucket configuration
+      - BITBUCKET_TOKEN=${BITBUCKET_TOKEN:-}
+      - BITBUCKET_APP_PASSWORD=${BITBUCKET_APP_PASSWORD:-}
     volumes:
       # Optional: Mount logs directory if you want to persist logs
       - ./logs:/app/logs
