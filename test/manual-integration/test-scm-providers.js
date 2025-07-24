@@ -13,7 +13,7 @@ const BASE_URL = 'http://localhost:3000';
 const testRepositories = [
   {
     name: 'GitHub Repository',
-    url: 'https://github.com/octocat/Hello-World',
+    url: 'https://github.com/OWASP/NodeGoat',
     expectedProvider: 'GitHub Provider'
   },
   {

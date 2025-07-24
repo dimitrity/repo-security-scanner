@@ -1,16 +1,5 @@
 # Repository Security Scanner
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-  <a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-</p>
-
 ## Project Overview
 
 The Repository Security Scanner is a security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **change detection**, **multi-platform SCM support**, and a web interface for viewing results.
@@ -90,8 +79,6 @@ export class BitbucketScmProvider extends BaseScmProvider {
 }
 ```
 
-See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed documentation.
-
 ### Repository Platform Support
 
 The SCM abstraction layer provides unified support for multiple platforms:
@@ -100,8 +87,7 @@ The SCM abstraction layer provides unified support for multiple platforms:
 |----------|---------------|----------|
 | **GitHub** | Full | API integration, private repos, metadata, rate limiting |
 | **GitLab** | Enhanced | SaaS + self-hosted, private repos, comprehensive metadata |
-| **Bitbucket** | Planned | API integration, private repos |
-| **Azure DevOps** | Planned | Microsoft Azure Repos support |
+| **Bitbucket** | Full | API integration, private repos, metadata, rate limiting |
 | **Generic Git** | Full | Any Git repository, SSH/HTTPS, fallback support |
 
 **Platform Detection**: Repositories are automatically routed to the optimal provider based on hostname and URL patterns.
@@ -323,7 +309,7 @@ x-api-key: your-api-key-here
 - Customize by setting the `API_KEYS` environment variable
 - All API endpoints require authentication (except static UI)
 
-### Postman Collection
+## Postman Collection
 
 A Postman collection is included for API testing and development.
 
@@ -382,7 +368,7 @@ A Postman collection is included for API testing and development.
 {
   "base_url": "http://localhost:3000",
   "api_key": "your-secure-production-key-2025",
-  "test_repo_github": "https://github.com/octocat/Hello-World",
+  "test_repo_github": "https://github.com/OWASP/NodeGoat",
   "test_repo_gitlab": "https://gitlab.com/gitlab-org/gitlab-foss",
   "test_repo_bitbucket": "https://bitbucket.org/atlassian/atlassian-frontend"
 }
@@ -1404,7 +1390,7 @@ curl -X POST http://localhost:3000/scan \
 - **Backward Compatibility**: Existing API endpoints work unchanged
 - **Enhanced Metadata**: Richer repository information from platform APIs
 - **Error Handling**: Informative error messages and automatic retries
-- **Future-Proof**: Ready for additional platforms (Bitbucket, Azure DevOps, etc.)
+- **Future-Proof**: Ready for additional platforms and custom providers
 
 #### **Enterprise Features**
 

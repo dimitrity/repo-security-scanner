@@ -38,7 +38,7 @@
     },
     {
       "key": "test_repo_github",
-      "value": "https://github.com/octocat/Hello-World",
+              "value": "https://github.com/OWASP/NodeGoat",
       "type": "string"
     },
     {
@@ -479,7 +479,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"repoUrl\": \"https://github.com/octocat/Hello-World.git\"\n}"
+              "raw": "{\n  \"repoUrl\": \"https://github.com/OWASP/NodeGoat.git\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/scan",

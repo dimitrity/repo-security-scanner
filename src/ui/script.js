@@ -477,7 +477,7 @@ document.addEventListener('keydown', function(event) {
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     // Set a default repo URL for demo purposes (remove in production)
-    const demoUrl = 'https://github.com/octocat/Hello-World';
+    const demoUrl = 'https://github.com/OWASP/NodeGoat';
     document.getElementById('repoUrl').value = demoUrl;
     
     // Focus on the input field

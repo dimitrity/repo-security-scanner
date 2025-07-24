@@ -18,7 +18,7 @@ global.console = {
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3001';
-process.env.API_KEYS = 'test-for-arnika-987';
+process.env.API_KEYS = 'test-api-key';
 
 // Suppress specific warnings during tests
 const originalWarn = console.warn;
