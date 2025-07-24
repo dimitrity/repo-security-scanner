@@ -100,8 +100,7 @@ The SCM abstraction layer provides unified support for multiple platforms:
 |----------|---------------|----------|
 | **GitHub** | Full | API integration, private repos, metadata, rate limiting |
 | **GitLab** | Enhanced | SaaS + self-hosted, private repos, comprehensive metadata |
-| **Bitbucket** | Planned | API integration, private repos |
-| **Azure DevOps** | Planned | Microsoft Azure Repos support |
+| **Bitbucket** | Full | API integration, private repos, metadata, rate limiting |
 | **Generic Git** | Full | Any Git repository, SSH/HTTPS, fallback support |
 
 **Platform Detection**: Repositories are automatically routed to the optimal provider based on hostname and URL patterns.
@@ -1404,7 +1403,7 @@ curl -X POST http://localhost:3000/scan \
 - **Backward Compatibility**: Existing API endpoints work unchanged
 - **Enhanced Metadata**: Richer repository information from platform APIs
 - **Error Handling**: Informative error messages and automatic retries
-- **Future-Proof**: Ready for additional platforms (Bitbucket, Azure DevOps, etc.)
+- **Future-Proof**: Ready for additional platforms and custom providers
 
 #### **Enterprise Features**
 
