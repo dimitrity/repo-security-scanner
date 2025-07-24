@@ -13,20 +13,23 @@
 
 ## Project Overview
 
-The Repository Security Scanner is a comprehensive security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features dual scanner integration, intelligent change detection, and a modern web interface for viewing results.
+The Repository Security Scanner is a comprehensive security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **intelligent change detection**, **multi-platform SCM support**, and a modern web interface for viewing results.
 
 ### 🚀 Key Features
 
 - 🔍 **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
+- 🏗️ **SCM Abstraction Layer**: Pluggable architecture supporting multiple source control platforms
 - 🌐 **Modern Web UI**: GitHub-style interface with instant code context viewing
 - 📱 **Embedded Code Context**: View code snippets directly in scan results without additional API calls
 - 🚀 **Intelligent Change Detection**: Skip scans when no repository changes detected
+- 🤖 **Automatic Provider Selection**: Best SCM provider automatically chosen based on repository URL
 - 📊 **Scanner Summary Dashboard**: Real-time issue counts and scanner status
 - 🔐 **Secure API**: API key authentication with input validation and sanitization
 - 🐳 **Docker Ready**: Complete containerization with docker-compose support
 - 🔄 **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
 - 📈 **Scan Statistics**: Track scanning activity and repository history
 - ⚡ **Force Scan Option**: Bypass change detection when needed
+- 🏥 **Health Monitoring**: Provider health checks and performance monitoring
 
 ### 🛡️ Security Scanners
 
@@ -47,12 +50,61 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 - **Path Traversal Protection**: Secure file system access
 - **Safe Scanner Execution**: Isolated scanner process execution
 
+### 🏗️ SCM Abstraction Layer
+
+**Revolutionary multi-provider architecture for seamless source control integration:**
+
+#### ✅ **Supported Platforms**
+- **GitHub**: 
+  - Full API integration with authentication
+  - Private repository support
+  - Enhanced metadata extraction
+  - Rate limit handling
+  
+- **GitLab**: ✨ **Enhanced Support**
+  - **GitLab.com & Self-hosted**: Full support for both public GitLab.com and private GitLab instances
+  - **Authentication**: Personal Access Token support for private repositories
+  - **Comprehensive Metadata**: Repository details, contributor stats, commit history
+  - **Private Repository Access**: Secure token-based authentication for private repos
+  - **CI/CD Integration**: Compatible with GitLab CI/CD pipelines
+
+- **Enhanced Git**: 
+  - Universal Git repository support
+  - Automatic authentication handling
+  - Fallback for any Git hosting platform
+
+#### ✅ **Key Capabilities**
+- **🤖 Intelligent Provider Selection**: Best provider automatically chosen based on URL
+- **🔄 Automatic Fallback**: Graceful degradation when providers fail
+- **🔐 Multi-Platform Authentication**: Token-based auth with environment variables
+- **📊 Provider Health Monitoring**: Real-time status and performance tracking
+- **🚀 Easy Extension**: Add new providers with minimal code changes
+- **📈 Analytics & Insights**: Provider usage statistics and recommendations
+
+#### ✅ **Extensible Design**
+```typescript
+// Adding a new provider is simple:
+@Injectable()
+export class BitbucketScmProvider extends BaseScmProvider {
+  // Implement platform-specific logic
+}
+```
+
+See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed documentation.
+
 ### 🌍 Repository Platform Support
 
-- **GitHub**: Full API integration for metadata and commit information
-- **GitLab**: API support for repository details
-- **Bitbucket**: API integration for repository metadata
-- **Generic Git**: Fallback support for any accessible Git repository
+The SCM abstraction layer provides unified support for multiple platforms:
+
+| Platform | Support Level | Features |
+|----------|---------------|----------|
+| **GitHub** | ✅ Full | API integration, private repos, metadata, rate limiting |
+| **GitLab** | ✅ Enhanced | SaaS + self-hosted, private repos, comprehensive metadata |
+| **Bitbucket** | 🔄 Planned | API integration, private repos |
+| **Azure DevOps** | 🔄 Planned | Microsoft Azure Repos support |
+| **Generic Git** | ✅ Full | Any Git repository, SSH/HTTPS, fallback support |
+
+**Platform Detection**: Repositories are automatically routed to the optimal provider based on hostname and URL patterns.
 
 ## 🚀 Quick Start
 
@@ -496,23 +548,32 @@ The project includes comprehensive testing:
 
 ### 🎯 System Overview
 
-The Repository Security Scanner follows a **modular, layered architecture** built on NestJS principles, emphasizing security, scalability, and maintainability.
+The Repository Security Scanner follows a **modular, layered architecture** built on NestJS principles, emphasizing security, scalability, and maintainability. The system features a **revolutionary SCM abstraction layer** that provides seamless multi-platform repository support.
 
 ```mermaid
 graph TD
     A[Web UI] --> B[Security Scan Controller]
     B --> C[API Key Guard]
     C --> D[Security Scan Service]
-    D --> E[Git SCM Provider]
-    D --> F[Scanner Services]
-    D --> G[Scan Storage Service]
-    E --> H[Repository Cloning]
-    F --> I[Semgrep Scanner]
-    F --> J[Gitleaks Scanner]
-    D --> K[Code Context Extraction]
+    D --> E[SCM Manager Service]
+    E --> F[SCM Provider Registry]
+    F --> G[GitHub Provider]
+    F --> H[GitLab Provider] 
+    F --> I[Enhanced Git Provider]
+    D --> J[Scanner Services]
+    D --> K[Scan Storage Service]
+    J --> L[Semgrep Scanner]
+    J --> M[Gitleaks Scanner]
+    D --> N[Code Context Extraction]
+    
+    style E fill:#e1f5fe
+    style F fill:#e8f5e8
+    style G fill:#f3e5f5
+    style H fill:#fff3e0
+    style I fill:#fce4ec
 ```
 
-### 📁 Project Structure
+### 📁 Enhanced Project Structure
 
 ```
 repo-security-scanner-app/
@@ -527,9 +588,15 @@ repo-security-scanner-app/
 │   │   │   └── api-key.guard.spec.ts        # Comprehensive guard tests
 │   │   ├── interfaces/               # TypeScript contracts
 │   │   │   ├── scanners.interface.ts        # Scanner service contracts
-│   │   │   └── scm.interface.ts             # SCM provider contracts
+│   │   │   └── scm.interface.ts             # 🆕 Enhanced SCM abstractions
 │   │   ├── providers/                # Service implementations
-│   │   │   ├── scm-git.provider.ts          # Git repository management
+│   │   │   ├── 🆕 SCM Abstraction Layer
+│   │   │   ├── scm-provider.registry.ts     # Provider registry & selection
+│   │   │   ├── scm-manager.service.ts       # High-level SCM operations  
+│   │   │   ├── scm-git-enhanced.provider.ts # Enhanced Git provider
+│   │   │   ├── scm-github.provider.ts       # GitHub API integration
+│   │   │   ├── scm-gitlab.provider.ts       # GitLab API integration
+│   │   │   ├── 🔧 Security Scanners
 │   │   │   ├── scanner-semgrep.service.ts   # Semgrep static analysis
 │   │   │   ├── scanner-gitleaks.service.ts  # Gitleaks secret detection
 │   │   │   └── scan-storage.service.ts      # In-memory scan history
@@ -548,41 +615,83 @@ repo-security-scanner-app/
 ├── test/                            # Comprehensive test suites
 │   ├── integration/                 # Integration test scenarios
 │   │   ├── security-scan.integration.spec.ts  # API integration tests
-│   │   └── change-detection.integration.spec.ts # Change detection tests
+│   │   ├── change-detection.integration.spec.ts # Change detection tests
+│   │   └── gitlab-support.integration.spec.ts   # 🆕 GitLab integration tests
 │   ├── app.e2e-spec.ts             # End-to-end workflow tests
 │   ├── setup.ts                    # Test environment setup
 │   └── jest-e2e.json              # E2E test configuration
 ├── docker-compose.yml              # Container orchestration
 ├── Dockerfile                      # Multi-stage container build
-├── ENVIRONMENT_CONFIGURATION.md    # Deployment guide
+├── 📚 Documentation
+├── SCM_ABSTRACTION_LAYER.md        # 🆕 SCM architecture guide
+├── GITLAB_SUPPORT.md               # GitLab integration documentation
 └── README.md                       # Comprehensive documentation
 ```
 
-### 🏛️ Architectural Layers
+### 🏛️ Enhanced Architectural Layers
 
 #### 1. **Presentation Layer**
 - **Web UI**: Modern GitHub-style interface with real-time updates
 - **REST Controller**: Type-safe API endpoints with validation
-- **Authentication Guard**: Simple API key authentication
+- **Authentication Guard**: Multi-key API authentication with ConfigService
 
-#### 2. **Business Logic Layer**  
-- **Security Scan Service**: Orchestrates scanning workflows
-- **Change Detection**: Intelligent repository change tracking
-- **Code Context Extraction**: Embedded code snippet generation
-- **Result Aggregation**: Multi-scanner result synthesis
+#### 2. **Business Logic Layer**
+- **Security Scan Service**: Orchestrates scanning workflows with multi-provider support
+- **SCM Manager Service**: High-level SCM operations across all providers
+- **Change Detection**: Intelligent repository change tracking with provider-specific optimizations
+- **Code Context Extraction**: Embedded code snippet generation with enhanced metadata
+- **Result Aggregation**: Multi-scanner result synthesis with structured output
 
-#### 3. **Service Layer**
-- **Scanner Services**: Pluggable security scanner implementations
-- **SCM Provider**: Repository cloning and metadata extraction  
+#### 3. **SCM Abstraction Layer** 🆕
+- **Provider Registry**: Automatic provider selection and health monitoring
+- **GitHub Provider**: Full GitHub API integration with authentication
+- **GitLab Provider**: Enhanced GitLab support (SaaS + self-hosted)
+- **Enhanced Git Provider**: Universal Git repository support with fallback capabilities
+- **Authentication Management**: Multi-platform token-based authentication
+- **Health Monitoring**: Provider status tracking and performance analytics
+
+#### 4. **Service Layer**
+- **Scanner Services**: Pluggable security scanner implementations (Semgrep, Gitleaks)
 - **Storage Service**: Scan history and statistics management
 - **Configuration Service**: Environment-based configuration management
 
-#### 4. **Infrastructure Layer**
+#### 5. **Infrastructure Layer**
 - **Temporary File Management**: Secure repository cloning and cleanup
 - **Process Execution**: Sandboxed scanner process management
 - **Error Handling**: Comprehensive error recovery and logging
 
-### 🔧 Core Components
+### 🔧 Enhanced Core Components
+
+#### **SCM Manager Service** 🆕
+```typescript
+@Injectable()
+export class ScmManagerService {
+  // High-level SCM operations
+  // Automatic provider selection
+  // Multi-repository operations
+  // Provider health monitoring
+}
+```
+
+#### **SCM Provider Registry** 🆕
+```typescript
+@Injectable()
+export class ScmProviderRegistryService {
+  // Provider registration and management
+  // Intelligent provider selection
+  // Health monitoring and analytics
+}
+```
+
+#### **Enhanced Git Provider** 🆕
+```typescript
+@Injectable()
+export class EnhancedGitScmProvider extends BaseScmProvider {
+  // Universal Git repository support
+  // Authentication handling
+  // Metadata extraction
+}
+```
 
 #### **SecurityScanController**
 ```typescript
@@ -598,22 +707,14 @@ export class SecurityScanController {
 ```typescript
 @Injectable()
 export class SecurityScanService {
-  // Core scanning orchestration
+  // Core scanning orchestration with SCM abstraction
   // Change detection logic
   // Multi-scanner coordination
   // Code context embedding
 }
 ```
 
-#### **ApiKeyGuard**
-```typescript
-@Injectable()
-export class ApiKeyGuard implements CanActivate {
-  // Simple API key validation
-}
-```
-
-#### **ConfigService** (New)
+#### **ConfigService**
 ```typescript
 @Injectable() 
 export class ConfigService implements OnModuleInit {
@@ -761,7 +862,74 @@ docker logs -f security-scanner
 |----------|-------------|---------|----------|
 | `PORT` | Application port | `3000` | No |
 | `API_KEYS` | Custom API key | `your-secure-production-key-2025` | No |
+| **SCM Provider Authentication** |
 | `GITHUB_TOKEN` | GitHub API token for enhanced metadata | - | No |
+| `GITLAB_TOKEN` | GitLab Personal Access Token for private repos | - | No |
+| `GITLAB_ACCESS_TOKEN` | Alternative GitLab token variable name | - | No |
+
+#### 🏗️ **SCM Provider Configuration**
+
+The repository scanner uses an **intelligent SCM abstraction layer** that automatically selects the best provider based on repository URLs:
+
+**Automatic Provider Selection:**
+- `https://github.com/user/repo` → **GitHub Provider** (with API integration)
+- `https://gitlab.com/user/repo` → **GitLab Provider** (with enhanced metadata)
+- `https://gitlab.company.com/team/project` → **GitLab Provider** (self-hosted support)
+- `https://any-git-server.com/repo.git` → **Enhanced Git Provider** (universal fallback)
+
+**Authentication Benefits:**
+- ✅ **Without tokens**: Public repositories work seamlessly
+- ✅ **With tokens**: Private repositories + enhanced metadata + higher rate limits
+- ✅ **Auto-detection**: No manual provider configuration needed
+- ✅ **Fallback support**: Always works even if API fails
+
+**Provider Health Monitoring:**
+```bash
+# Check provider health status
+curl -X GET http://localhost:3000/scan/statistics \
+  -H "x-api-key: your-api-key"
+
+# Returns provider health information and usage statistics
+```
+
+### 🦊 GitLab Configuration
+
+#### For GitLab.com (Public Repositories)
+No configuration needed - public repositories work out of the box.
+
+#### For Private Repositories or Self-hosted GitLab
+1. **Create Personal Access Token**:
+   - Go to GitLab → User Settings → Access Tokens
+   - Create token with `read_repository` scope
+   - Copy the generated token
+
+2. **Configure Environment**:
+```bash
+# Option 1: Environment variable
+export GITLAB_TOKEN=glpat-your-token-here
+
+# Option 2: Docker
+docker run -e GITLAB_TOKEN=glpat-your-token-here repo-security-scanner
+
+# Option 3: .env file
+echo "GITLAB_TOKEN=glpat-your-token-here" >> .env
+```
+
+3. **Self-hosted GitLab Instances**:
+```bash
+# Scan from self-hosted GitLab
+curl -X POST http://localhost:3000/scan \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://gitlab.your-company.com/team/project"}'
+```
+
+#### GitLab Features Supported
+- ✅ **Public & Private Repositories**: Full access with proper authentication
+- ✅ **Self-hosted Instances**: Any GitLab instance (CE/EE)
+- ✅ **Comprehensive Metadata**: Project details, contributors, commit history
+- ✅ **GitLab-specific Data**: Issues, merge requests, CI/CD status, container registry
+- ✅ **Security Scanning**: Works with all GitLab repository types
 
 ## 🔒 Security Features
 
@@ -934,19 +1102,107 @@ Track these key metrics in production:
 
 ## 📚 Additional Resources
 
+- **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)**: Complete guide to the SCM abstraction layer
+- **[GITLAB_SUPPORT.md](./GITLAB_SUPPORT.md)**: Enhanced GitLab integration documentation
 - **[Semgrep Documentation](https://semgrep.dev/)**: Static analysis scanner
 - **[Gitleaks Documentation](https://github.com/gitleaks/gitleaks)**: Secret detection scanner
 - **[NestJS Documentation](https://nestjs.com/)**: Backend framework
 - **[Docker Documentation](https://docs.docker.com/)**: Container deployment
 
+## 🎉 What's New: SCM Abstraction Layer
+
+### 🚀 **Revolutionary Multi-Provider Architecture**
+
+The Repository Security Scanner now features a **groundbreaking SCM abstraction layer** that transforms how the application handles source control management:
+
+#### ✨ **Key Innovations**
+
+- **🤖 Automatic Provider Selection**: No configuration needed - the system automatically chooses the optimal provider based on repository URLs
+- **🔄 Intelligent Fallback**: Seamless degradation when specific providers fail
+- **🏗️ Extensible Design**: Adding new SCM providers requires minimal code changes
+- **🔐 Multi-Platform Authentication**: Unified authentication across GitHub, GitLab, and more
+- **📊 Health Monitoring**: Real-time provider status and performance tracking
+- **⚡ Enhanced Performance**: Provider-specific optimizations for better speed and reliability
+
+#### 🎯 **Immediate Benefits**
+
+```bash
+# Works automatically with any supported platform:
+curl -X POST http://localhost:3000/scan \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://github.com/user/repo"}'      # → GitHub Provider
+
+curl -X POST http://localhost:3000/scan \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://gitlab.com/user/repo"}'      # → GitLab Provider
+
+curl -X POST http://localhost:3000/scan \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://git.company.com/repo.git"}'  # → Enhanced Git Provider
+```
+
+#### 🏆 **For Developers**
+
+- **Zero Breaking Changes**: Existing API endpoints work unchanged
+- **Enhanced Metadata**: Richer repository information from platform APIs
+- **Better Error Handling**: More informative error messages and automatic retries
+- **Future-Proof**: Ready for additional platforms (Bitbucket, Azure DevOps, etc.)
+
+#### 📈 **Enterprise Ready**
+
+- **Self-hosted GitLab**: Full support for GitLab CE/EE instances
+- **Private Repository Support**: Token-based authentication for all platforms
+- **Scalable Architecture**: Provider registry supports load balancing and failover
+- **Comprehensive Monitoring**: Health checks and performance metrics for all providers
+
+> **🎯 Result**: A more robust, flexible, and maintainable security scanning platform that seamlessly works with any Git repository, anywhere.
+
+## 📚 Additional Resources
+
 ## 🤝 Contributing
 
+We welcome contributions! The new **SCM abstraction layer** makes it easier than ever to extend the platform:
+
+### 🚀 **Adding New SCM Providers**
+```typescript
+// Adding a new provider is as simple as:
+@Injectable()
+export class BitbucketScmProvider extends BaseScmProvider {
+  constructor() {
+    super({
+      name: 'Bitbucket Provider',
+      platform: 'bitbucket',
+      hostnames: ['bitbucket.org'],
+      supportsApi: true
+    });
+  }
+  
+  canHandle(repoUrl: string): boolean {
+    return repoUrl.includes('bitbucket.org');
+  }
+  
+  // Implement platform-specific methods...
+}
+```
+
+See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed guidance.
+
+### 🔧 **General Contributing**
+
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+5. Ensure all tests pass (`npm run test:all`)
+6. Update documentation if needed
+7. Submit a pull request
+
+### 🧪 **Testing New Providers**
+```bash
+# Test your new provider
+npm run test:unit -- --testPathPattern=your-provider.spec.ts
+npm run test:integration -- --testPathPattern=your-provider
+```
 
 ## 📄 License
 

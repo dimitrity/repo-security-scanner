@@ -10,7 +10,30 @@ const execAsync = promisify(exec);
 export class GitScmProvider implements ScmProvider {
   private readonly logger = new Logger(GitScmProvider.name);
   async cloneRepository(repoUrl: string, targetPath: string): Promise<void> {
-    await simpleGit().clone(repoUrl, targetPath);
+    try {
+      // Parse the repository URL to determine the platform
+      const repoInfo = this.parseRepoUrl(repoUrl);
+      let cloneUrl = repoUrl;
+      
+      // If it's a GitLab repository and we have a token, use authenticated clone
+      if (repoInfo?.platform === 'gitlab') {
+        const gitlabToken = process.env.GITLAB_TOKEN || process.env.GITLAB_ACCESS_TOKEN;
+        if (gitlabToken && repoUrl.startsWith('https://')) {
+          // Convert HTTPS URL to authenticated format
+          // From: https://gitlab.com/owner/repo.git
+          // To: https://oauth2:TOKEN@gitlab.com/owner/repo.git
+          const url = new URL(repoUrl);
+          cloneUrl = `https://oauth2:${gitlabToken}@${url.hostname}${url.pathname}`;
+          this.logger.log('Using GitLab token authentication for repository cloning');
+        }
+      }
+      
+      await simpleGit().clone(cloneUrl, targetPath);
+      this.logger.log(`Successfully cloned repository to ${targetPath}`);
+    } catch (error) {
+      this.logger.error(`Failed to clone repository ${repoUrl}:`, error);
+      throw error;
+    }
   }
 
   async fetchRepoMetadata(repoUrl: string): Promise<{
@@ -45,7 +68,7 @@ export class GitScmProvider implements ScmProvider {
     return this.getFallbackMetadata(repoUrl);
   }
 
-  private parseRepoUrl(repoUrl: string): { platform: string; owner: string; repo: string } | null {
+  private parseRepoUrl(repoUrl: string): { platform: string; owner: string; repo: string; hostname?: string } | null {
     try {
       const url = new URL(repoUrl);
       const pathParts = url.pathname.split('/').filter(Boolean);
@@ -57,22 +80,22 @@ export class GitScmProvider implements ScmProvider {
         let platform = 'unknown';
         if (url.hostname.includes('github.com')) {
           platform = 'github';
-        } else if (url.hostname.includes('gitlab.com')) {
+        } else if (url.hostname.includes('gitlab.com') || url.hostname.includes('gitlab.')) {
           platform = 'gitlab';
         } else if (url.hostname.includes('bitbucket.org')) {
           platform = 'bitbucket';
         }
         
-        return { platform, owner, repo };
+        return { platform, owner, repo, hostname: url.hostname };
       }
     } catch (error) {
-              this.logger.warn('Failed to parse repository URL:', error);
+      this.logger.warn('Failed to parse repository URL:', error);
     }
     
     return null;
   }
 
-  private async fetchFromGitApi(repoInfo: { platform: string; owner: string; repo: string } | null): Promise<any> {
+  private async fetchFromGitApi(repoInfo: { platform: string; owner: string; repo: string; hostname?: string } | null): Promise<any> {
     if (!repoInfo) return null;
 
     try {
@@ -80,7 +103,7 @@ export class GitScmProvider implements ScmProvider {
         case 'github':
           return await this.fetchFromGitHubApi(repoInfo.owner, repoInfo.repo);
         case 'gitlab':
-          return await this.fetchFromGitLabApi(repoInfo.owner, repoInfo.repo);
+          return await this.fetchFromGitLabApi(repoInfo.owner, repoInfo.repo, repoInfo.hostname);
         case 'bitbucket':
           return await this.fetchFromBitbucketApi(repoInfo.owner, repoInfo.repo);
         default:
@@ -115,26 +138,114 @@ export class GitScmProvider implements ScmProvider {
     }
   }
 
-  private async fetchFromGitLabApi(owner: string, repo: string): Promise<any> {
+  private async fetchFromGitLabApi(owner: string, repo: string, hostname?: string): Promise<any> {
     try {
-      // GitLab API requires authentication for private repos, but we can try public repos
-      const response = await fetch(`https://gitlab.com/api/v4/projects/${encodeURIComponent(`${owner}/${repo}`)}`);
+      // Support both GitLab.com and self-hosted GitLab instances
+      const apiUrl = hostname ? `https://${hostname}/api/v4` : 'https://gitlab.com/api/v4';
+      const projectPath = encodeURIComponent(`${owner}/${repo}`);
+      
+      // Try to get GitLab token from environment
+      const gitlabToken = process.env.GITLAB_TOKEN || process.env.GITLAB_ACCESS_TOKEN;
+      
+      // Prepare headers
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Repository-Security-Scanner/1.0'
+      };
+      
+      // Add authentication if token is available
+      if (gitlabToken) {
+        headers['Authorization'] = `Bearer ${gitlabToken}`;
+        this.logger.log('Using GitLab authentication token for API requests');
+      } else {
+        this.logger.log('No GitLab token found, attempting public repository access');
+      }
+      
+      // Fetch project metadata
+      this.logger.log(`Fetching GitLab metadata from: ${apiUrl}/projects/${projectPath}`);
+      const response = await fetch(`${apiUrl}/projects/${projectPath}`, { headers });
+      
       if (!response.ok) {
-        throw new Error(`GitLab API returned ${response.status}`);
+        if (response.status === 401) {
+          this.logger.warn('GitLab API authentication failed - token may be invalid or expired');
+        } else if (response.status === 403) {
+          this.logger.warn('GitLab API access forbidden - repository may be private or token lacks permissions');
+        } else if (response.status === 404) {
+          this.logger.warn('GitLab repository not found or access denied');
+        }
+        throw new Error(`GitLab API returned ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
+      
+      // Fetch additional metadata if authenticated
+      let additionalData = {};
+      if (gitlabToken) {
+        try {
+          // Get latest commit information
+          const commitsResponse = await fetch(`${apiUrl}/projects/${projectPath}/repository/commits?per_page=1`, { headers });
+          if (commitsResponse.ok) {
+            const commits = await commitsResponse.json();
+            if (commits.length > 0) {
+              additionalData = {
+                lastCommitHash: commits[0].id,
+                lastCommitMessage: commits[0].message,
+                lastCommitAuthor: commits[0].author_name,
+                lastCommitDate: commits[0].committed_date
+              };
+            }
+          }
+          
+          // Get repository statistics
+          const statsResponse = await fetch(`${apiUrl}/projects/${projectPath}/repository/contributors`, { headers });
+          if (statsResponse.ok) {
+            const contributors = await statsResponse.json();
+            additionalData = {
+              ...additionalData,
+              contributorCount: contributors.length
+            };
+          }
+        } catch (error) {
+          this.logger.warn('Failed to fetch additional GitLab metadata:', error);
+        }
+      }
+      
       return {
         name: data.name,
         description: data.description || 'No description available',
         defaultBranch: data.default_branch || 'main',
         lastCommit: {
-          hash: data.last_activity_at ? 'latest' : 'unknown',
-          timestamp: data.last_activity_at || new Date().toISOString(),
+          hash: additionalData['lastCommitHash'] || data.last_activity_at ? 'latest' : 'unknown',
+          timestamp: additionalData['lastCommitDate'] || data.last_activity_at || new Date().toISOString(),
+          message: additionalData['lastCommitMessage'] || undefined,
+          author: additionalData['lastCommitAuthor'] || undefined
         },
+        // GitLab-specific metadata
+        gitlab: {
+          id: data.id,
+          namespace: data.namespace?.name,
+          visibility: data.visibility,
+          forksCount: data.forks_count,
+          starsCount: data.star_count,
+          issuesEnabled: data.issues_enabled,
+          mergeRequestsEnabled: data.merge_requests_enabled,
+          wikiEnabled: data.wiki_enabled,
+          snippetsEnabled: data.snippets_enabled,
+          containerRegistryEnabled: data.container_registry_enabled,
+          packagesEnabled: data.packages_enabled,
+          contributorCount: additionalData['contributorCount'] || undefined,
+          webUrl: data.web_url,
+          sshUrlToRepo: data.ssh_url_to_repo,
+          httpUrlToRepo: data.http_url_to_repo,
+          readmeUrl: data.readme_url,
+          avatarUrl: data.avatar_url,
+          topics: data.topics || [],
+          createdAt: data.created_at,
+          lastActivityAt: data.last_activity_at
+        }
       };
     } catch (error) {
-              this.logger.warn('GitLab API fetch failed:', error);
+      this.logger.warn('GitLab API fetch failed:', { owner, repo, hostname, error: error.message });
       return null;
     }
   }
