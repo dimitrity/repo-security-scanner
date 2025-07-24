@@ -1,11 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from '../../src/app.module';
+import { SecurityScanController } from '../../src/security-scan/security-scan.controller';
 import { SecurityScanService } from '../../src/security-scan/security-scan.service';
 import { EnhancedGitScmProvider } from '../../src/security-scan/providers/scm-git-enhanced.provider';
 import { SemgrepScanner } from '../../src/security-scan/providers/scanner-semgrep.service';
+import { GitleaksScanner } from '../../src/security-scan/providers/scanner-gitleaks.service';
 import { ScmManagerService } from '../../src/security-scan/providers/scm-manager.service';
 import { ScanStorageService } from '../../src/security-scan/providers/scan-storage.service';
+import { ScmProviderRegistryService } from '../../src/security-scan/providers/scm-provider.registry';
+import { ApiKeyGuard } from '../../src/security-scan/guards/api-key.guard';
+import { ConfigModule } from '../../src/config/config.module';
 import * as tmp from 'tmp-promise';
 import simpleGit from 'simple-git';
 
@@ -15,6 +19,71 @@ jest.mock('simple-git');
 jest.mock('child_process', () => ({
   exec: jest.fn(),
 }));
+
+// Mock SCM Providers
+const mockScmProvider = {
+  getName: jest.fn().mockReturnValue('Mock SCM Provider'),
+  getPlatform: jest.fn().mockReturnValue('git'),
+  getSupportedHostnames: jest.fn().mockReturnValue(['*']),
+  canHandle: jest.fn().mockReturnValue(true),
+  cloneRepository: jest.fn().mockResolvedValue(undefined),
+  fetchRepoMetadata: jest.fn().mockResolvedValue({
+    name: 'test-repo',
+    description: 'Test repository',
+    defaultBranch: 'main',
+    lastCommit: {
+      hash: 'test-commit-hash',
+      timestamp: new Date().toISOString(),
+      message: 'Test commit',
+      author: 'Test Author'
+    },
+    platform: {
+      gitlab: {
+        id: 123,
+        name: 'test-repo',
+        visibility: 'public'
+      }
+    },
+    common: {
+      visibility: 'public',
+      forksCount: 0,
+      starsCount: 0,
+      webUrl: 'https://gitlab.com/test/repo'
+    }
+  }),
+  getLastCommitHash: jest.fn().mockResolvedValue('test-commit-hash'),
+  hasChangesSince: jest.fn().mockResolvedValue({
+    hasChanges: false,
+    lastCommitHash: 'test-commit-hash',
+    changeCount: 0
+  }),
+  configureAuthentication: jest.fn(),
+  getConfig: jest.fn().mockReturnValue({
+    name: 'Mock SCM Provider',
+    platform: 'git',
+    hostnames: ['*'],
+    supportsPrivateRepos: true,
+    supportsApi: true
+  }),
+  parseRepositoryUrl: jest.fn().mockReturnValue({
+    platform: 'git',
+    hostname: 'gitlab.com',
+    owner: 'test',
+    repository: 'repo',
+    fullName: 'test/repo',
+    originalUrl: 'https://gitlab.com/test/repo'
+  }),
+  normalizeRepositoryUrl: jest.fn().mockReturnValue('https://gitlab.com/test/repo'),
+  isAuthenticated: jest.fn().mockReturnValue(false),
+  validateAuthentication: jest.fn().mockResolvedValue(true),
+  healthCheck: jest.fn().mockResolvedValue({
+    isHealthy: true,
+    responseTime: 100,
+    lastChecked: new Date().toISOString(),
+    apiAvailable: true,
+    authenticationValid: false
+  })
+};
 
 describe('SecurityScan Integration Tests', () => {
   let app: INestApplication;
@@ -39,7 +108,33 @@ describe('SecurityScan Integration Tests', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [ConfigModule],
+      controllers: [SecurityScanController],
+      providers: [
+        SecurityScanService,
+        ApiKeyGuard,
+        ScanStorageService,
+        SemgrepScanner,
+        GitleaksScanner,
+        ScmProviderRegistryService,
+        ScmManagerService,
+        {
+          provide: 'SCANNERS',
+          useFactory: (semgrepScanner: SemgrepScanner, gitleaksScanner: GitleaksScanner) => {
+            return [semgrepScanner, gitleaksScanner];
+          },
+          inject: [SemgrepScanner, GitleaksScanner],
+        },
+        {
+          provide: 'SCM_PROVIDERS_SETUP',
+          useFactory: (registry: ScmProviderRegistryService) => {
+            // Register mock provider instead of real providers
+            registry.registerProvider(mockScmProvider as any);
+            return registry;
+          },
+          inject: [ScmProviderRegistryService],
+        },
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -61,6 +156,39 @@ describe('SecurityScan Integration Tests', () => {
     
     // Clear scan records before each test
     scanStorage.clearScanRecords();
+    
+    // Reset mock SCM provider
+    mockScmProvider.cloneRepository.mockResolvedValue(undefined);
+    mockScmProvider.fetchRepoMetadata.mockResolvedValue({
+      name: 'test-repo',
+      description: 'Test repository',
+      defaultBranch: 'main',
+      lastCommit: {
+        hash: 'test-commit-hash',
+        timestamp: new Date().toISOString(),
+        message: 'Test commit',
+        author: 'Test Author'
+      },
+      platform: {
+        gitlab: {
+          id: 123,
+          name: 'test-repo',
+          visibility: 'public'
+        }
+      },
+      common: {
+        visibility: 'public',
+        forksCount: 0,
+        starsCount: 0,
+        webUrl: 'https://gitlab.com/test/repo'
+      }
+    });
+    mockScmProvider.getLastCommitHash.mockResolvedValue('test-commit-hash');
+    mockScmProvider.hasChangesSince.mockResolvedValue({
+      hasChanges: false,
+      lastCommitHash: 'test-commit-hash',
+      changeCount: 0
+    });
     
     // Default successful git clone
     mockGit.clone.mockResolvedValue(undefined);
