@@ -14,6 +14,7 @@ import { ScmManagerService } from './providers/scm-manager.service';
 import { EnhancedGitScmProvider } from './providers/scm-git-enhanced.provider';
 import { GitHubScmProvider } from './providers/scm-github.provider';
 import { GitLabScmProvider } from './providers/scm-gitlab.provider';
+import { BitbucketScmProvider } from './providers/scm-bitbucket.provider';
 
 @Module({
   imports: [ConfigModule],
@@ -42,6 +43,7 @@ import { GitLabScmProvider } from './providers/scm-gitlab.provider';
     EnhancedGitScmProvider,
     GitHubScmProvider,
     GitLabScmProvider,
+    BitbucketScmProvider,
 
     // SCM Provider Registration
     {
@@ -50,7 +52,8 @@ import { GitLabScmProvider } from './providers/scm-gitlab.provider';
         registry: ScmProviderRegistryService,
         enhancedGitProvider: EnhancedGitScmProvider,
         githubProvider: GitHubScmProvider,
-        gitlabProvider: GitLabScmProvider
+        gitlabProvider: GitLabScmProvider,
+        bitbucketProvider: BitbucketScmProvider
       ) => {
         // Configure authentication from environment variables
         const setupAuthentication = () => {
@@ -71,12 +74,22 @@ import { GitLabScmProvider } from './providers/scm-gitlab.provider';
               token: gitlabToken
             });
           }
+
+          // Bitbucket authentication
+          const bitbucketToken = process.env.BITBUCKET_TOKEN || process.env.BITBUCKET_APP_PASSWORD;
+          if (bitbucketToken) {
+            bitbucketProvider.configureAuthentication({
+              type: 'token',
+              token: bitbucketToken
+            });
+          }
         };
 
         // Register providers in order of preference
         // More specific providers first, generic providers last
         registry.registerProvider(githubProvider);
         registry.registerProvider(gitlabProvider);
+        registry.registerProvider(bitbucketProvider);
         registry.registerProvider(enhancedGitProvider);
 
         // Setup authentication
@@ -88,7 +101,8 @@ import { GitLabScmProvider } from './providers/scm-gitlab.provider';
         ScmProviderRegistryService,
         EnhancedGitScmProvider,
         GitHubScmProvider,
-        GitLabScmProvider
+        GitLabScmProvider,
+        BitbucketScmProvider
       ],
     },
   ],
