@@ -10,14 +10,83 @@ import { ScanStorageService } from '../../src/security-scan/providers/scan-stora
 import { ScmProviderRegistryService } from '../../src/security-scan/providers/scm-provider.registry';
 import { ApiKeyGuard } from '../../src/security-scan/guards/api-key.guard';
 import { ConfigModule } from '../../src/config/config.module';
-import * as tmp from 'tmp-promise';
-import simpleGit from 'simple-git';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Mock external dependencies
-jest.mock('tmp-promise');
-jest.mock('simple-git');
 jest.mock('child_process', () => ({
   exec: jest.fn(),
+  spawn: jest.fn().mockImplementation((command, args, options) => {
+    // Create a mock process object that mimics the real spawn behavior
+    const mockProcess = {
+      stdout: {
+        on: jest.fn().mockImplementation((event, callback) => {
+          if (event === 'data') {
+            // Simulate stdout data based on the command
+            if (command === 'semgrep') {
+              const mockOutput = {
+                results: [
+                  {
+                    check_id: 'SEC-001',
+                    extra: {
+                      message: 'Hardcoded secret found',
+                      severity: 'HIGH',
+                    },
+                    path: 'src/config.ts',
+                    start: { line: 10 },
+                  },
+                  {
+                    check_id: 'SEC-002',
+                    extra: {
+                      message: 'Weak encryption detected',
+                      severity: 'MEDIUM',
+                    },
+                    path: 'src/auth.ts',
+                    start: { line: 25 },
+                  },
+                  {
+                    check_id: 'SEC-003',
+                    extra: {
+                      message: 'SQL injection vulnerability',
+                      severity: 'HIGH',
+                    },
+                    path: 'src/database.ts',
+                    start: { line: 15 },
+                  }
+                ],
+              };
+              callback(Buffer.from(JSON.stringify(mockOutput)));
+            } else if (command === 'gitleaks') {
+              // Gitleaks typically returns empty output for clean repos
+              callback(Buffer.from(''));
+            }
+          }
+          return mockProcess.stdout;
+        }),
+      },
+      stderr: {
+        on: jest.fn().mockImplementation((event, callback) => {
+          if (event === 'data') {
+            // Simulate stderr data
+            callback(Buffer.from(''));
+          }
+          return mockProcess.stderr;
+        }),
+      },
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === 'close') {
+          // Simulate successful process completion
+          setTimeout(() => callback(0), 10);
+        } else if (event === 'error') {
+          // Don't trigger error by default
+        }
+        return mockProcess;
+      }),
+      kill: jest.fn(),
+    };
+    
+    return mockProcess;
+  }),
 }));
 
 // Mock SCM Providers
@@ -26,7 +95,44 @@ const mockScmProvider = {
   getPlatform: jest.fn().mockReturnValue('gitlab'),
   getSupportedHostnames: jest.fn().mockReturnValue(['gitlab.com', 'gitlab.']),
   canHandle: jest.fn().mockReturnValue(true),
-  cloneRepository: jest.fn().mockResolvedValue(undefined),
+  cloneRepository: jest.fn().mockImplementation(async (url: string, targetPath: string) => {
+    // Actually create the directory and some test files
+    if (!fs.existsSync(targetPath)) {
+      fs.mkdirSync(targetPath, { recursive: true });
+    }
+    
+    // Create some test files for the scanners to find
+    const testFiles = [
+      'package.json',
+      'src/config.ts',
+      'src/main.ts',
+      'README.md'
+    ];
+    
+    for (const file of testFiles) {
+      const filePath = path.join(targetPath, file);
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      // Create different content for different files
+      let content = '';
+      if (file === 'package.json') {
+        content = JSON.stringify({ name: 'test-repo', version: '1.0.0' });
+      } else if (file === 'src/config.ts') {
+        content = 'const API_KEY = "sk-1234567890abcdef"; // This should be detected by scanners';
+      } else if (file === 'src/main.ts') {
+        content = 'console.log("Hello World");';
+      } else {
+        content = '# Test Repository\n\nThis is a test repository.';
+      }
+      
+      fs.writeFileSync(filePath, content);
+    }
+    
+    return targetPath;
+  }),
   fetchRepoMetadata: jest.fn().mockResolvedValue({
     name: 'test-repo',
     description: 'Test GitLab repository',
@@ -42,7 +148,9 @@ const mockScmProvider = {
         id: 123,
         name: 'test-repo',
         visibility: 'public',
-        webUrl: 'https://gitlab.com/test/repo'
+        webUrl: 'https://gitlab.com/test/repo',
+        sshUrlToRepo: 'git@gitlab.com:test/repo.git',
+        httpUrlToRepo: 'https://gitlab.com/test/repo.git'
       }
     },
     common: {
@@ -139,8 +247,8 @@ describe('GitLab Support Integration', () => {
     await app.init();
 
     // Setup mocks
-    (tmp.dir as jest.Mock).mockResolvedValue(mockTmpDir);
-    (simpleGit as jest.Mock).mockReturnValue(mockGit);
+    // (tmp.dir as jest.Mock).mockResolvedValue(mockTmpDir); // This line is no longer needed
+    // (simpleGit as jest.Mock).mockReturnValue(mockGit); // This line is no longer needed
   });
 
   beforeEach(() => {
