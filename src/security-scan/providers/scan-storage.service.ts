@@ -24,7 +24,7 @@ export class ScanStorageService {
   updateScanRecord(repoUrl: string, lastCommitHash: string): void {
     const existing = this.scanRecords.get(repoUrl);
     const now = new Date().toISOString();
-    
+
     this.scanRecords.set(repoUrl, {
       repoUrl,
       lastCommitHash,
@@ -56,13 +56,20 @@ export class ScanStorageService {
     lastScanTimestamp?: string;
   } {
     const records = this.getAllScanRecords();
-    const totalScans = records.reduce((sum, record) => sum + record.scanCount, 0);
-    const lastScanTimestamp = records.length > 0 
-      ? records.reduce((latest, record) => 
-          record.lastScanTimestamp > latest ? record.lastScanTimestamp : latest, 
-          records[0].lastScanTimestamp
-        )
-      : undefined;
+    const totalScans = records.reduce(
+      (sum, record) => sum + record.scanCount,
+      0,
+    );
+    const lastScanTimestamp =
+      records.length > 0
+        ? records.reduce(
+            (latest, record) =>
+              record.lastScanTimestamp > latest
+                ? record.lastScanTimestamp
+                : latest,
+            records[0].lastScanTimestamp,
+          )
+        : undefined;
 
     return {
       totalRepositories: records.length,
@@ -70,4 +77,4 @@ export class ScanStorageService {
       lastScanTimestamp,
     };
   }
-} 
+}

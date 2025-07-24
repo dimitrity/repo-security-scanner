@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EnhancedGitScmProvider } from './scm-git-enhanced.provider';
-import { 
-  RepositoryMetadata, 
-  RepositoryInfo, 
-  ApiStatus, 
+import {
+  RepositoryMetadata,
+  RepositoryInfo,
+  ApiStatus,
   Contributor,
   SearchResult,
-  ProviderHealthStatus 
+  ProviderHealthStatus,
 } from '../interfaces/scm.interface';
 
 /**
@@ -26,12 +26,12 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
       supportsPrivateRepos: true,
       supportsApi: true,
       authentication: {
-        type: 'token'
+        type: 'token',
       },
       rateLimit: {
         requestsPerHour: 5000, // For authenticated requests
-        burstLimit: 100
-      }
+        burstLimit: 100,
+      },
     };
   }
 
@@ -50,7 +50,9 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
   /**
    * Fetch metadata from GitHub API
    */
-  protected async fetchFromApi(repoInfo: RepositoryInfo | null): Promise<RepositoryMetadata | null> {
+  protected async fetchFromApi(
+    repoInfo: RepositoryInfo | null,
+  ): Promise<RepositoryMetadata | null> {
     if (!repoInfo || repoInfo.platform !== 'github') {
       return null;
     }
@@ -58,16 +60,20 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
     try {
       const headers = this.buildApiHeaders();
       const apiUrl = `${this.apiBaseUrl}/repos/${repoInfo.fullName}`;
-      
+
       this.logger.log(`Fetching GitHub metadata from: ${apiUrl}`);
-      
+
       const response = await fetch(apiUrl, { headers });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
-          this.logger.warn('GitHub API authentication failed - token may be invalid');
+          this.logger.warn(
+            'GitHub API authentication failed - token may be invalid',
+          );
         } else if (response.status === 403) {
-          this.logger.warn('GitHub API rate limit exceeded or repository is private');
+          this.logger.warn(
+            'GitHub API rate limit exceeded or repository is private',
+          );
         } else if (response.status === 404) {
           this.logger.warn('GitHub repository not found');
         }
@@ -75,11 +81,14 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
       }
 
       const data = await response.json();
-      
+
       // Get additional data if authenticated
       let additionalData = {};
       if (this.authConfig?.token) {
-        additionalData = await this.fetchAdditionalGitHubData(repoInfo.fullName, headers);
+        additionalData = await this.fetchAdditionalGitHubData(
+          repoInfo.fullName,
+          headers,
+        );
       }
 
       return {
@@ -90,7 +99,7 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
           hash: additionalData['lastCommitHash'] || 'latest',
           timestamp: data.updated_at || new Date().toISOString(),
           message: additionalData['lastCommitMessage'],
-          author: additionalData['lastCommitAuthor']
+          author: additionalData['lastCommitAuthor'],
         },
         platform: {
           github: {
@@ -101,7 +110,7 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
               id: data.owner.id,
               type: data.owner.type,
               avatarUrl: data.owner.avatar_url,
-              url: data.owner.html_url
+              url: data.owner.html_url,
             },
             fullName: data.full_name,
             isPrivate: data.private,
@@ -125,8 +134,8 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
             topics: data.topics || [],
             visibility: data.visibility,
             defaultBranch: data.default_branch,
-            ...additionalData
-          }
+            ...additionalData,
+          },
         },
         common: {
           visibility: data.private ? 'private' : 'public',
@@ -145,8 +154,8 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
           cloneUrl: data.clone_url,
           sshUrl: data.ssh_url,
           archived: data.archived,
-          disabled: data.disabled
-        }
+          disabled: data.disabled,
+        },
       };
     } catch (error) {
       this.logger.warn('GitHub API fetch failed:', error);
@@ -159,8 +168,8 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
    */
   private buildApiHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'Repository-Security-Scanner/1.0'
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'Repository-Security-Scanner/1.0',
     };
 
     if (this.authConfig?.token) {
@@ -173,12 +182,18 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
   /**
    * Fetch additional GitHub data for authenticated requests
    */
-  private async fetchAdditionalGitHubData(fullName: string, headers: Record<string, string>): Promise<Record<string, any>> {
+  private async fetchAdditionalGitHubData(
+    fullName: string,
+    headers: Record<string, string>,
+  ): Promise<Record<string, any>> {
     const additionalData: Record<string, any> = {};
 
     try {
       // Get latest commit
-      const commitsResponse = await fetch(`${this.apiBaseUrl}/repos/${fullName}/commits?per_page=1`, { headers });
+      const commitsResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${fullName}/commits?per_page=1`,
+        { headers },
+      );
       if (commitsResponse.ok) {
         const commits = await commitsResponse.json();
         if (commits.length > 0) {
@@ -191,7 +206,10 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
       }
 
       // Get contributors count
-      const contributorsResponse = await fetch(`${this.apiBaseUrl}/repos/${fullName}/contributors?per_page=1`, { headers });
+      const contributorsResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${fullName}/contributors?per_page=1`,
+        { headers },
+      );
       if (contributorsResponse.ok) {
         const linkHeader = contributorsResponse.headers.get('Link');
         if (linkHeader) {
@@ -207,17 +225,19 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
       }
 
       // Get release information
-      const releasesResponse = await fetch(`${this.apiBaseUrl}/repos/${fullName}/releases/latest`, { headers });
+      const releasesResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${fullName}/releases/latest`,
+        { headers },
+      );
       if (releasesResponse.ok) {
         const latestRelease = await releasesResponse.json();
         additionalData.latestRelease = {
           tagName: latestRelease.tag_name,
           name: latestRelease.name,
           publishedAt: latestRelease.published_at,
-          isPrerelease: latestRelease.prerelease
+          isPrerelease: latestRelease.prerelease,
         };
       }
-
     } catch (error) {
       this.logger.warn('Failed to fetch additional GitHub data:', error);
     }
@@ -234,8 +254,11 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
 
     try {
       const headers = this.buildApiHeaders();
-      const response = await fetch(`${this.apiBaseUrl}/repos/${repoInfo.fullName}/branches`, { headers });
-      
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoInfo.fullName}/branches`,
+        { headers },
+      );
+
       if (response.ok) {
         const branches = await response.json();
         return branches.map((branch: any) => branch.name);
@@ -256,8 +279,11 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
 
     try {
       const headers = this.buildApiHeaders();
-      const response = await fetch(`${this.apiBaseUrl}/repos/${repoInfo.fullName}/tags`, { headers });
-      
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoInfo.fullName}/tags`,
+        { headers },
+      );
+
       if (response.ok) {
         const tags = await response.json();
         return tags.map((tag: any) => tag.name);
@@ -278,8 +304,11 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
 
     try {
       const headers = this.buildApiHeaders();
-      const response = await fetch(`${this.apiBaseUrl}/repos/${repoInfo.fullName}/contributors`, { headers });
-      
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoInfo.fullName}/contributors`,
+        { headers },
+      );
+
       if (response.ok) {
         const contributors = await response.json();
         return contributors.map((contributor: any) => ({
@@ -287,7 +316,7 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
           username: contributor.login,
           avatarUrl: contributor.avatar_url,
           contributions: contributor.contributions,
-          type: contributor.type === 'Bot' ? 'bot' : 'user'
+          type: contributor.type === 'Bot' ? 'bot' : 'user',
         }));
       }
     } catch (error) {
@@ -305,7 +334,7 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
       const headers = this.buildApiHeaders();
       const searchUrl = `${this.apiBaseUrl}/search/repositories?q=${encodeURIComponent(query)}`;
       const response = await fetch(searchUrl, { headers });
-      
+
       if (response.ok) {
         const data = await response.json();
         return data.items.map((repo: any) => ({
@@ -317,7 +346,7 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
           language: repo.language,
           stars: repo.stargazers_count,
           forks: repo.forks_count,
-          updatedAt: repo.updated_at
+          updatedAt: repo.updated_at,
         }));
       }
     } catch (error) {
@@ -333,8 +362,10 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
   async getApiStatus(): Promise<ApiStatus> {
     try {
       const headers = this.buildApiHeaders();
-      const response = await fetch(`${this.apiBaseUrl}/rate_limit`, { headers });
-      
+      const response = await fetch(`${this.apiBaseUrl}/rate_limit`, {
+        headers,
+      });
+
       if (response.ok) {
         const data = await response.json();
         return {
@@ -342,9 +373,16 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
           rateLimit: {
             remaining: data.rate.remaining,
             total: data.rate.limit,
-            resetTime: new Date(data.rate.reset * 1000).toISOString()
+            resetTime: new Date(data.rate.reset * 1000).toISOString(),
           },
-          features: ['repositories', 'commits', 'branches', 'tags', 'contributors', 'search']
+          features: [
+            'repositories',
+            'commits',
+            'branches',
+            'tags',
+            'contributors',
+            'search',
+          ],
         };
       }
     } catch (error) {
@@ -353,7 +391,7 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
 
     return {
       available: false,
-      error: 'Unable to connect to GitHub API'
+      error: 'Unable to connect to GitHub API',
     };
   }
 
@@ -377,16 +415,16 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
    */
   async healthCheck(): Promise<ProviderHealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       // Check GitHub API availability
       const response = await fetch(`${this.apiBaseUrl}/zen`);
       const responseTime = Date.now() - startTime;
-      
+
       if (response.ok) {
         const authValid = await this.validateAuthentication();
         const apiStatus = await this.getApiStatus();
-        
+
         return {
           isHealthy: true,
           responseTime,
@@ -413,4 +451,4 @@ export class GitHubScmProvider extends EnhancedGitScmProvider {
       };
     }
   }
-} 
+}

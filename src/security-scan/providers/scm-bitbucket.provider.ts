@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EnhancedGitScmProvider } from './scm-git-enhanced.provider';
-import { 
-  RepositoryMetadata, 
-  RepositoryInfo, 
-  ApiStatus, 
+import {
+  RepositoryMetadata,
+  RepositoryInfo,
+  ApiStatus,
   Contributor,
   SearchResult,
-  ProviderHealthStatus 
+  ProviderHealthStatus,
 } from '../interfaces/scm.interface';
 
 /**
@@ -26,12 +26,12 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
       supportsPrivateRepos: true,
       supportsApi: true,
       authentication: {
-        type: 'token'
+        type: 'token',
       },
       rateLimit: {
         requestsPerHour: 1000, // Bitbucket rate limits
-        burstLimit: 60
-      }
+        burstLimit: 60,
+      },
     };
   }
 
@@ -41,7 +41,9 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
   canHandle(repoUrl: string): boolean {
     try {
       const url = new URL(repoUrl);
-      return url.hostname === 'bitbucket.org' || url.hostname === 'www.bitbucket.org';
+      return (
+        url.hostname === 'bitbucket.org' || url.hostname === 'www.bitbucket.org'
+      );
     } catch {
       return false;
     }
@@ -58,8 +60,10 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
       }
 
       // Bitbucket URL pattern: https://bitbucket.org/owner/repo
-      const pathParts = url.pathname.split('/').filter(part => part.length > 0);
-      
+      const pathParts = url.pathname
+        .split('/')
+        .filter((part) => part.length > 0);
+
       if (pathParts.length < 2) {
         return null;
       }
@@ -73,7 +77,7 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
         owner,
         repository: cleanRepo,
         fullName: `${owner}/${cleanRepo}`,
-        originalUrl: repoUrl
+        originalUrl: repoUrl,
       };
     } catch (error) {
       this.logger.error(`Failed to parse Bitbucket URL: ${repoUrl}`, error);
@@ -99,7 +103,9 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
       // Fallback to basic metadata from URL parsing
       return this.createBasicMetadata(repoInfo);
     } catch (error) {
-      this.logger.warn(`Bitbucket API failed, using basic metadata: ${error.message}`);
+      this.logger.warn(
+        `Bitbucket API failed, using basic metadata: ${error.message}`,
+      );
       return this.createBasicMetadata(repoInfo);
     }
   }
@@ -107,7 +113,9 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
   /**
    * Fetch metadata from Bitbucket API
    */
-  private async fetchMetadataFromApi(repoInfo: RepositoryInfo): Promise<RepositoryMetadata> {
+  private async fetchMetadataFromApi(
+    repoInfo: RepositoryInfo,
+  ): Promise<RepositoryMetadata> {
     const apiUrl = `${this.apiBaseUrl}/repositories/${repoInfo.owner}/${repoInfo.repository}`;
     const response = await fetch(apiUrl, {
       headers: this.getApiHeaders(),
@@ -124,20 +132,20 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
     }
 
     const data = await response.json();
-    
+
     // Get latest commit from separate API call
     let lastCommit = {
       hash: 'unknown',
       timestamp: new Date().toISOString(),
       author: 'unknown',
-      message: 'Unknown commit'
+      message: 'Unknown commit',
     };
 
     try {
       const commitsResponse = await fetch(`${apiUrl}/commits?pagelen=1`, {
         headers: this.getApiHeaders(),
       });
-      
+
       if (commitsResponse.ok) {
         const commitsData = await commitsResponse.json();
         if (commitsData.values && commitsData.values.length > 0) {
@@ -145,8 +153,9 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
           lastCommit = {
             hash: commit.hash,
             timestamp: commit.date,
-            author: commit.author?.display_name || commit.author?.raw || 'unknown',
-            message: commit.message || 'No commit message'
+            author:
+              commit.author?.display_name || commit.author?.raw || 'unknown',
+            message: commit.message || 'No commit message',
           };
         }
       }
@@ -173,16 +182,22 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
           hasWiki: data.has_wiki,
           forksCount: data.fork_policy ? 1 : 0, // Bitbucket doesn't provide fork count directly
           watchersCount: 0, // Not available in Bitbucket API v2.0
-          webUrl: data.links?.html?.href || `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}`,
-          cloneUrl: data.links?.clone?.find((link: any) => link.name === 'https')?.href || `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}.git`,
-          sshUrl: data.links?.clone?.find((link: any) => link.name === 'ssh')?.href,
+          webUrl:
+            data.links?.html?.href ||
+            `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}`,
+          cloneUrl:
+            data.links?.clone?.find((link: any) => link.name === 'https')
+              ?.href ||
+            `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}.git`,
+          sshUrl: data.links?.clone?.find((link: any) => link.name === 'ssh')
+            ?.href,
           owner: {
             username: data.owner?.username || repoInfo.owner,
             displayName: data.owner?.display_name || repoInfo.owner,
             type: data.owner?.type || 'user',
-            uuid: data.owner?.uuid
-          }
-        }
+            uuid: data.owner?.uuid,
+          },
+        },
       },
       // Common metadata
       common: {
@@ -191,8 +206,10 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
         visibility: data.is_private ? 'private' : 'public',
         createdAt: data.created_on,
         updatedAt: data.updated_on,
-        webUrl: data.links?.html?.href || `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}`
-      }
+        webUrl:
+          data.links?.html?.href ||
+          `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}`,
+      },
     };
   }
 
@@ -208,11 +225,11 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
         hash: 'unknown',
         timestamp: new Date().toISOString(),
         author: 'unknown',
-        message: 'Commit information unavailable'
+        message: 'Commit information unavailable',
       },
       common: {
-        webUrl: `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}`
-      }
+        webUrl: `https://bitbucket.org/${repoInfo.owner}/${repoInfo.repository}`,
+      },
     };
   }
 
@@ -221,8 +238,8 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
    */
   private getApiHeaders(): HeadersInit {
     const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'User-Agent': 'Repository-Security-Scanner/1.0'
+      Accept: 'application/json',
+      'User-Agent': 'Repository-Security-Scanner/1.0',
     };
 
     if (this.config.authentication?.token) {
@@ -306,28 +323,35 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
 
     try {
       const encodedQuery = encodeURIComponent(query);
-      const response = await fetch(`${this.apiBaseUrl}/repositories?q=name~"${encodedQuery}"`, {
-        headers: this.getApiHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/repositories?q=name~"${encodedQuery}"`,
+        {
+          headers: this.getApiHeaders(),
+        },
+      );
 
       if (!response.ok) {
         return [];
       }
 
       const data = await response.json();
-      return data.values?.map((repo: any) => ({
-        name: repo.name,
-        fullName: repo.full_name,
-        description: repo.description || '',
-        url: repo.links?.html?.href || '',
-        language: repo.language,
-        stars: 0, // Not available in Bitbucket API v2.0
-        forks: 0,  // Not directly available
-        isPrivate: repo.is_private,
-        updatedAt: repo.updated_on
-      })) || [];
+      return (
+        data.values?.map((repo: any) => ({
+          name: repo.name,
+          fullName: repo.full_name,
+          description: repo.description || '',
+          url: repo.links?.html?.href || '',
+          language: repo.language,
+          stars: 0, // Not available in Bitbucket API v2.0
+          forks: 0, // Not directly available
+          isPrivate: repo.is_private,
+          updatedAt: repo.updated_on,
+        })) || []
+      );
     } catch (error) {
-      this.logger.warn(`Failed to search Bitbucket repositories: ${error.message}`);
+      this.logger.warn(
+        `Failed to search Bitbucket repositories: ${error.message}`,
+      );
       return [];
     }
   }
@@ -344,15 +368,19 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
       return {
         available: response.ok,
         rateLimit: {
-          remaining: parseInt(response.headers.get('X-RateLimit-Remaining') || '0'),
+          remaining: parseInt(
+            response.headers.get('X-RateLimit-Remaining') || '0',
+          ),
           total: parseInt(response.headers.get('X-RateLimit-Limit') || '1000'),
-          resetTime: response.headers.get('X-RateLimit-Reset') || new Date().toISOString()
-        }
+          resetTime:
+            response.headers.get('X-RateLimit-Reset') ||
+            new Date().toISOString(),
+        },
       };
     } catch (error) {
       return {
         available: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -362,7 +390,7 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
    */
   async healthCheck(): Promise<ProviderHealthStatus> {
     const start = Date.now();
-    
+
     try {
       const apiStatus = await this.getApiStatus();
       const responseTime = Date.now() - start;
@@ -372,7 +400,7 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
         responseTime,
         lastChecked: new Date().toISOString(),
         apiAvailable: apiStatus.available,
-        authenticationValid: this.isAuthenticated() && apiStatus.available
+        authenticationValid: this.isAuthenticated() && apiStatus.available,
       };
     } catch (error) {
       return {
@@ -381,8 +409,8 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
         lastChecked: new Date().toISOString(),
         error: error.message,
         apiAvailable: false,
-        authenticationValid: false
+        authenticationValid: false,
       };
     }
   }
-} 
+}

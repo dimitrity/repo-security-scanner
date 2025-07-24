@@ -11,8 +11,6 @@ export class SemgrepScanner implements SecurityScanner {
     return 'latest';
   }
 
-
-
   /**
    * Validates and sanitizes the target path to prevent command injection
    * @param targetPath The path to validate
@@ -26,7 +24,7 @@ export class SemgrepScanner implements SecurityScanner {
 
     // Remove any null bytes or control characters
     const sanitizedPath = targetPath.replace(/[\x00-\x1f\x7f]/g, '');
-    
+
     // Check for dangerous patterns that could lead to command injection
     const dangerousPatterns = [
       /[;&|`$(){}[\]]/, // Shell metacharacters
@@ -43,12 +41,12 @@ export class SemgrepScanner implements SecurityScanner {
 
     // Resolve to absolute path to prevent directory traversal
     const absolutePath = path.resolve(sanitizedPath);
-    
+
     // Ensure the path exists and is a directory
     if (!fs.existsSync(absolutePath)) {
       throw new Error(`Target path does not exist: ${absolutePath}`);
     }
-    
+
     const stats = fs.statSync(absolutePath);
     if (!stats.isDirectory()) {
       throw new Error(`Target path must be a directory: ${absolutePath}`);
@@ -67,19 +65,18 @@ export class SemgrepScanner implements SecurityScanner {
     try {
       // Validate and sanitize the input path
       const sanitizedPath = this.validateAndSanitizePath(targetPath);
-      
+
       return new Promise((resolve, reject) => {
         // Use spawn with array arguments to prevent command injection
-        const semgrepProcess = spawn('semgrep', [
-          '--config=auto',
-          '--json',
-          '--quiet',
-          sanitizedPath
-        ], {
-          // Security options
-          timeout: 300000, // 5 minute timeout
-          stdio: ['ignore', 'pipe', 'pipe']
-        });
+        const semgrepProcess = spawn(
+          'semgrep',
+          ['--config=auto', '--json', '--quiet', sanitizedPath],
+          {
+            // Security options
+            timeout: 300000, // 5 minute timeout
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
+        );
 
         let stdout = '';
         let stderr = '';
@@ -94,17 +91,19 @@ export class SemgrepScanner implements SecurityScanner {
 
         semgrepProcess.on('close', (code) => {
           if (code !== 0) {
-            return reject(new Error(`Semgrep process exited with code ${code}: ${stderr}`));
+            return reject(
+              new Error(`Semgrep process exited with code ${code}: ${stderr}`),
+            );
           }
-          
+
           try {
             // Handle empty output
             if (!stdout || stdout.trim() === '') {
               return resolve([]);
             }
-            
+
             const semgrepOutput = JSON.parse(stdout);
-            
+
             // Handle different Semgrep output formats
             let results: any[] = [];
             if (semgrepOutput && Array.isArray(semgrepOutput.results)) {
@@ -116,22 +115,29 @@ export class SemgrepScanner implements SecurityScanner {
               // Alternative format
               results = semgrepOutput.findings;
             }
-            
+
             if (results.length === 0) {
               return resolve([]);
             }
-            
+
             const findings = results.map((result: any) => {
               return {
                 ruleId: result.check_id || result.rule_id || 'UNKNOWN',
-                message: result.extra?.message || result.extra?.metadata?.short_description || result.message || 'No message',
-                filePath: this.getRelativePath(result.path || result.file || 'unknown', targetPath),
+                message:
+                  result.extra?.message ||
+                  result.extra?.metadata?.short_description ||
+                  result.message ||
+                  'No message',
+                filePath: this.getRelativePath(
+                  result.path || result.file || 'unknown',
+                  targetPath,
+                ),
                 line: result.start?.line || result.line || 0,
                 severity: result.extra?.severity || result.severity || 'INFO',
-                scanner: 'Semgrep'
+                scanner: 'Semgrep',
               };
             });
-            
+
             resolve(findings);
           } catch (parseErr) {
             reject(parseErr);
@@ -157,18 +163,21 @@ export class SemgrepScanner implements SecurityScanner {
     if (!absolutePath || !targetPath) {
       return absolutePath || 'unknown';
     }
-    
+
     try {
       // Normalize paths to handle different separators
       const normalizedAbsolute = path.normalize(absolutePath);
       const normalizedTarget = path.normalize(targetPath);
-      
+
       // If the file path is within the target directory, make it relative
       if (normalizedAbsolute.startsWith(normalizedTarget)) {
-        const relativePath = path.relative(normalizedTarget, normalizedAbsolute);
+        const relativePath = path.relative(
+          normalizedTarget,
+          normalizedAbsolute,
+        );
         return relativePath || path.basename(normalizedAbsolute);
       }
-      
+
       // If not within target, return just the filename
       return path.basename(normalizedAbsolute);
     } catch (error) {
@@ -176,4 +185,4 @@ export class SemgrepScanner implements SecurityScanner {
       return path.basename(absolutePath);
     }
   }
-} 
+}

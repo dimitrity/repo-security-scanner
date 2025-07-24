@@ -44,7 +44,7 @@ describe('SecurityScanController', () => {
     service = module.get<SecurityScanService>(SecurityScanService);
 
     jest.clearAllMocks();
-    
+
     // Setup default mock returns
     mockConfigService.isValidApiKey.mockReturnValue(true);
   });
@@ -97,7 +97,9 @@ describe('SecurityScanController', () => {
       const error = new Error('Service error');
       mockScanService.scanRepository.mockRejectedValue(error);
 
-      await expect(controller.scanRepository(requestDto)).rejects.toThrow('Service error');
+      await expect(controller.scanRepository(requestDto)).rejects.toThrow(
+        'Service error',
+      );
       expect(service.scanRepository).toHaveBeenCalledWith(validRepoUrl);
     });
 
@@ -157,13 +159,17 @@ describe('SecurityScanController', () => {
       // Test that all valid URLs would be handled correctly
       for (const url of validUrls) {
         mockScanService.scanRepository.mockResolvedValueOnce({
-          repository: { name: 'test', description: 'test', defaultBranch: 'main', lastCommit: { hash: 'abc', timestamp: '2023-01-01' }},
+          repository: {
+            name: 'test',
+            description: 'test',
+            defaultBranch: 'main',
+            lastCommit: { hash: 'abc', timestamp: '2023-01-01' },
+          },
           scanner: { name: 'test', version: '1.0' },
-          findings: [],
-          securityIssues: [],
-          allSecurityIssues: {},
+                      findings: [],
+            allFindings: {},
         });
-        
+
         const result = await controller.scanRepository({ repoUrl: url });
         expect(result).toBeDefined();
       }
@@ -195,11 +201,11 @@ describe('SecurityScanController', () => {
         'https://github.com/user/repo/tree/main',
       ];
 
-      urls.forEach(url => {
+      urls.forEach((url) => {
         const dto = new ScanRequestDto();
         dto.repoUrl = url;
         expect(dto.repoUrl).toBe(url);
       });
     });
   });
-}); 
+});

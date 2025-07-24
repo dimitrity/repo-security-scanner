@@ -13,7 +13,9 @@ describe('GitLab Support Integration', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    );
     await app.init();
   });
 
@@ -34,7 +36,7 @@ describe('GitLab Support Integration', () => {
       expect(response.body).toHaveProperty('repository');
       expect(response.body.repository).toHaveProperty('name');
       expect(response.body.repository).toHaveProperty('defaultBranch');
-      
+
       // Check for GitLab-specific metadata
       if (response.body.repository.gitlab) {
         expect(response.body.repository.gitlab).toHaveProperty('id');
@@ -111,7 +113,7 @@ describe('GitLab Support Integration', () => {
       const customGitLabUrls = [
         'https://gitlab.company.com/team/repo',
         'https://code.organization.org/group/project',
-        'https://git.internal.net/department/application'
+        'https://git.internal.net/department/application',
       ];
 
       for (const url of customGitLabUrls) {
@@ -132,7 +134,7 @@ describe('GitLab Support Integration', () => {
         'https://gitlab.com/user/repo',
         'https://gitlab.com/user/repo.git',
         'https://gitlab.com/group/subgroup/project',
-        'https://gitlab.com/group/subgroup/project.git'
+        'https://gitlab.com/group/subgroup/project.git',
       ];
 
       for (const url of gitLabUrls) {
@@ -179,13 +181,13 @@ describe('GitLab Support Integration', () => {
         .expect(201);
 
       const { repository } = response.body;
-      
+
       // Basic metadata should always be present
       expect(repository).toHaveProperty('name');
       expect(repository).toHaveProperty('description');
       expect(repository).toHaveProperty('defaultBranch');
       expect(repository).toHaveProperty('lastCommit');
-      
+
       // GitLab-specific metadata may be present
       if (repository.gitlab) {
         expect(repository.gitlab).toHaveProperty('webUrl');
@@ -207,7 +209,7 @@ describe('GitLab Support Integration', () => {
       expect(response.body).toHaveProperty('repository');
       expect(response.body).toHaveProperty('scanner');
       expect(response.body).toHaveProperty('findings');
-      
+
       // Validate repository metadata structure
       const { repository } = response.body;
       expect(typeof repository.name).toBe('string');
@@ -216,4 +218,4 @@ describe('GitLab Support Integration', () => {
       expect(repository.lastCommit).toHaveProperty('timestamp');
     }, 30000);
   });
-}); 
+});

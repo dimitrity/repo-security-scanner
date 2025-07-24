@@ -2,15 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { ScmManagerService } from './scm-manager.service';
 import { ScmProviderRegistryService } from './scm-provider.registry';
-import { 
-  ScmProvider, 
-  RepositoryMetadata, 
-  ChangeDetectionResult, 
+import {
+  ScmProvider,
+  RepositoryMetadata,
+  ChangeDetectionResult,
   CloneOptions,
   ScmAuthConfig,
   ProviderHealthStatus,
   RepositoryInfo,
-  ScmPlatform
+  ScmPlatform,
 } from '../interfaces/scm.interface';
 
 describe('ScmManagerService', () => {
@@ -32,7 +32,9 @@ describe('ScmManagerService', () => {
       getSupportedHostnames: jest.fn().mockReturnValue(['github.com']),
       canHandle: jest.fn().mockReturnValue(true),
       parseRepositoryUrl: jest.fn(),
-      normalizeRepositoryUrl: jest.fn().mockReturnValue('https://github.com/user/repo.git'),
+      normalizeRepositoryUrl: jest
+        .fn()
+        .mockReturnValue('https://github.com/user/repo.git'),
       configureAuthentication: jest.fn(),
       isAuthenticated: jest.fn().mockReturnValue(false),
       validateAuthentication: jest.fn().mockResolvedValue(true),
@@ -84,21 +86,24 @@ describe('ScmManagerService', () => {
     it('should initialize and log provider status', async () => {
       mockProviderRegistry.getRegistryStats.mockReturnValue({
         totalProviders: 2,
-        providersByPlatform: { 
-          github: 1, 
-          gitlab: 1, 
-          bitbucket: 0, 
-          'azure-devops': 0, 
-          gitea: 0, 
-          forgejo: 0, 
-          codeberg: 0, 
-          generic: 0 
+        providersByPlatform: {
+          github: 1,
+          gitlab: 1,
+          bitbucket: 0,
+          'azure-devops': 0,
+          gitea: 0,
+          forgejo: 0,
+          codeberg: 0,
+          generic: 0,
         },
         supportedHostnames: ['github.com', 'gitlab.com'],
       });
 
       mockProviderRegistry.performHealthChecks.mockResolvedValue({
-        'TestProvider': { isHealthy: true, lastChecked: new Date().toISOString() },
+        TestProvider: {
+          isHealthy: true,
+          lastChecked: new Date().toISOString(),
+        },
       });
 
       await service.onModuleInit();
@@ -113,21 +118,33 @@ describe('ScmManagerService', () => {
       const authConfig: ScmAuthConfig = { type: 'token', token: 'test-token' };
       mockProviderRegistry.getProvider.mockReturnValue(mockProvider);
 
-      const result = service.configureAuthentication('TestProvider', authConfig);
+      const result = service.configureAuthentication(
+        'TestProvider',
+        authConfig,
+      );
 
       expect(result).toBe(true);
-      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith('TestProvider');
-      expect(mockProvider.configureAuthentication).toHaveBeenCalledWith(authConfig);
+      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith(
+        'TestProvider',
+      );
+      expect(mockProvider.configureAuthentication).toHaveBeenCalledWith(
+        authConfig,
+      );
     });
 
     it('should return false for non-existent provider', () => {
       const authConfig: ScmAuthConfig = { type: 'token', token: 'test-token' };
       mockProviderRegistry.getProvider.mockReturnValue(null);
 
-      const result = service.configureAuthentication('NonExistentProvider', authConfig);
+      const result = service.configureAuthentication(
+        'NonExistentProvider',
+        authConfig,
+      );
 
       expect(result).toBe(false);
-      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith('NonExistentProvider');
+      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith(
+        'NonExistentProvider',
+      );
       expect(mockProvider.configureAuthentication).not.toHaveBeenCalled();
     });
   });
@@ -135,24 +152,41 @@ describe('ScmManagerService', () => {
   describe('configurePlatformAuthentication', () => {
     it('should configure authentication for all providers of a platform', () => {
       const authConfig: ScmAuthConfig = { type: 'token', token: 'test-token' };
-      const mockProviders = [mockProvider, { ...mockProvider, getName: () => 'TestProvider2' }];
-      mockProviderRegistry.getProvidersByPlatform.mockReturnValue(mockProviders);
+      const mockProviders = [
+        mockProvider,
+        { ...mockProvider, getName: () => 'TestProvider2' },
+      ];
+      mockProviderRegistry.getProvidersByPlatform.mockReturnValue(
+        mockProviders,
+      );
 
-      const result = service.configurePlatformAuthentication('github', authConfig);
+      const result = service.configurePlatformAuthentication(
+        'github',
+        authConfig,
+      );
 
       expect(result).toBe(2);
-      expect(mockProviderRegistry.getProvidersByPlatform).toHaveBeenCalledWith('github');
-      expect(mockProvider.configureAuthentication).toHaveBeenCalledWith(authConfig);
+      expect(mockProviderRegistry.getProvidersByPlatform).toHaveBeenCalledWith(
+        'github',
+      );
+      expect(mockProvider.configureAuthentication).toHaveBeenCalledWith(
+        authConfig,
+      );
     });
 
     it('should return 0 for platform with no providers', () => {
       const authConfig: ScmAuthConfig = { type: 'token', token: 'test-token' };
       mockProviderRegistry.getProvidersByPlatform.mockReturnValue([]);
 
-      const result = service.configurePlatformAuthentication('unknown', authConfig);
+      const result = service.configurePlatformAuthentication(
+        'unknown',
+        authConfig,
+      );
 
       expect(result).toBe(0);
-      expect(mockProviderRegistry.getProvidersByPlatform).toHaveBeenCalledWith('unknown');
+      expect(mockProviderRegistry.getProvidersByPlatform).toHaveBeenCalledWith(
+        'unknown',
+      );
     });
   });
 
@@ -161,24 +195,34 @@ describe('ScmManagerService', () => {
       const repoUrl = 'https://github.com/user/repo.git';
       const targetPath = '/tmp/repo';
       const options: CloneOptions = { depth: 1 };
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.cloneRepository.mockResolvedValue(undefined);
 
-      const result = await service.cloneRepository(repoUrl, targetPath, options);
+      const result = await service.cloneRepository(
+        repoUrl,
+        targetPath,
+        options,
+      );
 
       expect(result).toEqual({
         success: true,
         provider: 'TestProvider',
       });
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
-      expect(mockProvider.cloneRepository).toHaveBeenCalledWith(repoUrl, targetPath, options);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
+      expect(mockProvider.cloneRepository).toHaveBeenCalledWith(
+        repoUrl,
+        targetPath,
+        options,
+      );
     });
 
     it('should handle provider not found', async () => {
       const repoUrl = 'https://unknown.com/user/repo.git';
       const targetPath = '/tmp/repo';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(null);
 
       const result = await service.cloneRepository(repoUrl, targetPath);
@@ -187,14 +231,16 @@ describe('ScmManagerService', () => {
         success: false,
         error: `No suitable provider found for repository: ${repoUrl}`,
       });
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
     });
 
     it('should handle clone error', async () => {
       const repoUrl = 'https://github.com/user/repo.git';
       const targetPath = '/tmp/repo';
       const error = new Error('Clone failed');
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.cloneRepository.mockRejectedValue(error);
 
@@ -219,7 +265,7 @@ describe('ScmManagerService', () => {
         platform: {},
         common: {},
       };
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.fetchRepoMetadata.mockResolvedValue(mockMetadata);
 
@@ -229,13 +275,15 @@ describe('ScmManagerService', () => {
         metadata: mockMetadata,
         provider: 'TestProvider',
       });
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
       expect(mockProvider.fetchRepoMetadata).toHaveBeenCalledWith(repoUrl);
     });
 
     it('should handle provider not found', async () => {
       const repoUrl = 'https://unknown.com/user/repo.git';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(null);
 
       const result = await service.fetchRepositoryMetadata(repoUrl);
@@ -248,7 +296,7 @@ describe('ScmManagerService', () => {
     it('should handle fetch error', async () => {
       const repoUrl = 'https://github.com/user/repo.git';
       const error = new Error('Fetch failed');
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.fetchRepoMetadata.mockRejectedValue(error);
 
@@ -265,7 +313,7 @@ describe('ScmManagerService', () => {
     it('should successfully get last commit hash', async () => {
       const repoUrl = 'https://github.com/user/repo.git';
       const hash = 'abc123';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.getLastCommitHash.mockResolvedValue(hash);
 
@@ -275,13 +323,15 @@ describe('ScmManagerService', () => {
         hash,
         provider: 'TestProvider',
       });
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
       expect(mockProvider.getLastCommitHash).toHaveBeenCalledWith(repoUrl);
     });
 
     it('should handle provider not found', async () => {
       const repoUrl = 'https://unknown.com/user/repo.git';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(null);
 
       const result = await service.getLastCommitHash(repoUrl);
@@ -306,7 +356,7 @@ describe('ScmManagerService', () => {
           commits: 3,
         },
       };
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.hasChangesSince.mockResolvedValue(mockResult);
 
@@ -316,14 +366,19 @@ describe('ScmManagerService', () => {
         result: mockResult,
         provider: 'TestProvider',
       });
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
-      expect(mockProvider.hasChangesSince).toHaveBeenCalledWith(repoUrl, lastCommitHash);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
+      expect(mockProvider.hasChangesSince).toHaveBeenCalledWith(
+        repoUrl,
+        lastCommitHash,
+      );
     });
 
     it('should handle provider not found', async () => {
       const repoUrl = 'https://unknown.com/user/repo.git';
       const lastCommitHash = 'abc123';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(null);
 
       const result = await service.hasChangesSince(repoUrl, lastCommitHash);
@@ -345,7 +400,7 @@ describe('ScmManagerService', () => {
         fullName: 'user/repo',
         originalUrl: repoUrl,
       };
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.parseRepositoryUrl.mockReturnValue(mockRepoInfo);
 
@@ -355,13 +410,15 @@ describe('ScmManagerService', () => {
         repoInfo: mockRepoInfo,
         provider: 'TestProvider',
       });
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
       expect(mockProvider.parseRepositoryUrl).toHaveBeenCalledWith(repoUrl);
     });
 
     it('should handle provider not found', () => {
       const repoUrl = 'https://unknown.com/user/repo.git';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(null);
 
       const result = service.parseRepositoryUrl(repoUrl);
@@ -373,7 +430,7 @@ describe('ScmManagerService', () => {
 
     it('should handle parse failure', () => {
       const repoUrl = 'https://github.com/user/repo.git';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.parseRepositoryUrl.mockReturnValue(null);
 
@@ -388,7 +445,7 @@ describe('ScmManagerService', () => {
     it('should handle parse error', () => {
       const repoUrl = 'https://github.com/user/repo.git';
       const error = new Error('Parse failed');
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.parseRepositoryUrl.mockImplementation(() => {
         throw error;
@@ -409,15 +466,21 @@ describe('ScmManagerService', () => {
       const recommendations = {
         primary: mockProvider,
         alternatives: [],
-        reasons: ['Primary: TestProvider - Direct hostname match or capability'],
+        reasons: [
+          'Primary: TestProvider - Direct hostname match or capability',
+        ],
       };
-      
-      mockProviderRegistry.getProviderRecommendations.mockReturnValue(recommendations);
+
+      mockProviderRegistry.getProviderRecommendations.mockReturnValue(
+        recommendations,
+      );
 
       const result = service.getProviderRecommendations(repoUrl);
 
       expect(result).toEqual(recommendations);
-      expect(mockProviderRegistry.getProviderRecommendations).toHaveBeenCalledWith(repoUrl);
+      expect(
+        mockProviderRegistry.getProviderRecommendations,
+      ).toHaveBeenCalledWith(repoUrl);
     });
   });
 
@@ -437,19 +500,19 @@ describe('ScmManagerService', () => {
     it('should return registry statistics', () => {
       const stats = {
         totalProviders: 3,
-        providersByPlatform: { 
-          github: 1, 
-          gitlab: 1, 
-          bitbucket: 0, 
-          'azure-devops': 0, 
-          gitea: 0, 
-          forgejo: 0, 
-          codeberg: 0, 
-          generic: 1 
+        providersByPlatform: {
+          github: 1,
+          gitlab: 1,
+          bitbucket: 0,
+          'azure-devops': 0,
+          gitea: 0,
+          forgejo: 0,
+          codeberg: 0,
+          generic: 1,
         },
         supportedHostnames: ['github.com', 'gitlab.com'],
       };
-      
+
       mockProviderRegistry.getRegistryStats.mockReturnValue(stats);
 
       const result = service.getRegistryStatistics();
@@ -462,10 +525,17 @@ describe('ScmManagerService', () => {
   describe('performHealthChecks', () => {
     it('should perform health checks on all providers', async () => {
       const healthResults = {
-        'GitHubProvider': { isHealthy: true, lastChecked: new Date().toISOString() },
-        'GitLabProvider': { isHealthy: false, error: 'Connection failed', lastChecked: new Date().toISOString() },
+        GitHubProvider: {
+          isHealthy: true,
+          lastChecked: new Date().toISOString(),
+        },
+        GitLabProvider: {
+          isHealthy: false,
+          error: 'Connection failed',
+          lastChecked: new Date().toISOString(),
+        },
       };
-      
+
       mockProviderRegistry.performHealthChecks.mockResolvedValue(healthResults);
 
       const result = await service.performHealthChecks();
@@ -494,7 +564,9 @@ describe('ScmManagerService', () => {
       const result = service.isPlatformSupported('github');
 
       expect(result).toBe(true);
-      expect(mockProviderRegistry.isPlatformSupported).toHaveBeenCalledWith('github');
+      expect(mockProviderRegistry.isPlatformSupported).toHaveBeenCalledWith(
+        'github',
+      );
     });
 
     it('should return false for unsupported platform', () => {
@@ -503,7 +575,9 @@ describe('ScmManagerService', () => {
       const result = service.isPlatformSupported('unknown');
 
       expect(result).toBe(false);
-      expect(mockProviderRegistry.isPlatformSupported).toHaveBeenCalledWith('unknown');
+      expect(mockProviderRegistry.isPlatformSupported).toHaveBeenCalledWith(
+        'unknown',
+      );
     });
   });
 
@@ -514,7 +588,9 @@ describe('ScmManagerService', () => {
       const result = service.isHostnameSupported('github.com');
 
       expect(result).toBe(true);
-      expect(mockProviderRegistry.isHostnameSupported).toHaveBeenCalledWith('github.com');
+      expect(mockProviderRegistry.isHostnameSupported).toHaveBeenCalledWith(
+        'github.com',
+      );
     });
 
     it('should return false for unsupported hostname', () => {
@@ -523,7 +599,9 @@ describe('ScmManagerService', () => {
       const result = service.isHostnameSupported('unknown.com');
 
       expect(result).toBe(false);
-      expect(mockProviderRegistry.isHostnameSupported).toHaveBeenCalledWith('unknown.com');
+      expect(mockProviderRegistry.isHostnameSupported).toHaveBeenCalledWith(
+        'unknown.com',
+      );
     });
   });
 
@@ -534,7 +612,9 @@ describe('ScmManagerService', () => {
       const result = service.getProvider('TestProvider');
 
       expect(result).toEqual(mockProvider);
-      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith('TestProvider');
+      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith(
+        'TestProvider',
+      );
     });
 
     it('should return null for non-existent provider', () => {
@@ -543,7 +623,9 @@ describe('ScmManagerService', () => {
       const result = service.getProvider('NonExistentProvider');
 
       expect(result).toBeNull();
-      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith('NonExistentProvider');
+      expect(mockProviderRegistry.getProvider).toHaveBeenCalledWith(
+        'NonExistentProvider',
+      );
     });
   });
 
@@ -555,7 +637,9 @@ describe('ScmManagerService', () => {
       const result = service.getProviderForUrl(repoUrl);
 
       expect(result).toEqual(mockProvider);
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
     });
 
     it('should return null for unsupported URL', () => {
@@ -565,7 +649,9 @@ describe('ScmManagerService', () => {
       const result = service.getProviderForUrl(repoUrl);
 
       expect(result).toBeNull();
-      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(repoUrl);
+      expect(mockProviderRegistry.getProviderForUrl).toHaveBeenCalledWith(
+        repoUrl,
+      );
     });
   });
 
@@ -575,7 +661,9 @@ describe('ScmManagerService', () => {
 
       service.registerProvider(newProvider);
 
-      expect(mockProviderRegistry.registerProvider).toHaveBeenCalledWith(newProvider);
+      expect(mockProviderRegistry.registerProvider).toHaveBeenCalledWith(
+        newProvider,
+      );
     });
   });
 
@@ -583,7 +671,9 @@ describe('ScmManagerService', () => {
     it('should unregister a provider', () => {
       service.unregisterProvider('TestProvider');
 
-      expect(mockProviderRegistry.unregisterProvider).toHaveBeenCalledWith('TestProvider');
+      expect(mockProviderRegistry.unregisterProvider).toHaveBeenCalledWith(
+        'TestProvider',
+      );
     });
   });
 
@@ -602,8 +692,16 @@ describe('ScmManagerService', () => {
       const result = await service.cloneMultipleRepositories(repositories);
 
       expect(result).toEqual([
-        { url: 'https://github.com/user/repo1.git', success: true, provider: 'TestProvider' },
-        { url: 'https://gitlab.com/user/repo2.git', success: true, provider: 'TestProvider' },
+        {
+          url: 'https://github.com/user/repo1.git',
+          success: true,
+          provider: 'TestProvider',
+        },
+        {
+          url: 'https://gitlab.com/user/repo2.git',
+          success: true,
+          provider: 'TestProvider',
+        },
       ]);
     });
 
@@ -621,8 +719,17 @@ describe('ScmManagerService', () => {
       const result = await service.cloneMultipleRepositories(repositories);
 
       expect(result).toEqual([
-        { url: 'https://github.com/user/repo1.git', success: true, provider: 'TestProvider' },
-        { url: 'https://unknown.com/user/repo2.git', success: false, error: 'No suitable provider found for repository: https://unknown.com/user/repo2.git' },
+        {
+          url: 'https://github.com/user/repo1.git',
+          success: true,
+          provider: 'TestProvider',
+        },
+        {
+          url: 'https://unknown.com/user/repo2.git',
+          success: false,
+          error:
+            'No suitable provider found for repository: https://unknown.com/user/repo2.git',
+        },
       ]);
     });
 
@@ -637,7 +744,12 @@ describe('ScmManagerService', () => {
       const result = await service.cloneMultipleRepositories(repositories);
 
       expect(result).toEqual([
-        { url: 'https://github.com/user/repo1.git', success: false, provider: 'TestProvider', error: 'Clone failed' },
+        {
+          url: 'https://github.com/user/repo1.git',
+          success: false,
+          provider: 'TestProvider',
+          error: 'Clone failed',
+        },
       ]);
     });
   });
@@ -666,8 +778,16 @@ describe('ScmManagerService', () => {
       const result = await service.fetchMultipleRepositoryMetadata(repoUrls);
 
       expect(result).toEqual([
-        { url: 'https://github.com/user/repo1.git', metadata: mockMetadata, provider: 'TestProvider' },
-        { url: 'https://gitlab.com/user/repo2.git', metadata: mockMetadata, provider: 'TestProvider' },
+        {
+          url: 'https://github.com/user/repo1.git',
+          metadata: mockMetadata,
+          provider: 'TestProvider',
+        },
+        {
+          url: 'https://gitlab.com/user/repo2.git',
+          metadata: mockMetadata,
+          provider: 'TestProvider',
+        },
       ]);
     });
 
@@ -694,8 +814,16 @@ describe('ScmManagerService', () => {
       const result = await service.fetchMultipleRepositoryMetadata(repoUrls);
 
       expect(result).toEqual([
-        { url: 'https://github.com/user/repo1.git', metadata: mockMetadata, provider: 'TestProvider' },
-        { url: 'https://unknown.com/user/repo2.git', error: 'No suitable provider found for repository: https://unknown.com/user/repo2.git' },
+        {
+          url: 'https://github.com/user/repo1.git',
+          metadata: mockMetadata,
+          provider: 'TestProvider',
+        },
+        {
+          url: 'https://unknown.com/user/repo2.git',
+          error:
+            'No suitable provider found for repository: https://unknown.com/user/repo2.git',
+        },
       ]);
     });
   });
@@ -718,7 +846,9 @@ describe('ScmManagerService', () => {
 
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.fetchRepoMetadata.mockResolvedValue(mockMetadata);
-      mockProvider.getBranches = jest.fn().mockResolvedValue(['main', 'develop']);
+      mockProvider.getBranches = jest
+        .fn()
+        .mockResolvedValue(['main', 'develop']);
       mockProvider.getTags = jest.fn().mockResolvedValue(['v1.0.0', 'v1.1.0']);
       mockProvider.getContributors = jest.fn().mockResolvedValue([
         { name: 'User 1', contributions: 50 },
@@ -748,7 +878,7 @@ describe('ScmManagerService', () => {
 
     it('should handle provider not found', async () => {
       const repoUrl = 'https://unknown.com/user/repo.git';
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(null);
 
       const result = await service.analyzeRepository(repoUrl);
@@ -761,7 +891,7 @@ describe('ScmManagerService', () => {
     it('should handle analysis error', async () => {
       const repoUrl = 'https://github.com/user/repo.git';
       const error = new Error('Analysis failed');
-      
+
       mockProviderRegistry.getProviderForUrl.mockReturnValue(mockProvider);
       mockProvider.fetchRepoMetadata.mockRejectedValue(error);
 
@@ -838,7 +968,11 @@ describe('ScmManagerService', () => {
           },
         };
 
-        const result = (service as any).assessSecurityStatus(metadata, ['main', 'develop'], ['v1.0.0']);
+        const result = (service as any).assessSecurityStatus(
+          metadata,
+          ['main', 'develop'],
+          ['v1.0.0'],
+        );
 
         expect(result).toBe('Good');
       });
@@ -855,7 +989,11 @@ describe('ScmManagerService', () => {
           },
         };
 
-        const result = (service as any).assessSecurityStatus(metadata, ['main'], []);
+        const result = (service as any).assessSecurityStatus(
+          metadata,
+          ['main'],
+          [],
+        );
 
         expect(result).toBe('Moderate');
       });
@@ -863,7 +1001,7 @@ describe('ScmManagerService', () => {
       it('should return Needs attention for repository with many issues', () => {
         const oldDate = new Date();
         oldDate.setFullYear(oldDate.getFullYear() - 2);
-        
+
         const metadata: RepositoryMetadata = {
           name: 'test-repo',
           description: 'Test repository',
@@ -873,10 +1011,14 @@ describe('ScmManagerService', () => {
           common: {},
         };
 
-        const result = (service as any).assessSecurityStatus(metadata, ['main'], []);
+        const result = (service as any).assessSecurityStatus(
+          metadata,
+          ['main'],
+          [],
+        );
 
         expect(result).toBe('Needs attention');
       });
     });
   });
-}); 
+});

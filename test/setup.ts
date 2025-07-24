@@ -25,9 +25,9 @@ console.warn = (...args: any[]) => {
   if (
     typeof args[0] === 'string' &&
     (args[0].includes('Warning: ReactDOM.render is deprecated') ||
-     args[0].includes('Warning: componentWillReceiveProps'))
+      args[0].includes('Warning: componentWillReceiveProps'))
   ) {
     return;
   }
   originalWarn.call(console, ...args);
-}; 
+};

@@ -1,7 +1,15 @@
 /**
  * SCM Platform Types
  */
-export type ScmPlatform = 'github' | 'gitlab' | 'bitbucket' | 'azure-devops' | 'gitea' | 'forgejo' | 'codeberg' | 'generic';
+export type ScmPlatform =
+  | 'github'
+  | 'gitlab'
+  | 'bitbucket'
+  | 'azure-devops'
+  | 'gitea'
+  | 'forgejo'
+  | 'codeberg'
+  | 'generic';
 
 /**
  * Repository Information Structure
@@ -129,10 +137,17 @@ export interface ScmProvider {
   /**
    * Core repository operations
    */
-  cloneRepository(repoUrl: string, targetPath: string, options?: CloneOptions): Promise<void>;
+  cloneRepository(
+    repoUrl: string,
+    targetPath: string,
+    options?: CloneOptions,
+  ): Promise<void>;
   fetchRepoMetadata(repoUrl: string): Promise<RepositoryMetadata>;
   getLastCommitHash(repoUrl: string): Promise<string>;
-  hasChangesSince(repoUrl: string, lastCommitHash: string): Promise<ChangeDetectionResult>;
+  hasChangesSince(
+    repoUrl: string,
+    lastCommitHash: string,
+  ): Promise<ChangeDetectionResult>;
 
   /**
    * Advanced repository operations (optional)
@@ -141,7 +156,7 @@ export interface ScmProvider {
   getTags?(repoUrl: string): Promise<string[]>;
   getContributors?(repoUrl: string): Promise<Contributor[]>;
   searchRepositories?(query: string): Promise<SearchResult[]>;
-  
+
   /**
    * Health and status
    */
@@ -239,10 +254,17 @@ export abstract class BaseScmProvider implements ScmProvider {
   }
 
   // Required implementations
-  abstract cloneRepository(repoUrl: string, targetPath: string, options?: CloneOptions): Promise<void>;
+  abstract cloneRepository(
+    repoUrl: string,
+    targetPath: string,
+    options?: CloneOptions,
+  ): Promise<void>;
   abstract fetchRepoMetadata(repoUrl: string): Promise<RepositoryMetadata>;
   abstract getLastCommitHash(repoUrl: string): Promise<string>;
-  abstract hasChangesSince(repoUrl: string, lastCommitHash: string): Promise<ChangeDetectionResult>;
+  abstract hasChangesSince(
+    repoUrl: string,
+    lastCommitHash: string,
+  ): Promise<ChangeDetectionResult>;
 
   // Default implementations
   getConfig(): ScmProviderConfig {
@@ -264,8 +286,9 @@ export abstract class BaseScmProvider implements ScmProvider {
   canHandle(repoUrl: string): boolean {
     try {
       const url = new URL(repoUrl);
-      return this.config.hostnames.some(hostname => 
-        url.hostname === hostname || url.hostname.includes(hostname)
+      return this.config.hostnames.some(
+        (hostname) =>
+          url.hostname === hostname || url.hostname.includes(hostname),
       );
     } catch {
       return false;
@@ -276,11 +299,11 @@ export abstract class BaseScmProvider implements ScmProvider {
     try {
       const url = new URL(repoUrl);
       const pathParts = url.pathname.split('/').filter(Boolean);
-      
+
       if (pathParts.length >= 2) {
         const owner = pathParts[0];
         const repository = pathParts[1].replace('.git', '');
-        
+
         return {
           platform: this.config.platform,
           hostname: url.hostname,
@@ -299,7 +322,7 @@ export abstract class BaseScmProvider implements ScmProvider {
   normalizeRepositoryUrl(repoUrl: string): string {
     const repoInfo = this.parseRepositoryUrl(repoUrl);
     if (!repoInfo) return repoUrl;
-    
+
     return `https://${repoInfo.hostname}/${repoInfo.fullName}`;
   }
 
@@ -313,7 +336,7 @@ export abstract class BaseScmProvider implements ScmProvider {
 
   async validateAuthentication(): Promise<boolean> {
     if (!this.isAuthenticated()) return false;
-    
+
     try {
       // Default implementation - can be overridden by specific providers
       return true;
@@ -324,11 +347,11 @@ export abstract class BaseScmProvider implements ScmProvider {
 
   async healthCheck(): Promise<ProviderHealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       // Basic health check - can be enhanced by specific providers
       const responseTime = Date.now() - startTime;
-      
+
       return {
         isHealthy: true,
         responseTime,
@@ -344,4 +367,4 @@ export abstract class BaseScmProvider implements ScmProvider {
       };
     }
   }
-} 
+}

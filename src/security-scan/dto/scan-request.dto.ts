@@ -7,4 +7,4 @@ export class ScanRequestDto {
     require_protocol: true,
   })
   repoUrl: string;
-} 
+}

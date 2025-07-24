@@ -24,17 +24,19 @@ describe('SemgrepScanner', () => {
 
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Mock fs.existsSync and fs.statSync
     (fs.existsSync as jest.Mock).mockReturnValue(true);
     (fs.statSync as jest.Mock).mockReturnValue({
       isDirectory: () => true,
     });
-    
+
     // Mock path.resolve
     (path.resolve as jest.Mock).mockImplementation((p) => `/absolute/${p}`);
     (path.normalize as jest.Mock).mockImplementation((p) => p);
-    (path.relative as jest.Mock).mockImplementation((from, to) => `relative/${to}`);
+    (path.relative as jest.Mock).mockImplementation(
+      (from, to) => `relative/${to}`,
+    );
     (path.basename as jest.Mock).mockImplementation((p) => p.split('/').pop());
   });
 
@@ -52,52 +54,74 @@ describe('SemgrepScanner', () => {
 
   describe('validateAndSanitizePath', () => {
     it('should throw error for empty path', () => {
-      expect(() => (scanner as any).validateAndSanitizePath('')).toThrow('Target path must be a non-empty string');
+      expect(() => (scanner as any).validateAndSanitizePath('')).toThrow(
+        'Target path must be a non-empty string',
+      );
     });
 
     it('should throw error for null path', () => {
-      expect(() => (scanner as any).validateAndSanitizePath(null as any)).toThrow('Target path must be a non-empty string');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath(null as any),
+      ).toThrow('Target path must be a non-empty string');
     });
 
     it('should throw error for undefined path', () => {
-      expect(() => (scanner as any).validateAndSanitizePath(undefined as any)).toThrow('Target path must be a non-empty string');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath(undefined as any),
+      ).toThrow('Target path must be a non-empty string');
     });
 
     it('should throw error for non-string path', () => {
-      expect(() => (scanner as any).validateAndSanitizePath(123 as any)).toThrow('Target path must be a non-empty string');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath(123 as any),
+      ).toThrow('Target path must be a non-empty string');
     });
 
     it('should throw error for path with shell metacharacters', () => {
-      expect(() => (scanner as any).validateAndSanitizePath('/path;with&metacharacters')).toThrow('Invalid characters detected in path');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath('/path;with&metacharacters'),
+      ).toThrow('Invalid characters detected in path');
     });
 
     it('should throw error for path with directory traversal', () => {
-      expect(() => (scanner as any).validateAndSanitizePath('/path/../traversal')).toThrow('Invalid characters detected in path');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath('/path/../traversal'),
+      ).toThrow('Invalid characters detected in path');
     });
 
     it('should throw error for path with redirection characters', () => {
-      expect(() => (scanner as any).validateAndSanitizePath('/path>with<redirect')).toThrow('Invalid characters detected in path');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath('/path>with<redirect'),
+      ).toThrow('Invalid characters detected in path');
     });
 
     it('should throw error for path with multiple spaces', () => {
-      expect(() => (scanner as any).validateAndSanitizePath('/path  with  spaces')).toThrow('Invalid characters detected in path');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath('/path  with  spaces'),
+      ).toThrow('Invalid characters detected in path');
     });
 
     it('should throw error for non-existent path', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      expect(() => (scanner as any).validateAndSanitizePath('/nonexistent')).toThrow('Target path does not exist');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath('/nonexistent'),
+      ).toThrow('Target path does not exist');
     });
 
     it('should throw error for path that is not a directory', () => {
       (fs.statSync as jest.Mock).mockReturnValue({
         isDirectory: () => false,
       });
-      expect(() => (scanner as any).validateAndSanitizePath('/not-a-directory')).toThrow('Target path must be a directory');
+      expect(() =>
+        (scanner as any).validateAndSanitizePath('/not-a-directory'),
+      ).toThrow('Target path must be a directory');
     });
 
     it('should throw error for extremely long path', () => {
       const longPath = 'a'.repeat(4097);
-      expect(() => (scanner as any).validateAndSanitizePath(longPath)).toThrow('Target path is too long');
+      expect(() => (scanner as any).validateAndSanitizePath(longPath)).toThrow(
+        'Target path is too long',
+      );
     });
 
     it('should return sanitized absolute path for valid input', () => {
@@ -106,7 +130,9 @@ describe('SemgrepScanner', () => {
     });
 
     it('should remove null bytes and control characters', () => {
-      const result = (scanner as any).validateAndSanitizePath('/path\x00with\x1fcontrol\x7fchars');
+      const result = (scanner as any).validateAndSanitizePath(
+        '/path\x00with\x1fcontrol\x7fchars',
+      );
       expect(result).toBe('/absolute//pathwithcontrolchars');
     });
   });
@@ -157,21 +183,20 @@ describe('SemgrepScanner', () => {
 
       // Simulate stdout data
       stdoutCallback(Buffer.from(mockStdout));
-      
+
       // Simulate process close
       closeCallback(0);
 
       const result = await scanPromise;
 
-      expect(mockSpawn).toHaveBeenCalledWith('semgrep', [
-        '--config=auto',
-        '--json',
-        '--quiet',
-        '/absolute//test/path',
-      ], {
-        timeout: 300000,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'semgrep',
+        ['--config=auto', '--json', '--quiet', '/absolute//test/path'],
+        {
+          timeout: 300000,
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      );
 
       expect(result).toEqual([
         {
@@ -312,7 +337,9 @@ describe('SemgrepScanner', () => {
       stderrCallback(Buffer.from('Error message'));
       closeCallback(1);
 
-      await expect(scanPromise).rejects.toThrow('Semgrep process exited with code 1: Error message');
+      await expect(scanPromise).rejects.toThrow(
+        'Semgrep process exited with code 1: Error message',
+      );
     });
 
     it('should handle JSON parse error', async () => {
@@ -357,19 +384,27 @@ describe('SemgrepScanner', () => {
     it('should handle path validation error', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
-      await expect(scanner.scan('/nonexistent')).rejects.toThrow('Semgrep scan failed: Target path does not exist');
+      await expect(scanner.scan('/nonexistent')).rejects.toThrow(
+        'Semgrep scan failed: Target path does not exist',
+      );
     });
   });
 
   describe('getRelativePath', () => {
     it('should return relative path when file is within target directory', () => {
-      const result = (scanner as any).getRelativePath('/test/path/file.js', '/test/path');
+      const result = (scanner as any).getRelativePath(
+        '/test/path/file.js',
+        '/test/path',
+      );
       expect(result).toBe('relative//test/path/file.js');
     });
 
     it('should return basename when file is not within target directory', () => {
       (path.relative as jest.Mock).mockReturnValue('');
-      const result = (scanner as any).getRelativePath('/other/path/file.js', '/test/path');
+      const result = (scanner as any).getRelativePath(
+        '/other/path/file.js',
+        '/test/path',
+      );
       expect(result).toBe('file.js');
     });
 
@@ -388,8 +423,11 @@ describe('SemgrepScanner', () => {
         throw new Error('Path error');
       });
 
-      const result = (scanner as any).getRelativePath('/test/path/file.js', '/test/path');
+      const result = (scanner as any).getRelativePath(
+        '/test/path/file.js',
+        '/test/path',
+      );
       expect(result).toBe('file.js');
     });
   });
-}); 
+});

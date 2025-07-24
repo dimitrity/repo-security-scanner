@@ -5,7 +5,7 @@ import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // Enable CORS
   app.enableCors({
     origin: ['http://localhost:8080', 'http://localhost:3000'],
@@ -15,12 +15,12 @@ async function bootstrap() {
   });
 
   // Serve static files
-  app.useStaticAssets(join(__dirname, 'ui'));
-  
+  app.useStaticAssets(join(__dirname, 'simple-ui'));
+
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-  
+
   await app.listen(port);
-  
+
   console.log(`🚀 Repository Security Scanner started successfully!`);
   console.log(`📡 Server running on: http://localhost:${port}`);
 }

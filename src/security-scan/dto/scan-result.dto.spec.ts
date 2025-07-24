@@ -10,7 +10,7 @@ describe('ScanResultDto', () => {
         defaultBranch: 'main',
         lastCommit: { hash: 'abc', timestamp: '2024-01-01T00:00:00.000Z' },
       };
-      
+
       expect(dto).toHaveProperty('repository');
       expect(dto.repository).toHaveProperty('name');
       expect(dto.repository).toHaveProperty('description');
@@ -23,7 +23,7 @@ describe('ScanResultDto', () => {
     it('should have correct scanner property structure', () => {
       const dto = new ScanResultDto();
       dto.scanner = { name: 'test', version: '1.0.0' };
-      
+
       expect(dto).toHaveProperty('scanner');
       expect(dto.scanner).toHaveProperty('name');
       expect(dto.scanner).toHaveProperty('version');
@@ -32,7 +32,7 @@ describe('ScanResultDto', () => {
     it('should have correct findings property structure', () => {
       const dto = new ScanResultDto();
       dto.findings = [];
-      
+
       expect(dto).toHaveProperty('findings');
       expect(Array.isArray(dto.findings)).toBe(true);
     });
@@ -133,7 +133,14 @@ describe('ScanResultDto', () => {
 
     it('should handle findings with different severity levels', () => {
       const dto = new ScanResultDto();
-      const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'INFO', 'WARNING'];
+      const severities = [
+        'LOW',
+        'MEDIUM',
+        'HIGH',
+        'CRITICAL',
+        'INFO',
+        'WARNING',
+      ];
 
       severities.forEach((severity, index) => {
         const finding = {
@@ -186,7 +193,8 @@ describe('ScanResultDto', () => {
 
     it('should handle findings with very long file paths', () => {
       const dto = new ScanResultDto();
-      const longPath = 'src/very/deep/nested/directory/structure/with/many/levels/file.ts';
+      const longPath =
+        'src/very/deep/nested/directory/structure/with/many/levels/file.ts';
       const finding = {
         ruleId: 'SEC-001',
         message: 'Test finding',
@@ -229,7 +237,8 @@ describe('ScanResultDto', () => {
 
     it('should handle findings with special characters in messages', () => {
       const dto = new ScanResultDto();
-      const specialMessage = 'Finding with special chars: !@#$%^&*()_+-=[]{}|;:,.<>?';
+      const specialMessage =
+        'Finding with special chars: !@#$%^&*()_+-=[]{}|;:,.<>?';
       const finding = {
         ruleId: 'SEC-001',
         message: specialMessage,
@@ -262,7 +271,7 @@ describe('ScanResultDto', () => {
   describe('complete scan result', () => {
     it('should create a complete scan result with all properties', () => {
       const dto = new ScanResultDto();
-      
+
       dto.repository = {
         name: 'security-test-repo',
         description: 'A repository for testing security scanners',
@@ -306,8 +315,18 @@ describe('ScanResultDto', () => {
       const dto1 = new ScanResultDto();
       const dto2 = new ScanResultDto();
 
-      dto1.repository = { name: 'repo1', description: 'First repo', defaultBranch: 'main', lastCommit: { hash: 'abc', timestamp: '2024-01-01T00:00:00.000Z' } };
-      dto2.repository = { name: 'repo2', description: 'Second repo', defaultBranch: 'develop', lastCommit: { hash: 'def', timestamp: '2024-01-02T00:00:00.000Z' } };
+      dto1.repository = {
+        name: 'repo1',
+        description: 'First repo',
+        defaultBranch: 'main',
+        lastCommit: { hash: 'abc', timestamp: '2024-01-01T00:00:00.000Z' },
+      };
+      dto2.repository = {
+        name: 'repo2',
+        description: 'Second repo',
+        defaultBranch: 'develop',
+        lastCommit: { hash: 'def', timestamp: '2024-01-02T00:00:00.000Z' },
+      };
 
       expect(dto1.repository.name).toBe('repo1');
       expect(dto2.repository.name).toBe('repo2');
@@ -325,7 +344,7 @@ describe('ScanResultDto', () => {
       };
       dto.scanner = { name: 'test', version: '1.0.0' };
       dto.findings = [];
-      
+
       // Repository properties should be strings
       expect(typeof dto.repository.name).toBe('string');
       expect(typeof dto.repository.description).toBe('string');
@@ -341,4 +360,4 @@ describe('ScanResultDto', () => {
       expect(Array.isArray(dto.findings)).toBe(true);
     });
   });
-}); 
+});

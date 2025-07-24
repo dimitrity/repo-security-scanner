@@ -23,13 +23,16 @@ import { BitbucketScmProvider } from './providers/scm-bitbucket.provider';
     SecurityScanService,
     ApiKeyGuard,
     ScanStorageService,
-    
+
     // Security Scanners
     SemgrepScanner,
     GitleaksScanner,
     {
       provide: 'SCANNERS',
-      useFactory: (semgrepScanner: SemgrepScanner, gitleaksScanner: GitleaksScanner): SecurityScanner[] => {
+      useFactory: (
+        semgrepScanner: SemgrepScanner,
+        gitleaksScanner: GitleaksScanner,
+      ): SecurityScanner[] => {
         return [semgrepScanner, gitleaksScanner];
       },
       inject: [SemgrepScanner, GitleaksScanner],
@@ -53,7 +56,7 @@ import { BitbucketScmProvider } from './providers/scm-bitbucket.provider';
         enhancedGitProvider: EnhancedGitScmProvider,
         githubProvider: GitHubScmProvider,
         gitlabProvider: GitLabScmProvider,
-        bitbucketProvider: BitbucketScmProvider
+        bitbucketProvider: BitbucketScmProvider,
       ) => {
         // Configure authentication from environment variables
         const setupAuthentication = () => {
@@ -62,25 +65,27 @@ import { BitbucketScmProvider } from './providers/scm-bitbucket.provider';
           if (githubToken) {
             githubProvider.configureAuthentication({
               type: 'token',
-              token: githubToken
+              token: githubToken,
             });
           }
 
           // GitLab authentication
-          const gitlabToken = process.env.GITLAB_TOKEN || process.env.GITLAB_ACCESS_TOKEN;
+          const gitlabToken =
+            process.env.GITLAB_TOKEN || process.env.GITLAB_ACCESS_TOKEN;
           if (gitlabToken) {
             gitlabProvider.configureAuthentication({
               type: 'token',
-              token: gitlabToken
+              token: gitlabToken,
             });
           }
 
           // Bitbucket authentication
-          const bitbucketToken = process.env.BITBUCKET_TOKEN || process.env.BITBUCKET_APP_PASSWORD;
+          const bitbucketToken =
+            process.env.BITBUCKET_TOKEN || process.env.BITBUCKET_APP_PASSWORD;
           if (bitbucketToken) {
             bitbucketProvider.configureAuthentication({
               type: 'token',
-              token: bitbucketToken
+              token: bitbucketToken,
             });
           }
         };
@@ -102,14 +107,10 @@ import { BitbucketScmProvider } from './providers/scm-bitbucket.provider';
         EnhancedGitScmProvider,
         GitHubScmProvider,
         GitLabScmProvider,
-        BitbucketScmProvider
+        BitbucketScmProvider,
       ],
     },
   ],
-  exports: [
-    SecurityScanService,
-    ScmManagerService,
-    ScmProviderRegistryService
-  ],
+  exports: [SecurityScanService, ScmManagerService, ScmProviderRegistryService],
 })
-export class SecurityScanModule {} 
+export class SecurityScanModule {}

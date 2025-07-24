@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { ScmProviderRegistryService } from './scm-provider.registry';
-import { 
-  ScmProvider, 
-  ScmPlatform, 
+import {
+  ScmProvider,
+  ScmPlatform,
   ProviderHealthStatus,
   ScmProviderConfig,
-  ScmAuthConfig
+  ScmAuthConfig,
 } from '../interfaces/scm.interface';
 
 describe('ScmProviderRegistryService', () => {
@@ -28,10 +28,14 @@ describe('ScmProviderRegistryService', () => {
       }),
       getName: jest.fn().mockReturnValue('GitHubProvider'),
       getPlatform: jest.fn().mockReturnValue('github'),
-      getSupportedHostnames: jest.fn().mockReturnValue(['github.com', 'www.github.com']),
+      getSupportedHostnames: jest
+        .fn()
+        .mockReturnValue(['github.com', 'www.github.com']),
       canHandle: jest.fn().mockReturnValue(true),
       parseRepositoryUrl: jest.fn(),
-      normalizeRepositoryUrl: jest.fn().mockReturnValue('https://github.com/user/repo.git'),
+      normalizeRepositoryUrl: jest
+        .fn()
+        .mockReturnValue('https://github.com/user/repo.git'),
       configureAuthentication: jest.fn(),
       isAuthenticated: jest.fn().mockReturnValue(false),
       validateAuthentication: jest.fn().mockResolvedValue(true),
@@ -59,10 +63,14 @@ describe('ScmProviderRegistryService', () => {
       }),
       getName: jest.fn().mockReturnValue('GitLabProvider'),
       getPlatform: jest.fn().mockReturnValue('gitlab'),
-      getSupportedHostnames: jest.fn().mockReturnValue(['gitlab.com', 'www.gitlab.com']),
+      getSupportedHostnames: jest
+        .fn()
+        .mockReturnValue(['gitlab.com', 'www.gitlab.com']),
       canHandle: jest.fn().mockReturnValue(true),
       parseRepositoryUrl: jest.fn(),
-      normalizeRepositoryUrl: jest.fn().mockReturnValue('https://gitlab.com/user/repo.git'),
+      normalizeRepositoryUrl: jest
+        .fn()
+        .mockReturnValue('https://gitlab.com/user/repo.git'),
       configureAuthentication: jest.fn(),
       isAuthenticated: jest.fn().mockReturnValue(false),
       validateAuthentication: jest.fn().mockResolvedValue(true),
@@ -93,7 +101,9 @@ describe('ScmProviderRegistryService', () => {
       getSupportedHostnames: jest.fn().mockReturnValue(['custom-git.com']),
       canHandle: jest.fn().mockReturnValue(false),
       parseRepositoryUrl: jest.fn(),
-      normalizeRepositoryUrl: jest.fn().mockReturnValue('https://custom-git.com/user/repo.git'),
+      normalizeRepositoryUrl: jest
+        .fn()
+        .mockReturnValue('https://custom-git.com/user/repo.git'),
       configureAuthentication: jest.fn(),
       isAuthenticated: jest.fn().mockReturnValue(false),
       validateAuthentication: jest.fn().mockResolvedValue(true),
@@ -115,7 +125,9 @@ describe('ScmProviderRegistryService', () => {
       providers: [ScmProviderRegistryService],
     }).compile();
 
-    service = module.get<ScmProviderRegistryService>(ScmProviderRegistryService);
+    service = module.get<ScmProviderRegistryService>(
+      ScmProviderRegistryService,
+    );
   });
 
   afterEach(() => {
@@ -149,11 +161,11 @@ describe('ScmProviderRegistryService', () => {
 
     it('should log registration information', () => {
       const logSpy = jest.spyOn(service['logger'], 'log');
-      
+
       service.registerProvider(mockProvider1);
 
       expect(logSpy).toHaveBeenCalledWith(
-        'Registered SCM provider: GitHubProvider (github) - Hostnames: github.com, www.github.com'
+        'Registered SCM provider: GitHubProvider (github) - Hostnames: github.com, www.github.com',
       );
     });
   });
@@ -168,16 +180,20 @@ describe('ScmProviderRegistryService', () => {
       service.unregisterProvider('GitHubProvider');
 
       expect(service.getProvider('GitHubProvider')).toBeNull();
-      expect(service.getProvidersByPlatform('github')).not.toContain(mockProvider1);
+      expect(service.getProvidersByPlatform('github')).not.toContain(
+        mockProvider1,
+      );
       expect(service.isHostnameSupported('github.com')).toBe(false);
     });
 
     it('should handle unregistering non-existent provider', () => {
       const warnSpy = jest.spyOn(service['logger'], 'warn');
-      
+
       service.unregisterProvider('NonExistentProvider');
 
-      expect(warnSpy).toHaveBeenCalledWith('Provider NonExistentProvider not found for unregistration');
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Provider NonExistentProvider not found for unregistration',
+      );
     });
 
     it('should clean up platform registry when last provider is removed', () => {
@@ -196,10 +212,12 @@ describe('ScmProviderRegistryService', () => {
 
     it('should log unregistration information', () => {
       const logSpy = jest.spyOn(service['logger'], 'log');
-      
+
       service.unregisterProvider('GitHubProvider');
 
-      expect(logSpy).toHaveBeenCalledWith('Unregistered SCM provider: GitHubProvider');
+      expect(logSpy).toHaveBeenCalledWith(
+        'Unregistered SCM provider: GitHubProvider',
+      );
     });
   });
 
@@ -227,7 +245,9 @@ describe('ScmProviderRegistryService', () => {
     });
 
     it('should find provider by exact hostname match', () => {
-      const provider = service.getProviderForUrl('https://github.com/user/repo.git');
+      const provider = service.getProviderForUrl(
+        'https://github.com/user/repo.git',
+      );
       expect(provider).toBe(mockProvider1);
     });
 
@@ -240,7 +260,9 @@ describe('ScmProviderRegistryService', () => {
       };
       service.registerProvider(partialMatchProvider);
 
-      const provider = service.getProviderForUrl('https://git.example.com/user/repo.git');
+      const provider = service.getProviderForUrl(
+        'https://git.example.com/user/repo.git',
+      );
       expect(provider).toBe(partialMatchProvider);
     });
 
@@ -253,13 +275,15 @@ describe('ScmProviderRegistryService', () => {
       };
       service.registerProvider(capableProvider);
 
-      const provider = service.getProviderForUrl('https://unknown.com/user/repo.git');
+      const provider = service.getProviderForUrl(
+        'https://unknown.com/user/repo.git',
+      );
       expect(provider).toBe(capableProvider);
     });
 
     it('should return null when no provider can handle URL', () => {
       const warnSpy = jest.spyOn(service['logger'], 'warn');
-      
+
       // Clear all providers and add only one that can't handle the URL
       service.clearAllProviders();
       const incapableProvider = {
@@ -268,29 +292,33 @@ describe('ScmProviderRegistryService', () => {
         canHandle: jest.fn().mockReturnValue(false),
       };
       service.registerProvider(incapableProvider);
-      
-      const provider = service.getProviderForUrl('https://unknown.com/user/repo.git');
-      
+
+      const provider = service.getProviderForUrl(
+        'https://unknown.com/user/repo.git',
+      );
+
       expect(provider).toBeNull();
-      expect(warnSpy).toHaveBeenCalledWith('No provider found for URL: https://unknown.com/user/repo.git');
+      expect(warnSpy).toHaveBeenCalledWith(
+        'No provider found for URL: https://unknown.com/user/repo.git',
+      );
     });
 
     it('should handle invalid URLs gracefully', () => {
       const errorSpy = jest.spyOn(service['logger'], 'error');
-      
+
       const provider = service.getProviderForUrl('invalid-url');
-      
+
       expect(provider).toBeNull();
       expect(errorSpy).toHaveBeenCalled();
     });
 
     it('should log when finding providers', () => {
       const logSpy = jest.spyOn(service['logger'], 'log');
-      
+
       service.getProviderForUrl('https://github.com/user/repo.git');
-      
+
       expect(logSpy).toHaveBeenCalledWith(
-        'Found exact hostname match for https://github.com/user/repo.git: GitHubProvider'
+        'Found exact hostname match for https://github.com/user/repo.git: GitHubProvider',
       );
     });
   });
@@ -321,7 +349,7 @@ describe('ScmProviderRegistryService', () => {
 
     it('should return only healthy providers', async () => {
       const providers = await service.getAvailableProviders();
-      
+
       expect(providers).toContain(mockProvider1);
       expect(providers).toContain(mockProvider2);
       expect(providers).not.toContain(mockProvider3);
@@ -332,18 +360,20 @@ describe('ScmProviderRegistryService', () => {
       const failingProvider = {
         ...mockProvider1,
         getName: jest.fn().mockReturnValue('FailingProvider'),
-        healthCheck: jest.fn().mockRejectedValue(new Error('Health check failed')),
+        healthCheck: jest
+          .fn()
+          .mockRejectedValue(new Error('Health check failed')),
       };
       service.registerProvider(failingProvider);
 
       const warnSpy = jest.spyOn(service['logger'], 'warn');
-      
+
       const providers = await service.getAvailableProviders();
-      
+
       expect(providers).not.toContain(failingProvider);
       expect(warnSpy).toHaveBeenCalledWith(
         'Health check failed for provider FailingProvider:',
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 
@@ -406,7 +436,7 @@ describe('ScmProviderRegistryService', () => {
 
     it('should handle empty registry', () => {
       service.clearAllProviders();
-      
+
       const stats = service.getRegistryStats();
 
       expect(stats.totalProviders).toBe(0);
@@ -437,7 +467,9 @@ describe('ScmProviderRegistryService', () => {
       const failingProvider = {
         ...mockProvider1,
         getName: jest.fn().mockReturnValue('FailingProvider'),
-        healthCheck: jest.fn().mockRejectedValue(new Error('Health check failed')),
+        healthCheck: jest
+          .fn()
+          .mockRejectedValue(new Error('Health check failed')),
       };
       service.registerProvider(failingProvider);
 
@@ -479,7 +511,7 @@ describe('ScmProviderRegistryService', () => {
 
     it('should return empty array when no providers registered', () => {
       service.clearAllProviders();
-      
+
       const platforms = service.getSupportedPlatforms();
       expect(platforms).toEqual([]);
     });
@@ -543,12 +575,16 @@ describe('ScmProviderRegistryService', () => {
       // Clear and add only the primary provider
       service.clearAllProviders();
       service.registerProvider(mockProvider1);
-      
-      const recommendations = service.getProviderRecommendations('https://github.com/user/repo.git');
+
+      const recommendations = service.getProviderRecommendations(
+        'https://github.com/user/repo.git',
+      );
 
       expect(recommendations.primary).toBe(mockProvider1);
       expect(recommendations.alternatives).toEqual([]);
-      expect(recommendations.reasons).toContain('Primary: GitHubProvider - Direct hostname match or capability');
+      expect(recommendations.reasons).toContain(
+        'Primary: GitHubProvider - Direct hostname match or capability',
+      );
     });
 
     it('should return alternatives when multiple providers can handle URL', () => {
@@ -558,7 +594,9 @@ describe('ScmProviderRegistryService', () => {
       };
       service.registerProvider(alternativeProvider);
 
-      const recommendations = service.getProviderRecommendations('https://github.com/user/repo.git');
+      const recommendations = service.getProviderRecommendations(
+        'https://github.com/user/repo.git',
+      );
 
       expect(recommendations.primary).toBe(mockProvider1);
       expect(recommendations.alternatives).toContain(alternativeProvider);
@@ -574,24 +612,34 @@ describe('ScmProviderRegistryService', () => {
         canHandle: jest.fn().mockReturnValue(false),
       };
       service.registerProvider(incapableProvider);
-      
-      const recommendations = service.getProviderRecommendations('https://unknown.com/user/repo.git');
+
+      const recommendations = service.getProviderRecommendations(
+        'https://unknown.com/user/repo.git',
+      );
 
       expect(recommendations.primary).toBeNull();
-      expect(recommendations.reasons).toContain('No primary provider found - URL may not be supported');
+      expect(recommendations.reasons).toContain(
+        'No primary provider found - URL may not be supported',
+      );
     });
 
     it('should warn about unsupported hostnames', () => {
-      const recommendations = service.getProviderRecommendations('https://unknown.com/user/repo.git');
+      const recommendations = service.getProviderRecommendations(
+        'https://unknown.com/user/repo.git',
+      );
 
-      expect(recommendations.reasons).toContain('Warning: Hostname unknown.com is not explicitly supported');
+      expect(recommendations.reasons).toContain(
+        'Warning: Hostname unknown.com is not explicitly supported',
+      );
     });
 
     it('should handle invalid URLs gracefully', () => {
       const recommendations = service.getProviderRecommendations('invalid-url');
 
       expect(recommendations.primary).toBeNull();
-      expect(recommendations.reasons).toContain('Error analyzing URL: Unknown error');
+      expect(recommendations.reasons).toContain(
+        'Error analyzing URL: Unknown error',
+      );
     });
   });
 
@@ -611,10 +659,12 @@ describe('ScmProviderRegistryService', () => {
 
     it('should log clearing operation', () => {
       const logSpy = jest.spyOn(service['logger'], 'log');
-      
+
       service.clearAllProviders();
 
-      expect(logSpy).toHaveBeenCalledWith('Cleared all SCM providers from registry');
+      expect(logSpy).toHaveBeenCalledWith(
+        'Cleared all SCM providers from registry',
+      );
     });
   });
 
@@ -625,17 +675,23 @@ describe('ScmProviderRegistryService', () => {
         getSupportedHostnames: jest.fn().mockReturnValue([]),
       };
 
-      expect(() => service.registerProvider(emptyHostnameProvider)).not.toThrow();
+      expect(() =>
+        service.registerProvider(emptyHostnameProvider),
+      ).not.toThrow();
       expect(service.getProvider('GitHubProvider')).toBe(emptyHostnameProvider);
     });
 
     it('should handle provider with duplicate hostnames', () => {
       const duplicateHostnameProvider = {
         ...mockProvider1,
-        getSupportedHostnames: jest.fn().mockReturnValue(['github.com', 'github.com']),
+        getSupportedHostnames: jest
+          .fn()
+          .mockReturnValue(['github.com', 'github.com']),
       };
 
-      expect(() => service.registerProvider(duplicateHostnameProvider)).not.toThrow();
+      expect(() =>
+        service.registerProvider(duplicateHostnameProvider),
+      ).not.toThrow();
     });
 
     it('should handle concurrent registration and unregistration', () => {
@@ -659,4 +715,4 @@ describe('ScmProviderRegistryService', () => {
       expect(() => service.registerProvider(invalidProvider)).not.toThrow();
     });
   });
-}); 
+});

@@ -6,7 +6,7 @@
     "deleteOutDir": true,
     "assets": [
       {
-        "include": "ui/**/*",
+        "include": "simple-ui/**/*",
         "outDir": "dist"
       }
     ]

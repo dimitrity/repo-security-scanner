@@ -1,4 +1,11 @@
-import { IsString, IsUrl, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsUrl,
+  IsNumber,
+  IsOptional,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CodeContextRequestDto {
   @IsString()
@@ -17,4 +24,4 @@ export class CodeContextRequestDto {
   @Min(1)
   @Max(20)
   context?: number; // Optional, defaults to 3, max 20 lines of context
-} 
+}

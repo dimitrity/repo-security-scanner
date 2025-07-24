@@ -23,7 +23,10 @@ describe('GitHubScmProvider', () => {
     it('should initialize with correct GitHub configuration', () => {
       expect(provider['config']?.name).toBe('GitHub Provider');
       expect(provider['config']?.platform).toBe('github');
-      expect(provider['config']?.hostnames).toEqual(['github.com', 'www.github.com']);
+      expect(provider['config']?.hostnames).toEqual([
+        'github.com',
+        'www.github.com',
+      ]);
       expect(provider['config']?.apiBaseUrl).toBe('https://api.github.com');
       expect(provider['config']?.supportsPrivateRepos).toBe(true);
       expect(provider['config']?.supportsApi).toBe(true);
@@ -44,14 +47,22 @@ describe('GitHubScmProvider', () => {
     });
 
     it('should handle www.github.com URLs', () => {
-      expect(provider.canHandle('https://www.github.com/user/repo.git')).toBe(true);
+      expect(provider.canHandle('https://www.github.com/user/repo.git')).toBe(
+        true,
+      );
       expect(provider.canHandle('https://www.github.com/user/repo')).toBe(true);
     });
 
     it('should reject non-GitHub URLs', () => {
-      expect(provider.canHandle('https://gitlab.com/user/repo.git')).toBe(false);
-      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(false);
-      expect(provider.canHandle('https://example.com/user/repo.git')).toBe(false);
+      expect(provider.canHandle('https://gitlab.com/user/repo.git')).toBe(
+        false,
+      );
+      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(
+        false,
+      );
+      expect(provider.canHandle('https://example.com/user/repo.git')).toBe(
+        false,
+      );
       expect(provider.canHandle('not-a-url')).toBe(false);
     });
   });
@@ -62,8 +73,8 @@ describe('GitHubScmProvider', () => {
       const headers = (provider as any).buildApiHeaders();
 
       expect(headers).toEqual({
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'Repository-Security-Scanner/1.0'
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'Repository-Security-Scanner/1.0',
       });
     });
 
@@ -72,9 +83,9 @@ describe('GitHubScmProvider', () => {
       const headers = (provider as any).buildApiHeaders();
 
       expect(headers).toEqual({
-        'Accept': 'application/vnd.github.v3+json',
+        Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'Repository-Security-Scanner/1.0',
-        'Authorization': 'Bearer test-token'
+        Authorization: 'Bearer test-token',
       });
     });
   });
@@ -86,7 +97,7 @@ describe('GitHubScmProvider', () => {
       owner: 'testuser',
       repository: 'testrepo',
       fullName: 'testuser/testrepo',
-      originalUrl: 'https://github.com/testuser/testrepo.git'
+      originalUrl: 'https://github.com/testuser/testrepo.git',
     };
 
     beforeEach(() => {
@@ -96,7 +107,7 @@ describe('GitHubScmProvider', () => {
     it('should return null for non-GitHub repository', async () => {
       const nonGitHubRepo: RepositoryInfo = {
         ...mockRepoInfo,
-        platform: 'gitlab'
+        platform: 'gitlab',
       };
 
       const result = await (provider as any).fetchFromApi(nonGitHubRepo);
@@ -123,7 +134,7 @@ describe('GitHubScmProvider', () => {
             id: 123,
             type: 'User',
             avatar_url: 'https://avatars.githubusercontent.com/u/123',
-            html_url: 'https://github.com/testuser'
+            html_url: 'https://github.com/testuser',
           },
           full_name: 'testuser/testrepo',
           private: false,
@@ -149,8 +160,8 @@ describe('GitHubScmProvider', () => {
           forks_count: 10,
           stargazers_count: 25,
           created_at: '2023-01-01T00:00:00Z',
-          pushed_at: '2023-01-02T00:00:00Z'
-        })
+          pushed_at: '2023-01-02T00:00:00Z',
+        }),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -159,7 +170,11 @@ describe('GitHubScmProvider', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.github.com/repos/testuser/testrepo',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toMatchObject({
@@ -168,7 +183,7 @@ describe('GitHubScmProvider', () => {
         defaultBranch: 'main',
         lastCommit: {
           hash: 'latest',
-          timestamp: '2023-01-01T00:00:00Z'
+          timestamp: '2023-01-01T00:00:00Z',
         },
         platform: {
           github: {
@@ -176,23 +191,23 @@ describe('GitHubScmProvider', () => {
             fullName: 'testuser/testrepo',
             isPrivate: false,
             language: 'JavaScript',
-            visibility: 'public'
-          }
+            visibility: 'public',
+          },
         },
         common: {
           visibility: 'public',
           forksCount: 10,
           starsCount: 25,
           language: 'JavaScript',
-          license: 'MIT'
-        }
+          license: 'MIT',
+        },
       });
     });
 
     it('should handle 401 authentication error', async () => {
       const mockResponse = {
         ok: false,
-        status: 401
+        status: 401,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -205,7 +220,7 @@ describe('GitHubScmProvider', () => {
     it('should handle 403 rate limit error', async () => {
       const mockResponse = {
         ok: false,
-        status: 403
+        status: 403,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -218,7 +233,7 @@ describe('GitHubScmProvider', () => {
     it('should handle 404 repository not found', async () => {
       const mockResponse = {
         ok: false,
-        status: 404
+        status: 404,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -251,7 +266,7 @@ describe('GitHubScmProvider', () => {
             id: 123,
             type: 'User',
             avatar_url: 'https://avatars.githubusercontent.com/u/123',
-            html_url: 'https://github.com/testuser'
+            html_url: 'https://github.com/testuser',
           },
           full_name: 'testuser/testrepo',
           private: false,
@@ -277,25 +292,32 @@ describe('GitHubScmProvider', () => {
           forks_count: 10,
           stargazers_count: 25,
           created_at: '2023-01-01T00:00:00Z',
-          pushed_at: '2023-01-02T00:00:00Z'
-        })
+          pushed_at: '2023-01-02T00:00:00Z',
+        }),
       };
 
       const mockCommitsResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{
-          sha: 'abc123',
-          commit: {
-            message: 'Test commit',
-            author: { name: 'Test Author', date: '2023-01-01T00:00:00Z' }
-          }
-        }])
+        json: jest.fn().mockResolvedValue([
+          {
+            sha: 'abc123',
+            commit: {
+              message: 'Test commit',
+              author: { name: 'Test Author', date: '2023-01-01T00:00:00Z' },
+            },
+          },
+        ]),
       };
 
       const mockContributorsResponse = {
         ok: true,
-        headers: new Map([['Link', '<https://api.github.com/repos/testuser/testrepo/contributors?page=5>; rel="last"']]),
-        json: jest.fn().mockResolvedValue([])
+        headers: new Map([
+          [
+            'Link',
+            '<https://api.github.com/repos/testuser/testrepo/contributors?page=5>; rel="last"',
+          ],
+        ]),
+        json: jest.fn().mockResolvedValue([]),
       };
 
       const mockReleasesResponse = {
@@ -304,8 +326,8 @@ describe('GitHubScmProvider', () => {
           tag_name: 'v1.0.0',
           name: 'Release 1.0.0',
           published_at: '2023-01-01T00:00:00Z',
-          prerelease: false
-        })
+          prerelease: false,
+        }),
       };
 
       mockFetch
@@ -320,37 +342,44 @@ describe('GitHubScmProvider', () => {
       expect(result?.lastCommit).toMatchObject({
         hash: 'abc123',
         message: 'Test commit',
-        author: 'Test Author'
+        author: 'Test Author',
       });
 
       expect(result?.platform.github.latestRelease).toMatchObject({
         tagName: 'v1.0.0',
         name: 'Release 1.0.0',
         publishedAt: '2023-01-01T00:00:00Z',
-        isPrerelease: false
+        isPrerelease: false,
       });
     });
   });
 
   describe('fetchAdditionalGitHubData', () => {
-    const headers = { 'Authorization': 'Bearer test-token' };
+    const headers = { Authorization: 'Bearer test-token' };
 
     it('should fetch additional data successfully', async () => {
       const mockCommitsResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{
-          sha: 'abc123',
-          commit: {
-            message: 'Test commit',
-            author: { name: 'Test Author', date: '2023-01-01T00:00:00Z' }
-          }
-        }])
+        json: jest.fn().mockResolvedValue([
+          {
+            sha: 'abc123',
+            commit: {
+              message: 'Test commit',
+              author: { name: 'Test Author', date: '2023-01-01T00:00:00Z' },
+            },
+          },
+        ]),
       };
 
       const mockContributorsResponse = {
         ok: true,
-        headers: new Map([['Link', '<https://api.github.com/repos/testuser/testrepo/contributors?page=3>; rel="last"']]),
-        json: jest.fn().mockResolvedValue([])
+        headers: new Map([
+          [
+            'Link',
+            '<https://api.github.com/repos/testuser/testrepo/contributors?page=3>; rel="last"',
+          ],
+        ]),
+        json: jest.fn().mockResolvedValue([]),
       };
 
       const mockReleasesResponse = {
@@ -359,8 +388,8 @@ describe('GitHubScmProvider', () => {
           tag_name: 'v1.0.0',
           name: 'Release 1.0.0',
           published_at: '2023-01-01T00:00:00Z',
-          prerelease: false
-        })
+          prerelease: false,
+        }),
       };
 
       mockFetch
@@ -368,7 +397,10 @@ describe('GitHubScmProvider', () => {
         .mockResolvedValueOnce(mockContributorsResponse as any)
         .mockResolvedValueOnce(mockReleasesResponse as any);
 
-      const result = await (provider as any).fetchAdditionalGitHubData('testuser/testrepo', headers);
+      const result = await (provider as any).fetchAdditionalGitHubData(
+        'testuser/testrepo',
+        headers,
+      );
 
       expect(result).toMatchObject({
         lastCommitHash: 'abc123',
@@ -379,15 +411,18 @@ describe('GitHubScmProvider', () => {
           tagName: 'v1.0.0',
           name: 'Release 1.0.0',
           publishedAt: '2023-01-01T00:00:00Z',
-          isPrerelease: false
-        }
+          isPrerelease: false,
+        },
       });
     });
 
     it('should handle API errors gracefully', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await (provider as any).fetchAdditionalGitHubData('testuser/testrepo', headers);
+      const result = await (provider as any).fetchAdditionalGitHubData(
+        'testuser/testrepo',
+        headers,
+      );
 
       expect(result).toEqual({});
     });
@@ -395,7 +430,10 @@ describe('GitHubScmProvider', () => {
     it('should handle fetch errors', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const result = await (provider as any).fetchAdditionalGitHubData('testuser/testrepo', headers);
+      const result = await (provider as any).fetchAdditionalGitHubData(
+        'testuser/testrepo',
+        headers,
+      );
 
       expect(result).toEqual({});
     });
@@ -409,20 +447,28 @@ describe('GitHubScmProvider', () => {
     it('should return branches successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([
-          { name: 'main' },
-          { name: 'develop' },
-          { name: 'feature/test' }
-        ])
+        json: jest
+          .fn()
+          .mockResolvedValue([
+            { name: 'main' },
+            { name: 'develop' },
+            { name: 'feature/test' },
+          ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      const result = await provider.getBranches('https://github.com/testuser/testrepo');
+      const result = await provider.getBranches(
+        'https://github.com/testuser/testrepo',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.github.com/repos/testuser/testrepo/branches',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual(['main', 'develop', 'feature/test']);
@@ -436,14 +482,18 @@ describe('GitHubScmProvider', () => {
     it('should handle API errors', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await provider.getBranches('https://github.com/testuser/testrepo');
+      const result = await provider.getBranches(
+        'https://github.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
 
     it('should handle fetch errors', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const result = await provider.getBranches('https://github.com/testuser/testrepo');
+      const result = await provider.getBranches(
+        'https://github.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -456,20 +506,28 @@ describe('GitHubScmProvider', () => {
     it('should return tags successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([
-          { name: 'v1.0.0' },
-          { name: 'v1.1.0' },
-          { name: 'v2.0.0' }
-        ])
+        json: jest
+          .fn()
+          .mockResolvedValue([
+            { name: 'v1.0.0' },
+            { name: 'v1.1.0' },
+            { name: 'v2.0.0' },
+          ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      const result = await provider.getTags('https://github.com/testuser/testrepo');
+      const result = await provider.getTags(
+        'https://github.com/testuser/testrepo',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.github.com/repos/testuser/testrepo/tags',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual(['v1.0.0', 'v1.1.0', 'v2.0.0']);
@@ -483,7 +541,9 @@ describe('GitHubScmProvider', () => {
     it('should handle API errors', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await provider.getTags('https://github.com/testuser/testrepo');
+      const result = await provider.getTags(
+        'https://github.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -501,24 +561,30 @@ describe('GitHubScmProvider', () => {
             login: 'user1',
             avatar_url: 'https://avatars.githubusercontent.com/u/1',
             contributions: 50,
-            type: 'User'
+            type: 'User',
           },
           {
             login: 'user2',
             avatar_url: 'https://avatars.githubusercontent.com/u/2',
             contributions: 30,
-            type: 'Bot'
-          }
-        ])
+            type: 'Bot',
+          },
+        ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      const result = await provider.getContributors('https://github.com/testuser/testrepo');
+      const result = await provider.getContributors(
+        'https://github.com/testuser/testrepo',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.github.com/repos/testuser/testrepo/contributors',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual([
@@ -527,15 +593,15 @@ describe('GitHubScmProvider', () => {
           username: 'user1',
           avatarUrl: 'https://avatars.githubusercontent.com/u/1',
           contributions: 50,
-          type: 'user'
+          type: 'user',
         },
         {
           name: 'user2',
           username: 'user2',
           avatarUrl: 'https://avatars.githubusercontent.com/u/2',
           contributions: 30,
-          type: 'bot'
-        }
+          type: 'bot',
+        },
       ]);
     });
 
@@ -547,7 +613,9 @@ describe('GitHubScmProvider', () => {
     it('should handle API errors', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await provider.getContributors('https://github.com/testuser/testrepo');
+      const result = await provider.getContributors(
+        'https://github.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -571,7 +639,7 @@ describe('GitHubScmProvider', () => {
               language: 'JavaScript',
               stargazers_count: 100,
               forks_count: 20,
-              updated_at: '2023-01-01T00:00:00Z'
+              updated_at: '2023-01-01T00:00:00Z',
             },
             {
               name: 'repo2',
@@ -582,10 +650,10 @@ describe('GitHubScmProvider', () => {
               language: 'TypeScript',
               stargazers_count: 50,
               forks_count: 10,
-              updated_at: '2023-01-02T00:00:00Z'
-            }
-          ]
-        })
+              updated_at: '2023-01-02T00:00:00Z',
+            },
+          ],
+        }),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -594,7 +662,11 @@ describe('GitHubScmProvider', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.github.com/search/repositories?q=test%20query',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual([
@@ -607,7 +679,7 @@ describe('GitHubScmProvider', () => {
           language: 'JavaScript',
           stars: 100,
           forks: 20,
-          updatedAt: '2023-01-01T00:00:00Z'
+          updatedAt: '2023-01-01T00:00:00Z',
         },
         {
           name: 'repo2',
@@ -618,8 +690,8 @@ describe('GitHubScmProvider', () => {
           language: 'TypeScript',
           stars: 50,
           forks: 10,
-          updatedAt: '2023-01-02T00:00:00Z'
-        }
+          updatedAt: '2023-01-02T00:00:00Z',
+        },
       ]);
     });
 
@@ -650,9 +722,9 @@ describe('GitHubScmProvider', () => {
           rate: {
             limit: 5000,
             remaining: 4500,
-            reset: 1640995200
-          }
-        })
+            reset: 1640995200,
+          },
+        }),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -661,7 +733,11 @@ describe('GitHubScmProvider', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.github.com/rate_limit',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toMatchObject({
@@ -669,9 +745,16 @@ describe('GitHubScmProvider', () => {
         rateLimit: {
           remaining: 4500,
           total: 5000,
-          resetTime: expect.any(String)
+          resetTime: expect.any(String),
         },
-        features: ['repositories', 'commits', 'branches', 'tags', 'contributors', 'search']
+        features: [
+          'repositories',
+          'commits',
+          'branches',
+          'tags',
+          'contributors',
+          'search',
+        ],
       });
     });
 
@@ -682,7 +765,7 @@ describe('GitHubScmProvider', () => {
 
       expect(result).toEqual({
         available: false,
-        error: 'Unable to connect to GitHub API'
+        error: 'Unable to connect to GitHub API',
       });
     });
 
@@ -693,7 +776,7 @@ describe('GitHubScmProvider', () => {
 
       expect(result).toEqual({
         available: false,
-        error: 'Unable to connect to GitHub API'
+        error: 'Unable to connect to GitHub API',
       });
     });
   });
@@ -711,10 +794,11 @@ describe('GitHubScmProvider', () => {
 
       const result = await provider.validateAuthentication();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.github.com/user',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('https://api.github.com/user', {
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      });
       expect(result).toBe(true);
     });
 
@@ -738,7 +822,7 @@ describe('GitHubScmProvider', () => {
   describe('healthCheck', () => {
     it('should return healthy status when API is available', async () => {
       const mockResponse = {
-        ok: true
+        ok: true,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -748,7 +832,7 @@ describe('GitHubScmProvider', () => {
       expect(mockFetch).toHaveBeenCalledWith('https://api.github.com/zen');
       expect(result).toMatchObject({
         isHealthy: true,
-        lastChecked: expect.any(String)
+        lastChecked: expect.any(String),
       });
       expect(result.apiAvailable).toBeDefined();
       expect(result.responseTime).toBeGreaterThanOrEqual(0);
@@ -757,7 +841,7 @@ describe('GitHubScmProvider', () => {
     it('should return unhealthy status when API is not available', async () => {
       const mockResponse = {
         ok: false,
-        status: 500
+        status: 500,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -769,7 +853,7 @@ describe('GitHubScmProvider', () => {
         lastChecked: expect.any(String),
         error: 'GitHub API returned status 500',
         apiAvailable: false,
-        authenticationValid: false
+        authenticationValid: false,
       });
     });
 
@@ -783,8 +867,8 @@ describe('GitHubScmProvider', () => {
         lastChecked: expect.any(String),
         error: 'Network error',
         apiAvailable: false,
-        authenticationValid: false
+        authenticationValid: false,
       });
     });
   });
-}); 
+});

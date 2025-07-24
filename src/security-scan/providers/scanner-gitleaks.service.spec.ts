@@ -34,7 +34,9 @@ describe('GitleaksScanner', () => {
     // Mock path
     (path.resolve as jest.Mock).mockImplementation((p) => `/absolute/${p}`);
     (path.normalize as jest.Mock).mockImplementation((p) => p);
-    (path.relative as jest.Mock).mockImplementation((from, to) => `relative/${to}`);
+    (path.relative as jest.Mock).mockImplementation(
+      (from, to) => `relative/${to}`,
+    );
     (path.basename as jest.Mock).mockImplementation((p) => p.split('/').pop());
 
     // Mock os
@@ -97,7 +99,7 @@ describe('GitleaksScanner', () => {
 
     it('should throw error for non-existent path', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      
+
       expect(() => {
         (scanner as any).validateAndSanitizePath('/non/existent/path');
       }).toThrow('Target path does not exist: /absolute//non/existent/path');
@@ -107,7 +109,7 @@ describe('GitleaksScanner', () => {
       (fs.statSync as jest.Mock).mockReturnValue({
         isDirectory: () => false,
       });
-      
+
       expect(() => {
         (scanner as any).validateAndSanitizePath('/file/path');
       }).toThrow('Target path is not a directory: /absolute//file/path');
@@ -115,15 +117,19 @@ describe('GitleaksScanner', () => {
 
     it('should throw error for path outside current directory and temp directories', () => {
       (path.resolve as jest.Mock).mockReturnValue('/outside/allowed/path');
-      
+
       expect(() => {
         (scanner as any).validateAndSanitizePath('/outside/path');
-      }).toThrow('Target path is outside allowed directories: /outside/allowed/path');
+      }).toThrow(
+        'Target path is outside allowed directories: /outside/allowed/path',
+      );
     });
 
     it('should allow path in current directory', () => {
-      (path.resolve as jest.Mock).mockReturnValue('/current/working/directory/subdir');
-      
+      (path.resolve as jest.Mock).mockReturnValue(
+        '/current/working/directory/subdir',
+      );
+
       expect(() => {
         (scanner as any).validateAndSanitizePath('/current/subdir');
       }).not.toThrow();
@@ -131,7 +137,7 @@ describe('GitleaksScanner', () => {
 
     it('should allow path in temp directory', () => {
       (path.resolve as jest.Mock).mockReturnValue('/tmp/some/path');
-      
+
       expect(() => {
         (scanner as any).validateAndSanitizePath('/tmp/path');
       }).not.toThrow();
@@ -139,7 +145,7 @@ describe('GitleaksScanner', () => {
 
     it('should allow path with tmp- pattern', () => {
       (path.resolve as jest.Mock).mockReturnValue('/some/path/tmp-12345');
-      
+
       expect(() => {
         (scanner as any).validateAndSanitizePath('/path/tmp-12345');
       }).not.toThrow();
@@ -154,7 +160,9 @@ describe('GitleaksScanner', () => {
 
     it('should return true for OS temp directory', () => {
       mockOs.tmpdir.mockReturnValue('/var/folders');
-      const result = (scanner as any).isInTempDirectory('/var/folders/some/path');
+      const result = (scanner as any).isInTempDirectory(
+        '/var/folders/some/path',
+      );
       expect(result).toBe(true);
     });
 
@@ -205,28 +213,32 @@ describe('GitleaksScanner', () => {
 
     it('should resolve when gitleaks is installed', async () => {
       const promise = (scanner as any).checkGitleaksInstallation();
-      
+
       stdoutCallback(Buffer.from('gitleaks version 8.16.4'));
       closeCallback(0);
-      
+
       await expect(promise).resolves.toBeUndefined();
     });
 
     it('should reject when gitleaks is not found', async () => {
       const promise = (scanner as any).checkGitleaksInstallation();
-      
+
       stderrCallback(Buffer.from('command not found: gitleaks'));
       closeCallback(1);
-      
-      await expect(promise).rejects.toThrow('Gitleaks not found or not accessible. Error: command not found: gitleaks');
+
+      await expect(promise).rejects.toThrow(
+        'Gitleaks not found or not accessible. Error: command not found: gitleaks',
+      );
     });
 
     it('should reject on process error', async () => {
       const promise = (scanner as any).checkGitleaksInstallation();
-      
+
       errorCallback(new Error('ENOENT'));
-      
-      await expect(promise).rejects.toThrow('Failed to check Gitleaks installation: ENOENT');
+
+      await expect(promise).rejects.toThrow(
+        'Failed to check Gitleaks installation: ENOENT',
+      );
     });
   });
 
@@ -256,8 +268,9 @@ describe('GitleaksScanner', () => {
 
     it('should return findings when secrets are found', async () => {
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
-      stdoutCallback(Buffer.from(`Finding: AWS Access Key ID
+
+      stdoutCallback(
+        Buffer.from(`Finding: AWS Access Key ID
 Secret: AKIAIOSFODNN7EXAMPLE
 RuleID: aws-access-key-id
 Entropy: 0.0
@@ -269,9 +282,10 @@ Email: john@example.com
 Date: 2023-01-01T00:00:00Z
 Fingerprint: abc123def456
 
-`));
+`),
+      );
       closeCallback(1);
-      
+
       const result = await promise;
       expect(result).toHaveLength(2); // 1 finding + 1 scan summary
       expect(result[0]).toMatchObject({
@@ -294,9 +308,9 @@ Fingerprint: abc123def456
 
     it('should return scan summary when no secrets found', async () => {
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
+
       closeCallback(0);
-      
+
       const result = await promise;
       expect(result).toHaveLength(1); // Only scan summary
       expect(result[0]).toMatchObject({
@@ -311,8 +325,9 @@ Fingerprint: abc123def456
 
     it('should handle multiple findings', async () => {
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
-      stdoutCallback(Buffer.from(`Finding: AWS Access Key ID
+
+      stdoutCallback(
+        Buffer.from(`Finding: AWS Access Key ID
 Secret: AKIAIOSFODNN7EXAMPLE
 RuleID: aws-access-key-id
 File: config.js
@@ -324,9 +339,10 @@ RuleID: generic-api-key
 File: api.js
 Line: 42
 
-`));
+`),
+      );
       closeCallback(1);
-      
+
       const result = await promise;
       expect(result).toHaveLength(3); // 2 findings + 1 scan summary
       expect(result[0].ruleId).toBe('gitleaks.aws-access-key-id');
@@ -336,10 +352,10 @@ Line: 42
 
     it('should handle parsing errors gracefully', async () => {
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
+
       stdoutCallback(Buffer.from('invalid output format'));
       closeCallback(1);
-      
+
       const result = await promise;
       expect(result).toHaveLength(1); // Only scan summary
       expect(result[0]).toMatchObject({
@@ -351,31 +367,35 @@ Line: 42
 
     it('should reject on process error', async () => {
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
+
       errorCallback(new Error('ENOENT'));
-      
-      await expect(promise).rejects.toThrow('Failed to execute Gitleaks: ENOENT');
+
+      await expect(promise).rejects.toThrow(
+        'Failed to execute Gitleaks: ENOENT',
+      );
     });
 
     it('should reject on non-zero exit code (not 0 or 1)', async () => {
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
+
       stderrCallback(Buffer.from('Invalid arguments'));
       closeCallback(2);
-      
-      await expect(promise).rejects.toThrow('Gitleaks scan failed with code 2: Invalid arguments');
+
+      await expect(promise).rejects.toThrow(
+        'Gitleaks scan failed with code 2: Invalid arguments',
+      );
     });
 
     it('should handle timeout', async () => {
       jest.useFakeTimers();
-      
+
       const promise = (scanner as any).runGitleaksScan('/test/path');
-      
+
       jest.advanceTimersByTime(300000); // 5 minutes
-      
+
       await expect(promise).rejects.toThrow('Gitleaks scan timed out');
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
-      
+
       jest.useRealTimers();
     });
   });
@@ -387,7 +407,10 @@ Line: 42
     });
 
     it('should return empty array for whitespace-only output', () => {
-      const result = (scanner as any).parseGitleaksOutput('   \n  \t  ', '/test/path');
+      const result = (scanner as any).parseGitleaksOutput(
+        '   \n  \t  ',
+        '/test/path',
+      );
       expect(result).toEqual([]);
     });
 
@@ -405,7 +428,7 @@ Date: 2023-01-01T00:00:00Z
 Fingerprint: abc123def456
 
 `;
-      
+
       const result = (scanner as any).parseGitleaksOutput(output, '/test/path');
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -438,7 +461,7 @@ File: api.js
 Line: 42
 
 `;
-      
+
       const result = (scanner as any).parseGitleaksOutput(output, '/test/path');
       expect(result).toHaveLength(2);
       expect(result[0].ruleId).toBe('gitleaks.aws-access-key-id');
@@ -451,7 +474,7 @@ Secret: AKIAIOSFODNN7EXAMPLE
 RuleID: aws-access-key-id
 File: config.js
 Line: 15`;
-      
+
       const result = (scanner as any).parseGitleaksOutput(output, '/test/path');
       expect(result).toHaveLength(1);
       expect(result[0].ruleId).toBe('gitleaks.aws-access-key-id');
@@ -466,7 +489,7 @@ File: test.js
 Line: 10
 
 `;
-      
+
       const result = (scanner as any).parseGitleaksOutput(output, '/test/path');
       expect(result).toHaveLength(1);
       // The transformGitleaksFinding method only maps known fields, so unknown keys are not preserved
@@ -482,7 +505,10 @@ Line: 10
     });
 
     it('should handle parsing errors gracefully', () => {
-      const result = (scanner as any).parseGitleaksOutput('invalid format', '/test/path');
+      const result = (scanner as any).parseGitleaksOutput(
+        'invalid format',
+        '/test/path',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -502,9 +528,12 @@ Line: 10
         Date: '2023-01-01T00:00:00Z',
         Fingerprint: 'abc123def456',
       };
-      
-      const result = (scanner as any).transformGitleaksFinding(gitleaksFinding, '/test/path');
-      
+
+      const result = (scanner as any).transformGitleaksFinding(
+        gitleaksFinding,
+        '/test/path',
+      );
+
       expect(result).toMatchObject({
         ruleId: 'gitleaks.aws-access-key-id',
         message: 'AWS Access Key ID',
@@ -529,9 +558,12 @@ Line: 10
         Finding: 'Test Finding',
         RuleID: 'test-rule',
       };
-      
-      const result = (scanner as any).transformGitleaksFinding(gitleaksFinding, '/test/path');
-      
+
+      const result = (scanner as any).transformGitleaksFinding(
+        gitleaksFinding,
+        '/test/path',
+      );
+
       expect(result).toMatchObject({
         ruleId: 'gitleaks.test-rule',
         message: 'Test Finding',
@@ -560,22 +592,17 @@ Line: 10
         'token',
         'secret',
       ];
-      
-      highSeverityRules.forEach(rule => {
+
+      highSeverityRules.forEach((rule) => {
         const result = (scanner as any).mapGitleaksSeverity(rule);
         expect(result).toBe('high');
       });
     });
 
     it('should map medium severity rules correctly', () => {
-      const mediumSeverityRules = [
-        'email',
-        'url',
-        'ip-address',
-        'credit-card',
-      ];
-      
-      mediumSeverityRules.forEach(rule => {
+      const mediumSeverityRules = ['email', 'url', 'ip-address', 'credit-card'];
+
+      mediumSeverityRules.forEach((rule) => {
         const result = (scanner as any).mapGitleaksSeverity(rule);
         expect(result).toBe('medium');
       });
@@ -587,15 +614,22 @@ Line: 10
     });
 
     it('should handle case insensitive matching', () => {
-      expect((scanner as any).mapGitleaksSeverity('AWS-ACCESS-KEY-ID')).toBe('high');
+      expect((scanner as any).mapGitleaksSeverity('AWS-ACCESS-KEY-ID')).toBe(
+        'high',
+      );
       expect((scanner as any).mapGitleaksSeverity('Email')).toBe('medium');
     });
   });
 
   describe('createScanSummaryFinding', () => {
     it('should create summary for successful scan with no secrets', () => {
-      const result = (scanner as any).createScanSummaryFinding(0, 'stdout', 'stderr', 0);
-      
+      const result = (scanner as any).createScanSummaryFinding(
+        0,
+        'stdout',
+        'stderr',
+        0,
+      );
+
       expect(result).toMatchObject({
         ruleId: 'gitleaks.scan-summary',
         message: 'Gitleaks scan completed - no secrets found',
@@ -620,8 +654,13 @@ Line: 10
     });
 
     it('should create summary for successful scan with secrets', () => {
-      const result = (scanner as any).createScanSummaryFinding(1, 'stdout', 'stderr', 3);
-      
+      const result = (scanner as any).createScanSummaryFinding(
+        1,
+        'stdout',
+        'stderr',
+        3,
+      );
+
       expect(result).toMatchObject({
         message: 'Gitleaks scan completed - found 3 potential secret(s)',
         scanStatus: 'completed_with_secrets',
@@ -632,7 +671,7 @@ Line: 10
 
     it('should handle empty output', () => {
       const result = (scanner as any).createScanSummaryFinding(0, '', '', 0);
-      
+
       expect(result.scanOutput).toMatchObject({
         stdout: 'No output',
         stderr: 'No errors',
@@ -645,22 +684,28 @@ Line: 10
   describe('scan', () => {
     it('should throw error for invalid path', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      
-      await expect(scanner.scan('/non/existent/path')).rejects.toThrow('Gitleaks scan failed: Target path does not exist: /absolute//non/existent/path');
+
+      await expect(scanner.scan('/non/existent/path')).rejects.toThrow(
+        'Gitleaks scan failed: Target path does not exist: /absolute//non/existent/path',
+      );
     });
 
     it('should throw error for non-directory path', async () => {
       (fs.statSync as jest.Mock).mockReturnValue({
         isDirectory: () => false,
       });
-      
-      await expect(scanner.scan('/file/path')).rejects.toThrow('Gitleaks scan failed: Target path is not a directory: /absolute//file/path');
+
+      await expect(scanner.scan('/file/path')).rejects.toThrow(
+        'Gitleaks scan failed: Target path is not a directory: /absolute//file/path',
+      );
     });
 
     it('should throw error for path outside allowed directories', async () => {
       (path.resolve as jest.Mock).mockReturnValue('/outside/allowed/path');
-      
-      await expect(scanner.scan('/outside/path')).rejects.toThrow('Gitleaks scan failed: Target path is outside allowed directories: /outside/allowed/path');
+
+      await expect(scanner.scan('/outside/path')).rejects.toThrow(
+        'Gitleaks scan failed: Target path is outside allowed directories: /outside/allowed/path',
+      );
     });
   });
-}); 
+});

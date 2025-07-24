@@ -180,17 +180,17 @@ describe('ScanRequestDto', () => {
     it('should allow setting and getting repoUrl', () => {
       const dto = new ScanRequestDto();
       const testUrl = 'https://github.com/test/repo';
-      
+
       dto.repoUrl = testUrl;
       expect(dto.repoUrl).toBe(testUrl);
     });
 
     it('should handle multiple assignments', () => {
       const dto = new ScanRequestDto();
-      
+
       dto.repoUrl = 'https://github.com/repo1';
       expect(dto.repoUrl).toBe('https://github.com/repo1');
-      
+
       dto.repoUrl = 'https://github.com/repo2';
       expect(dto.repoUrl).toBe('https://github.com/repo2');
     });
@@ -206,12 +206,12 @@ describe('ScanRequestDto', () => {
     it('should create multiple independent instances', () => {
       const dto1 = new ScanRequestDto();
       const dto2 = new ScanRequestDto();
-      
+
       dto1.repoUrl = 'https://github.com/repo1';
       dto2.repoUrl = 'https://github.com/repo2';
-      
+
       expect(dto1.repoUrl).toBe('https://github.com/repo1');
       expect(dto2.repoUrl).toBe('https://github.com/repo2');
     });
   });
-}); 
+});

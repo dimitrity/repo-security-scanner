@@ -54,7 +54,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
 # Copy static web UI files
-COPY --from=builder /app/src/ui ./dist/ui
+COPY --from=builder /app/src/simple-ui ./dist/simple-ui
 
 # Change ownership of application files to non-root user
 RUN chown -R nestjs:nodejs /app

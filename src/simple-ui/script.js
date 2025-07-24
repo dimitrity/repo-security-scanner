@@ -77,8 +77,8 @@ function displayRepositoryInfo(repository) {
 }
 
 function displayScanSummary(data) {
-    // Use the new securityIssues property or fall back to findings for backward compatibility
-    const issues = data.securityIssues || data.findings || [];
+    // Use the standardized findings property
+    const issues = data.findings || [];
     
     // Count issues by severity
     const severityCounts = {
@@ -114,7 +114,7 @@ function displayScanSummary(data) {
                         <div class="scanner-item">
                             <div class="scanner-name">${escapeHtml(scanner.name)}</div>
                             <div class="scanner-version">v${escapeHtml(scanner.version)}</div>
-                            <div class="scanner-count">${scanner.securityIssuesFound} issues found</div>
+                            <div class="scanner-count">${scanner.findingsFound} issues found</div>
                             <div class="scanner-description">${escapeHtml(scanner.summary)}</div>
                         </div>
                     `).join('')}
@@ -163,8 +163,8 @@ function displayScanSummary(data) {
 }
 
 function displaySecurityIssues(data) {
-    // Use the new securityIssues property or fall back to findings for backward compatibility
-    const issues = data.securityIssues || data.findings || [];
+    // Use the standardized findings property
+    const issues = data.findings || [];
     
     // Group issues by severity
     const groupedIssues = {
@@ -437,13 +437,13 @@ function hideError() {
 function showResults() {
     document.getElementById('repoInfo').classList.remove('hidden');
     document.getElementById('scanSummary').classList.remove('hidden');
-    document.getElementById('securityIssues').classList.remove('hidden');
+    document.getElementById('findings').classList.remove('hidden');
 }
 
 function hideResults() {
     document.getElementById('repoInfo').classList.add('hidden');
     document.getElementById('scanSummary').classList.add('hidden');
-    document.getElementById('securityIssues').classList.add('hidden');
+    document.getElementById('findings').classList.add('hidden');
 }
 
 // Utility functions

@@ -23,7 +23,11 @@ describe('GitLabScmProvider', () => {
     it('should initialize with correct GitLab configuration', () => {
       expect(provider['config']?.name).toBe('GitLab Provider');
       expect(provider['config']?.platform).toBe('gitlab');
-      expect(provider['config']?.hostnames).toEqual(['gitlab.com', 'www.gitlab.com', 'gitlab.']);
+      expect(provider['config']?.hostnames).toEqual([
+        'gitlab.com',
+        'www.gitlab.com',
+        'gitlab.',
+      ]);
       expect(provider['config']?.apiBaseUrl).toBe('https://gitlab.com/api/v4');
       expect(provider['config']?.supportsPrivateRepos).toBe(true);
       expect(provider['config']?.supportsApi).toBe(true);
@@ -40,19 +44,31 @@ describe('GitLabScmProvider', () => {
     });
 
     it('should handle www.gitlab.com URLs', () => {
-      expect(provider.canHandle('https://www.gitlab.com/user/repo.git')).toBe(true);
+      expect(provider.canHandle('https://www.gitlab.com/user/repo.git')).toBe(
+        true,
+      );
       expect(provider.canHandle('https://www.gitlab.com/user/repo')).toBe(true);
     });
 
     it('should handle GitLab subdomain URLs', () => {
-      expect(provider.canHandle('https://gitlab.example.com/user/repo.git')).toBe(true);
-      expect(provider.canHandle('https://gitlab.company.org/user/repo.git')).toBe(true);
+      expect(
+        provider.canHandle('https://gitlab.example.com/user/repo.git'),
+      ).toBe(true);
+      expect(
+        provider.canHandle('https://gitlab.company.org/user/repo.git'),
+      ).toBe(true);
     });
 
     it('should reject non-GitLab URLs', () => {
-      expect(provider.canHandle('https://github.com/user/repo.git')).toBe(false);
-      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(false);
-      expect(provider.canHandle('https://example.com/user/repo.git')).toBe(false);
+      expect(provider.canHandle('https://github.com/user/repo.git')).toBe(
+        false,
+      );
+      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(
+        false,
+      );
+      expect(provider.canHandle('https://example.com/user/repo.git')).toBe(
+        false,
+      );
       expect(provider.canHandle('not-a-url')).toBe(false);
     });
   });
@@ -81,7 +97,7 @@ describe('GitLabScmProvider', () => {
 
       expect(headers).toEqual({
         'Content-Type': 'application/json',
-        'User-Agent': 'Repository-Security-Scanner/1.0'
+        'User-Agent': 'Repository-Security-Scanner/1.0',
       });
     });
 
@@ -92,7 +108,7 @@ describe('GitLabScmProvider', () => {
       expect(headers).toEqual({
         'Content-Type': 'application/json',
         'User-Agent': 'Repository-Security-Scanner/1.0',
-        'Authorization': 'Bearer test-token'
+        Authorization: 'Bearer test-token',
       });
     });
   });
@@ -104,7 +120,7 @@ describe('GitLabScmProvider', () => {
       owner: 'testuser',
       repository: 'testrepo',
       fullName: 'testuser/testrepo',
-      originalUrl: 'https://gitlab.com/testuser/testrepo.git'
+      originalUrl: 'https://gitlab.com/testuser/testrepo.git',
     };
 
     beforeEach(() => {
@@ -114,7 +130,7 @@ describe('GitLabScmProvider', () => {
     it('should return null for non-GitLab repository', async () => {
       const nonGitLabRepo: RepositoryInfo = {
         ...mockRepoInfo,
-        platform: 'github'
+        platform: 'github',
       };
 
       const result = await (provider as any).fetchFromApi(nonGitLabRepo);
@@ -142,7 +158,7 @@ describe('GitLabScmProvider', () => {
             name: 'testuser',
             path: 'testuser',
             kind: 'user',
-            full_path: 'testuser'
+            full_path: 'testuser',
           },
           visibility: 'public',
           forks_count: 10,
@@ -159,13 +175,14 @@ describe('GitLabScmProvider', () => {
           web_url: 'https://gitlab.com/testuser/testrepo',
           ssh_url_to_repo: 'git@gitlab.com:testuser/testrepo.git',
           http_url_to_repo: 'https://gitlab.com/testuser/testrepo.git',
-          readme_url: 'https://gitlab.com/testuser/testrepo/-/blob/main/README.md',
+          readme_url:
+            'https://gitlab.com/testuser/testrepo/-/blob/main/README.md',
           avatar_url: null,
           topics: ['test', 'example'],
           created_at: '2023-01-01T00:00:00Z',
           archived: false,
-          open_issues_count: 5
-        })
+          open_issues_count: 5,
+        }),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -174,7 +191,11 @@ describe('GitLabScmProvider', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://gitlab.com/api/v4/projects/testuser%2Ftestrepo',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toMatchObject({
@@ -183,7 +204,7 @@ describe('GitLabScmProvider', () => {
         defaultBranch: 'main',
         lastCommit: {
           hash: 'latest',
-          timestamp: '2023-01-01T00:00:00Z'
+          timestamp: '2023-01-01T00:00:00Z',
         },
         platform: {
           gitlab: {
@@ -206,11 +227,12 @@ describe('GitLabScmProvider', () => {
             webUrl: 'https://gitlab.com/testuser/testrepo',
             sshUrlToRepo: 'git@gitlab.com:testuser/testrepo.git',
             httpUrlToRepo: 'https://gitlab.com/testuser/testrepo.git',
-            readmeUrl: 'https://gitlab.com/testuser/testrepo/-/blob/main/README.md',
+            readmeUrl:
+              'https://gitlab.com/testuser/testrepo/-/blob/main/README.md',
             topics: ['test', 'example'],
             createdAt: '2023-01-01T00:00:00Z',
-            lastActivityAt: '2023-01-01T00:00:00Z'
-          }
+            lastActivityAt: '2023-01-01T00:00:00Z',
+          },
         },
         common: {
           visibility: 'public',
@@ -225,15 +247,15 @@ describe('GitLabScmProvider', () => {
           cloneUrl: 'https://gitlab.com/testuser/testrepo.git',
           sshUrl: 'git@gitlab.com:testuser/testrepo.git',
           archived: false,
-          disabled: false
-        }
+          disabled: false,
+        },
       });
     });
 
     it('should handle 401 authentication error', async () => {
       const mockResponse = {
         ok: false,
-        status: 401
+        status: 401,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -245,7 +267,7 @@ describe('GitLabScmProvider', () => {
     it('should handle 403 access forbidden error', async () => {
       const mockResponse = {
         ok: false,
-        status: 403
+        status: 403,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -257,7 +279,7 @@ describe('GitLabScmProvider', () => {
     it('should handle 404 repository not found', async () => {
       const mockResponse = {
         ok: false,
-        status: 404
+        status: 404,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -288,26 +310,40 @@ describe('GitLabScmProvider', () => {
           star_count: 25,
           created_at: '2023-01-01T00:00:00Z',
           archived: false,
-          open_issues_count: 5
-        })
+          open_issues_count: 5,
+        }),
       };
 
       const mockCommitsResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{
-          id: 'abc123',
-          message: 'Test commit',
-          author_name: 'Test Author',
-          committed_date: '2023-01-01T00:00:00Z'
-        }])
+        json: jest.fn().mockResolvedValue([
+          {
+            id: 'abc123',
+            message: 'Test commit',
+            author_name: 'Test Author',
+            committed_date: '2023-01-01T00:00:00Z',
+          },
+        ]),
       };
 
       const mockContributorsResponse = {
         ok: true,
         json: jest.fn().mockResolvedValue([
-          { name: 'User 1', email: 'user1@example.com', commits: 50, additions: 1000, deletions: 100 },
-          { name: 'User 2', email: 'user2@example.com', commits: 30, additions: 500, deletions: 50 }
-        ])
+          {
+            name: 'User 1',
+            email: 'user1@example.com',
+            commits: 50,
+            additions: 1000,
+            deletions: 100,
+          },
+          {
+            name: 'User 2',
+            email: 'user2@example.com',
+            commits: 30,
+            additions: 500,
+            deletions: 50,
+          },
+        ]),
       };
 
       const mockLanguagesResponse = {
@@ -315,25 +351,27 @@ describe('GitLabScmProvider', () => {
         json: jest.fn().mockResolvedValue({
           JavaScript: 60,
           TypeScript: 30,
-          CSS: 10
-        })
+          CSS: 10,
+        }),
       };
 
       const mockMergeRequestsResponse = {
         ok: true,
-        headers: new Map([['X-Total', '5']])
+        headers: new Map([['X-Total', '5']]),
       };
 
       const mockPipelinesResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{
-          id: 123,
-          status: 'success',
-          ref: 'main',
-          sha: 'abc123',
-          created_at: '2023-01-01T00:00:00Z',
-          updated_at: '2023-01-01T01:00:00Z'
-        }])
+        json: jest.fn().mockResolvedValue([
+          {
+            id: 123,
+            status: 'success',
+            ref: 'main',
+            sha: 'abc123',
+            created_at: '2023-01-01T00:00:00Z',
+            updated_at: '2023-01-01T01:00:00Z',
+          },
+        ]),
       };
 
       mockFetch
@@ -349,7 +387,7 @@ describe('GitLabScmProvider', () => {
       expect(result.lastCommit).toMatchObject({
         hash: 'abc123',
         message: 'Test commit',
-        author: 'Test Author'
+        author: 'Test Author',
       });
 
       expect(result.platform.gitlab.topContributors).toHaveLength(2);
@@ -359,33 +397,47 @@ describe('GitLabScmProvider', () => {
         id: 123,
         status: 'success',
         ref: 'main',
-        sha: 'abc123'
+        sha: 'abc123',
       });
     });
   });
 
   describe('fetchAdditionalGitLabData', () => {
-    const headers = { 'Authorization': 'Bearer test-token' };
+    const headers = { Authorization: 'Bearer test-token' };
     const apiBaseUrl = 'https://gitlab.com/api/v4';
     const projectPath = 'testuser%2Ftestrepo';
 
     it('should fetch additional data successfully', async () => {
       const mockCommitsResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{
-          id: 'abc123',
-          message: 'Test commit',
-          author_name: 'Test Author',
-          committed_date: '2023-01-01T00:00:00Z'
-        }])
+        json: jest.fn().mockResolvedValue([
+          {
+            id: 'abc123',
+            message: 'Test commit',
+            author_name: 'Test Author',
+            committed_date: '2023-01-01T00:00:00Z',
+          },
+        ]),
       };
 
       const mockContributorsResponse = {
         ok: true,
         json: jest.fn().mockResolvedValue([
-          { name: 'User 1', email: 'user1@example.com', commits: 50, additions: 1000, deletions: 100 },
-          { name: 'User 2', email: 'user2@example.com', commits: 30, additions: 500, deletions: 50 }
-        ])
+          {
+            name: 'User 1',
+            email: 'user1@example.com',
+            commits: 50,
+            additions: 1000,
+            deletions: 100,
+          },
+          {
+            name: 'User 2',
+            email: 'user2@example.com',
+            commits: 30,
+            additions: 500,
+            deletions: 50,
+          },
+        ]),
       };
 
       const mockLanguagesResponse = {
@@ -393,25 +445,27 @@ describe('GitLabScmProvider', () => {
         json: jest.fn().mockResolvedValue({
           JavaScript: 60,
           TypeScript: 30,
-          CSS: 10
-        })
+          CSS: 10,
+        }),
       };
 
       const mockMergeRequestsResponse = {
         ok: true,
-        headers: new Map([['X-Total', '5']])
+        headers: new Map([['X-Total', '5']]),
       };
 
       const mockPipelinesResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{
-          id: 123,
-          status: 'success',
-          ref: 'main',
-          sha: 'abc123',
-          created_at: '2023-01-01T00:00:00Z',
-          updated_at: '2023-01-01T01:00:00Z'
-        }])
+        json: jest.fn().mockResolvedValue([
+          {
+            id: 123,
+            status: 'success',
+            ref: 'main',
+            sha: 'abc123',
+            created_at: '2023-01-01T00:00:00Z',
+            updated_at: '2023-01-01T01:00:00Z',
+          },
+        ]),
       };
 
       mockFetch
@@ -421,7 +475,11 @@ describe('GitLabScmProvider', () => {
         .mockResolvedValueOnce(mockMergeRequestsResponse as any)
         .mockResolvedValueOnce(mockPipelinesResponse as any);
 
-      const result = await (provider as any).fetchAdditionalGitLabData(apiBaseUrl, projectPath, headers);
+      const result = await (provider as any).fetchAdditionalGitLabData(
+        apiBaseUrl,
+        projectPath,
+        headers,
+      );
 
       expect(result).toMatchObject({
         lastCommitHash: 'abc123',
@@ -433,29 +491,37 @@ describe('GitLabScmProvider', () => {
         languages: {
           JavaScript: 60,
           TypeScript: 30,
-          CSS: 10
+          CSS: 10,
         },
         openMergeRequestsCount: 5,
         latestPipeline: {
           id: 123,
           status: 'success',
           ref: 'main',
-          sha: 'abc123'
-        }
+          sha: 'abc123',
+        },
       });
     });
 
     it('should handle API errors gracefully', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await (provider as any).fetchAdditionalGitLabData(apiBaseUrl, projectPath, headers);
+      const result = await (provider as any).fetchAdditionalGitLabData(
+        apiBaseUrl,
+        projectPath,
+        headers,
+      );
       expect(result).toEqual({});
     });
 
     it('should handle fetch errors', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const result = await (provider as any).fetchAdditionalGitLabData(apiBaseUrl, projectPath, headers);
+      const result = await (provider as any).fetchAdditionalGitLabData(
+        apiBaseUrl,
+        projectPath,
+        headers,
+      );
       expect(result).toEqual({});
     });
   });
@@ -468,20 +534,28 @@ describe('GitLabScmProvider', () => {
     it('should return branches successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([
-          { name: 'main' },
-          { name: 'develop' },
-          { name: 'feature/test' }
-        ])
+        json: jest
+          .fn()
+          .mockResolvedValue([
+            { name: 'main' },
+            { name: 'develop' },
+            { name: 'feature/test' },
+          ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      const result = await provider.getBranches('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getBranches(
+        'https://gitlab.com/testuser/testrepo',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://gitlab.com/api/v4/projects/testuser%2Ftestrepo/repository/branches',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual(['main', 'develop', 'feature/test']);
@@ -495,14 +569,18 @@ describe('GitLabScmProvider', () => {
     it('should handle API errors', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await provider.getBranches('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getBranches(
+        'https://gitlab.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
 
     it('should handle fetch errors', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const result = await provider.getBranches('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getBranches(
+        'https://gitlab.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -515,20 +593,28 @@ describe('GitLabScmProvider', () => {
     it('should return tags successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([
-          { name: 'v1.0.0' },
-          { name: 'v1.1.0' },
-          { name: 'v2.0.0' }
-        ])
+        json: jest
+          .fn()
+          .mockResolvedValue([
+            { name: 'v1.0.0' },
+            { name: 'v1.1.0' },
+            { name: 'v2.0.0' },
+          ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      const result = await provider.getTags('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getTags(
+        'https://gitlab.com/testuser/testrepo',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://gitlab.com/api/v4/projects/testuser%2Ftestrepo/repository/tags',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual(['v1.0.0', 'v1.1.0', 'v2.0.0']);
@@ -542,7 +628,9 @@ describe('GitLabScmProvider', () => {
     it('should handle API errors', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await provider.getTags('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getTags(
+        'https://gitlab.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -561,25 +649,31 @@ describe('GitLabScmProvider', () => {
             email: 'user1@example.com',
             commits: 50,
             additions: 1000,
-            deletions: 100
+            deletions: 100,
           },
           {
             name: 'User 2',
             email: 'user2@example.com',
             commits: 30,
             additions: 500,
-            deletions: 50
-          }
-        ])
+            deletions: 50,
+          },
+        ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      const result = await provider.getContributors('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getContributors(
+        'https://gitlab.com/testuser/testrepo',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://gitlab.com/api/v4/projects/testuser%2Ftestrepo/repository/contributors',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual([
@@ -587,14 +681,14 @@ describe('GitLabScmProvider', () => {
           name: 'User 1',
           email: 'user1@example.com',
           contributions: 50,
-          type: 'user'
+          type: 'user',
         },
         {
           name: 'User 2',
           email: 'user2@example.com',
           contributions: 30,
-          type: 'user'
-        }
+          type: 'user',
+        },
       ]);
     });
 
@@ -606,7 +700,9 @@ describe('GitLabScmProvider', () => {
     it('should handle API errors', async () => {
       mockFetch.mockResolvedValue({ ok: false } as any);
 
-      const result = await provider.getContributors('https://gitlab.com/testuser/testrepo');
+      const result = await provider.getContributors(
+        'https://gitlab.com/testuser/testrepo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -628,7 +724,7 @@ describe('GitLabScmProvider', () => {
             visibility: 'public',
             star_count: 100,
             forks_count: 20,
-            last_activity_at: '2023-01-01T00:00:00Z'
+            last_activity_at: '2023-01-01T00:00:00Z',
           },
           {
             name: 'repo2',
@@ -638,9 +734,9 @@ describe('GitLabScmProvider', () => {
             visibility: 'private',
             star_count: 50,
             forks_count: 10,
-            last_activity_at: '2023-01-02T00:00:00Z'
-          }
-        ])
+            last_activity_at: '2023-01-02T00:00:00Z',
+          },
+        ]),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -649,7 +745,11 @@ describe('GitLabScmProvider', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://gitlab.com/api/v4/projects?search=test%20query&visibility=public',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toEqual([
@@ -662,7 +762,7 @@ describe('GitLabScmProvider', () => {
           language: '',
           stars: 100,
           forks: 20,
-          updatedAt: '2023-01-01T00:00:00Z'
+          updatedAt: '2023-01-01T00:00:00Z',
         },
         {
           name: 'repo2',
@@ -673,8 +773,8 @@ describe('GitLabScmProvider', () => {
           language: '',
           stars: 50,
           forks: 10,
-          updatedAt: '2023-01-02T00:00:00Z'
-        }
+          updatedAt: '2023-01-02T00:00:00Z',
+        },
       ]);
     });
 
@@ -703,8 +803,8 @@ describe('GitLabScmProvider', () => {
         ok: true,
         json: jest.fn().mockResolvedValue({
           version: '15.0.0',
-          revision: 'abc123'
-        })
+          revision: 'abc123',
+        }),
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -713,13 +813,25 @@ describe('GitLabScmProvider', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://gitlab.com/api/v4/version',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        },
       );
 
       expect(result).toMatchObject({
         available: true,
         version: '15.0.0',
-        features: ['repositories', 'commits', 'branches', 'tags', 'contributors', 'merge_requests', 'pipelines']
+        features: [
+          'repositories',
+          'commits',
+          'branches',
+          'tags',
+          'contributors',
+          'merge_requests',
+          'pipelines',
+        ],
       });
     });
 
@@ -730,7 +842,7 @@ describe('GitLabScmProvider', () => {
 
       expect(result).toEqual({
         available: false,
-        error: 'Unable to connect to GitLab API'
+        error: 'Unable to connect to GitLab API',
       });
     });
 
@@ -741,7 +853,7 @@ describe('GitLabScmProvider', () => {
 
       expect(result).toEqual({
         available: false,
-        error: 'Unable to connect to GitLab API'
+        error: 'Unable to connect to GitLab API',
       });
     });
   });
@@ -759,10 +871,11 @@ describe('GitLabScmProvider', () => {
 
       const result = await provider.validateAuthentication();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://gitlab.com/api/v4/user',
-        { headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }) }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('https://gitlab.com/api/v4/user', {
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      });
       expect(result).toBe(true);
     });
 
@@ -786,17 +899,19 @@ describe('GitLabScmProvider', () => {
   describe('healthCheck', () => {
     it('should return healthy status when API is available', async () => {
       const mockResponse = {
-        ok: true
+        ok: true,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
 
       const result = await provider.healthCheck();
 
-      expect(mockFetch).toHaveBeenCalledWith('https://gitlab.com/api/v4/version');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://gitlab.com/api/v4/version',
+      );
       expect(result).toMatchObject({
         isHealthy: true,
-        lastChecked: expect.any(String)
+        lastChecked: expect.any(String),
       });
       expect(result.apiAvailable).toBeDefined();
       expect(result.responseTime).toBeGreaterThanOrEqual(0);
@@ -805,7 +920,7 @@ describe('GitLabScmProvider', () => {
     it('should return unhealthy status when API is not available', async () => {
       const mockResponse = {
         ok: false,
-        status: 500
+        status: 500,
       };
 
       mockFetch.mockResolvedValue(mockResponse as any);
@@ -817,7 +932,7 @@ describe('GitLabScmProvider', () => {
         lastChecked: expect.any(String),
         error: 'GitLab API returned status 500',
         apiAvailable: false,
-        authenticationValid: false
+        authenticationValid: false,
       });
     });
 
@@ -831,8 +946,8 @@ describe('GitLabScmProvider', () => {
         lastChecked: expect.any(String),
         error: 'Network error',
         apiAvailable: false,
-        authenticationValid: false
+        authenticationValid: false,
       });
     });
   });
-}); 
+});

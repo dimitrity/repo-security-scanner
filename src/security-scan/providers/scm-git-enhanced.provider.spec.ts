@@ -48,10 +48,14 @@ describe('EnhancedGitScmProvider', () => {
 
     // Mock fs
     (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-    (mockFs.readFileSync as jest.Mock).mockReturnValue('# Test Repository\n\nThis is a test repository.');
+    (mockFs.readFileSync as jest.Mock).mockReturnValue(
+      '# Test Repository\n\nThis is a test repository.',
+    );
 
     // Mock path
-    (mockPath.join as jest.Mock).mockImplementation((...args) => args.join('/'));
+    (mockPath.join as jest.Mock).mockImplementation((...args) =>
+      args.join('/'),
+    );
   });
 
   describe('constructor', () => {
@@ -71,33 +75,47 @@ describe('EnhancedGitScmProvider', () => {
 
     it('should handle HTTPS GitLab URLs', () => {
       expect(provider.canHandle('https://gitlab.com/user/repo.git')).toBe(true);
-      expect(provider.canHandle('https://gitlab.example.com/user/repo')).toBe(true);
+      expect(provider.canHandle('https://gitlab.example.com/user/repo')).toBe(
+        true,
+      );
     });
 
     it('should handle SSH URLs', () => {
       expect(provider.canHandle('git@github.com:user/repo.git')).toBe(true);
-      expect(provider.canHandle('ssh://git@gitlab.com/user/repo.git')).toBe(true);
+      expect(provider.canHandle('ssh://git@gitlab.com/user/repo.git')).toBe(
+        true,
+      );
     });
 
     it('should handle Bitbucket URLs', () => {
-      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(true);
+      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(
+        true,
+      );
       expect(provider.canHandle('git@bitbucket.org:user/repo.git')).toBe(true);
     });
 
     it('should handle Azure DevOps URLs', () => {
-      expect(provider.canHandle('https://dev.azure.com/org/project/_git/repo')).toBe(true);
+      expect(
+        provider.canHandle('https://dev.azure.com/org/project/_git/repo'),
+      ).toBe(true);
     });
 
     it('should handle Gitea URLs', () => {
-      expect(provider.canHandle('https://gitea.example.com/user/repo.git')).toBe(true);
+      expect(
+        provider.canHandle('https://gitea.example.com/user/repo.git'),
+      ).toBe(true);
     });
 
     it('should handle Forgejo URLs', () => {
-      expect(provider.canHandle('https://forgejo.example.com/user/repo.git')).toBe(true);
+      expect(
+        provider.canHandle('https://forgejo.example.com/user/repo.git'),
+      ).toBe(true);
     });
 
     it('should handle Codeberg URLs', () => {
-      expect(provider.canHandle('https://codeberg.org/user/repo.git')).toBe(true);
+      expect(provider.canHandle('https://codeberg.org/user/repo.git')).toBe(
+        true,
+      );
     });
 
     it('should reject invalid URLs', () => {
@@ -109,8 +127,10 @@ describe('EnhancedGitScmProvider', () => {
 
   describe('parseRepositoryUrl', () => {
     it('should parse HTTPS GitHub URLs', () => {
-      const result = provider.parseRepositoryUrl('https://github.com/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://github.com/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'github',
         hostname: 'github.com',
@@ -122,8 +142,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse HTTPS URLs without .git extension', () => {
-      const result = provider.parseRepositoryUrl('https://github.com/user/repo');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://github.com/user/repo',
+      );
+
       expect(result).toMatchObject({
         platform: 'github',
         hostname: 'github.com',
@@ -135,8 +157,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse GitLab URLs', () => {
-      const result = provider.parseRepositoryUrl('https://gitlab.com/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://gitlab.com/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'gitlab',
         hostname: 'gitlab.com',
@@ -147,8 +171,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse SSH GitHub URLs', () => {
-      const result = provider.parseRepositoryUrl('git@github.com:user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'git@github.com:user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'github',
         hostname: 'github.com',
@@ -160,8 +186,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse SSH GitLab URLs', () => {
-      const result = provider.parseRepositoryUrl('ssh://git@gitlab.com/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'ssh://git@gitlab.com/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'gitlab',
         hostname: 'gitlab.com',
@@ -173,8 +201,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse Bitbucket URLs', () => {
-      const result = provider.parseRepositoryUrl('https://bitbucket.org/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://bitbucket.org/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'bitbucket',
         hostname: 'bitbucket.org',
@@ -185,8 +215,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse Azure DevOps URLs', () => {
-      const result = provider.parseRepositoryUrl('https://dev.azure.com/org/project/_git/repo');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://dev.azure.com/org/project/_git/repo',
+      );
+
       expect(result).toMatchObject({
         platform: 'azure-devops',
         hostname: 'dev.azure.com',
@@ -197,8 +229,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse Gitea URLs', () => {
-      const result = provider.parseRepositoryUrl('https://gitea.example.com/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://gitea.example.com/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'gitea',
         hostname: 'gitea.example.com',
@@ -209,8 +243,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse Forgejo URLs', () => {
-      const result = provider.parseRepositoryUrl('https://forgejo.example.com/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://forgejo.example.com/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'forgejo',
         hostname: 'forgejo.example.com',
@@ -221,8 +257,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should parse Codeberg URLs', () => {
-      const result = provider.parseRepositoryUrl('https://codeberg.org/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://codeberg.org/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'codeberg',
         hostname: 'codeberg.org',
@@ -233,8 +271,10 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should return generic platform for unknown hostnames', () => {
-      const result = provider.parseRepositoryUrl('https://custom-git.example.com/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://custom-git.example.com/user/repo.git',
+      );
+
       expect(result).toMatchObject({
         platform: 'generic',
         hostname: 'custom-git.example.com',
@@ -292,7 +332,9 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should return generic for unknown platforms', () => {
-      const result = (provider as any).determinePlatform('custom-git.example.com');
+      const result = (provider as any).determinePlatform(
+        'custom-git.example.com',
+      );
       expect(result).toBe('generic');
     });
   });
@@ -301,12 +343,15 @@ describe('EnhancedGitScmProvider', () => {
     it('should clone repository successfully', async () => {
       mockGit.clone.mockResolvedValue(undefined);
 
-      await provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test');
+      await provider.cloneRepository(
+        'https://github.com/user/repo.git',
+        '/tmp/test',
+      );
 
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://github.com/user/repo.git',
         '/tmp/test',
-        []
+        [],
       );
     });
 
@@ -314,12 +359,15 @@ describe('EnhancedGitScmProvider', () => {
       provider['authConfig'] = { type: 'token', token: 'test-token' };
       mockGit.clone.mockResolvedValue(undefined);
 
-      await provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test');
+      await provider.cloneRepository(
+        'https://github.com/user/repo.git',
+        '/tmp/test',
+      );
 
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://test-token@github.com/user/repo.git',
         '/tmp/test',
-        []
+        [],
       );
     });
 
@@ -327,12 +375,15 @@ describe('EnhancedGitScmProvider', () => {
       provider['authConfig'] = { type: 'token', token: 'test-token' };
       mockGit.clone.mockResolvedValue(undefined);
 
-      await provider.cloneRepository('https://gitlab.com/user/repo.git', '/tmp/test');
+      await provider.cloneRepository(
+        'https://gitlab.com/user/repo.git',
+        '/tmp/test',
+      );
 
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://oauth2:test-token@gitlab.com/user/repo.git',
         '/tmp/test',
-        []
+        [],
       );
     });
 
@@ -340,12 +391,15 @@ describe('EnhancedGitScmProvider', () => {
       provider['authConfig'] = { type: 'token', token: 'test-token' };
       mockGit.clone.mockResolvedValue(undefined);
 
-      await provider.cloneRepository('https://bitbucket.org/user/repo.git', '/tmp/test');
+      await provider.cloneRepository(
+        'https://bitbucket.org/user/repo.git',
+        '/tmp/test',
+      );
 
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://x-token-auth:test-token@bitbucket.org/user/repo.git',
         '/tmp/test',
-        []
+        [],
       );
     });
 
@@ -353,29 +407,36 @@ describe('EnhancedGitScmProvider', () => {
       provider['authConfig'] = { type: 'token', token: 'test-token' };
       mockGit.clone.mockResolvedValue(undefined);
 
-      await provider.cloneRepository('https://custom-git.example.com/user/repo.git', '/tmp/test');
+      await provider.cloneRepository(
+        'https://custom-git.example.com/user/repo.git',
+        '/tmp/test',
+      );
 
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://test-token@custom-git.example.com/user/repo.git',
         '/tmp/test',
-        []
+        [],
       );
     });
 
     it('should build clone options correctly', async () => {
       mockGit.clone.mockResolvedValue(undefined);
 
-      await provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test', {
-        depth: 1,
-        branch: 'main',
-        singleBranch: true,
-        recursive: true,
-      });
+      await provider.cloneRepository(
+        'https://github.com/user/repo.git',
+        '/tmp/test',
+        {
+          depth: 1,
+          branch: 'main',
+          singleBranch: true,
+          recursive: true,
+        },
+      );
 
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://github.com/user/repo.git',
         '/tmp/test',
-        ['--depth', '1', '--branch', 'main', '--single-branch', '--recursive']
+        ['--depth', '1', '--branch', 'main', '--single-branch', '--recursive'],
       );
     });
 
@@ -384,7 +445,10 @@ describe('EnhancedGitScmProvider', () => {
       mockGit.clone.mockRejectedValue(error);
 
       await expect(
-        provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test')
+        provider.cloneRepository(
+          'https://github.com/user/repo.git',
+          '/tmp/test',
+        ),
       ).rejects.toThrow('Clone failed: Clone failed');
     });
 
@@ -392,7 +456,10 @@ describe('EnhancedGitScmProvider', () => {
       mockGit.clone.mockRejectedValue('String error');
 
       await expect(
-        provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test')
+        provider.cloneRepository(
+          'https://github.com/user/repo.git',
+          '/tmp/test',
+        ),
       ).rejects.toThrow('Clone failed: Unknown error');
     });
   });
@@ -401,7 +468,7 @@ describe('EnhancedGitScmProvider', () => {
     it('should apply GitHub token authentication', () => {
       const result = (provider as any).applyTokenAuthentication(
         'https://github.com/user/repo.git',
-        'test-token'
+        'test-token',
       );
       expect(result).toBe('https://test-token@github.com/user/repo.git');
     });
@@ -409,7 +476,7 @@ describe('EnhancedGitScmProvider', () => {
     it('should apply GitLab token authentication', () => {
       const result = (provider as any).applyTokenAuthentication(
         'https://gitlab.com/user/repo.git',
-        'test-token'
+        'test-token',
       );
       expect(result).toBe('https://oauth2:test-token@gitlab.com/user/repo.git');
     });
@@ -417,23 +484,27 @@ describe('EnhancedGitScmProvider', () => {
     it('should apply Bitbucket token authentication', () => {
       const result = (provider as any).applyTokenAuthentication(
         'https://bitbucket.org/user/repo.git',
-        'test-token'
+        'test-token',
       );
-      expect(result).toBe('https://x-token-auth:test-token@bitbucket.org/user/repo.git');
+      expect(result).toBe(
+        'https://x-token-auth:test-token@bitbucket.org/user/repo.git',
+      );
     });
 
     it('should apply generic token authentication', () => {
       const result = (provider as any).applyTokenAuthentication(
         'https://custom-git.example.com/user/repo.git',
-        'test-token'
+        'test-token',
       );
-      expect(result).toBe('https://test-token@custom-git.example.com/user/repo.git');
+      expect(result).toBe(
+        'https://test-token@custom-git.example.com/user/repo.git',
+      );
     });
 
     it('should return original URL for SSH URLs', () => {
       const result = (provider as any).applyTokenAuthentication(
         'git@github.com:user/repo.git',
-        'test-token'
+        'test-token',
       );
       expect(result).toBe('git@github.com:user/repo.git');
     });
@@ -441,7 +512,7 @@ describe('EnhancedGitScmProvider', () => {
     it('should handle URL parsing errors', () => {
       const result = (provider as any).applyTokenAuthentication(
         'invalid-url',
-        'test-token'
+        'test-token',
       );
       expect(result).toBe('invalid-url');
     });
@@ -464,7 +535,9 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should build options with singleBranch', () => {
-      const result = (provider as any).buildCloneOptions({ singleBranch: true });
+      const result = (provider as any).buildCloneOptions({
+        singleBranch: true,
+      });
       expect(result).toEqual(['--single-branch']);
     });
 
@@ -480,7 +553,14 @@ describe('EnhancedGitScmProvider', () => {
         singleBranch: true,
         recursive: true,
       });
-      expect(result).toEqual(['--depth', '1', '--branch', 'main', '--single-branch', '--recursive']);
+      expect(result).toEqual([
+        '--depth',
+        '1',
+        '--branch',
+        'main',
+        '--single-branch',
+        '--recursive',
+      ]);
     });
   });
 
@@ -502,7 +582,9 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should fetch metadata using Git commands', async () => {
-      const result = await provider.fetchRepoMetadata('https://github.com/user/repo.git');
+      const result = await provider.fetchRepoMetadata(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result).toMatchObject({
         name: 'repo',
@@ -524,7 +606,9 @@ describe('EnhancedGitScmProvider', () => {
     it('should handle missing README files', async () => {
       (mockFs.existsSync as jest.Mock).mockReturnValue(false);
 
-      const result = await provider.fetchRepoMetadata('https://github.com/user/repo.git');
+      const result = await provider.fetchRepoMetadata(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result.description).toBe('No description available');
     });
@@ -534,7 +618,9 @@ describe('EnhancedGitScmProvider', () => {
         throw new Error('Read error');
       });
 
-      const result = await provider.fetchRepoMetadata('https://github.com/user/repo.git');
+      const result = await provider.fetchRepoMetadata(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result.description).toBe('No description available');
     });
@@ -545,7 +631,9 @@ describe('EnhancedGitScmProvider', () => {
         all: ['origin/master'],
       });
 
-      const result = await provider.fetchRepoMetadata('https://github.com/user/repo.git');
+      const result = await provider.fetchRepoMetadata(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result.defaultBranch).toBe('master');
     });
@@ -555,7 +643,9 @@ describe('EnhancedGitScmProvider', () => {
         latest: null,
       });
 
-      const result = await provider.fetchRepoMetadata('https://github.com/user/repo.git');
+      const result = await provider.fetchRepoMetadata(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result.lastCommit.hash).toBe('unknown');
     });
@@ -570,19 +660,23 @@ describe('EnhancedGitScmProvider', () => {
       mockGit.clone.mockRejectedValue(new Error('Clone failed'));
 
       await expect(
-        provider.fetchRepoMetadata('https://github.com/user/repo.git')
+        provider.fetchRepoMetadata('https://github.com/user/repo.git'),
       ).rejects.toThrow('Clone failed: Clone failed');
     });
   });
 
   describe('extractRepoNameFromUrl', () => {
     it('should extract name from HTTPS URL', () => {
-      const result = (provider as any).extractRepoNameFromUrl('https://github.com/user/repo.git');
+      const result = (provider as any).extractRepoNameFromUrl(
+        'https://github.com/user/repo.git',
+      );
       expect(result).toBe('repo');
     });
 
     it('should extract name from SSH URL', () => {
-      const result = (provider as any).extractRepoNameFromUrl('git@github.com:user/repo.git');
+      const result = (provider as any).extractRepoNameFromUrl(
+        'git@github.com:user/repo.git',
+      );
       expect(result).toBe('repo');
     });
 
@@ -594,17 +688,23 @@ describe('EnhancedGitScmProvider', () => {
 
   describe('convertToWebUrl', () => {
     it('should convert HTTPS URL', () => {
-      const result = (provider as any).convertToWebUrl('https://github.com/user/repo.git');
+      const result = (provider as any).convertToWebUrl(
+        'https://github.com/user/repo.git',
+      );
       expect(result).toBe('https://github.com/user/repo');
     });
 
     it('should convert SSH to HTTPS', () => {
-      const result = (provider as any).convertToWebUrl('git@github.com:user/repo.git');
+      const result = (provider as any).convertToWebUrl(
+        'git@github.com:user/repo.git',
+      );
       expect(result).toBe('https://github.com/user/repo');
     });
 
     it('should return original URL for non-matching patterns', () => {
-      const result = (provider as any).convertToWebUrl('https://example.com/repo');
+      const result = (provider as any).convertToWebUrl(
+        'https://example.com/repo',
+      );
       expect(result).toBe('https://example.com/repo');
     });
   });
@@ -631,7 +731,9 @@ describe('EnhancedGitScmProvider', () => {
 
     it('should truncate long descriptions', async () => {
       const longDescription = 'A'.repeat(300);
-      (mockFs.readFileSync as jest.Mock).mockReturnValue(`# ${longDescription}`);
+      (mockFs.readFileSync as jest.Mock).mockReturnValue(
+        `# ${longDescription}`,
+      );
 
       const result = await (provider as any).extractDescription('/tmp/repo');
       expect(result).toBe(longDescription.substring(0, 200) + '...');
@@ -656,13 +758,15 @@ describe('EnhancedGitScmProvider', () => {
     });
 
     it('should get last commit hash successfully', async () => {
-      const result = await provider.getLastCommitHash('https://github.com/user/repo.git');
+      const result = await provider.getLastCommitHash(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result).toBe('abc123');
       expect(mockGit.clone).toHaveBeenCalledWith(
         'https://github.com/user/repo.git',
         '/tmp/test-repo',
-        ['--depth', '1']
+        ['--depth', '1'],
       );
     });
 
@@ -671,7 +775,9 @@ describe('EnhancedGitScmProvider', () => {
         latest: null,
       });
 
-      const result = await provider.getLastCommitHash('https://github.com/user/repo.git');
+      const result = await provider.getLastCommitHash(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result).toBe('unknown');
     });
@@ -679,7 +785,9 @@ describe('EnhancedGitScmProvider', () => {
     it('should handle clone errors', async () => {
       mockGit.clone.mockRejectedValue(new Error('Clone failed'));
 
-      const result = await provider.getLastCommitHash('https://github.com/user/repo.git');
+      const result = await provider.getLastCommitHash(
+        'https://github.com/user/repo.git',
+      );
 
       expect(result).toBe('unknown');
     });
@@ -708,7 +816,7 @@ describe('EnhancedGitScmProvider', () => {
     it('should detect changes when commits differ', async () => {
       const result = await provider.hasChangesSince(
         'https://github.com/user/repo.git',
-        'abc123'
+        'abc123',
       );
 
       expect(result).toMatchObject({
@@ -731,7 +839,7 @@ describe('EnhancedGitScmProvider', () => {
 
       const result = await provider.hasChangesSince(
         'https://github.com/user/repo.git',
-        'abc123'
+        'abc123',
       );
 
       expect(result).toMatchObject({
@@ -747,7 +855,7 @@ describe('EnhancedGitScmProvider', () => {
 
       const result = await provider.hasChangesSince(
         'https://github.com/user/repo.git',
-        'unknown'
+        'unknown',
       );
 
       expect(result).toMatchObject({
@@ -762,7 +870,7 @@ describe('EnhancedGitScmProvider', () => {
 
       const result = await provider.hasChangesSince(
         'https://github.com/user/repo.git',
-        'abc123'
+        'abc123',
       );
 
       expect(result).toMatchObject({
@@ -776,7 +884,7 @@ describe('EnhancedGitScmProvider', () => {
 
       const result = await provider.hasChangesSince(
         'https://github.com/user/repo.git',
-        'abc123'
+        'abc123',
       );
 
       expect(result).toMatchObject({
@@ -810,7 +918,7 @@ describe('EnhancedGitScmProvider', () => {
       const result = await (provider as any).getChangeSummary(
         'https://github.com/user/repo.git',
         'abc123',
-        'def456'
+        'def456',
       );
 
       expect(result).toMatchObject({
@@ -828,7 +936,7 @@ describe('EnhancedGitScmProvider', () => {
       const result = await (provider as any).getChangeSummary(
         'https://github.com/user/repo.git',
         'abc123',
-        'def456'
+        'def456',
       );
 
       expect(result.commits).toBe(0);
@@ -840,7 +948,7 @@ describe('EnhancedGitScmProvider', () => {
       const result = await (provider as any).getChangeSummary(
         'https://github.com/user/repo.git',
         'abc123',
-        'def456'
+        'def456',
       );
 
       expect(result).toMatchObject({
@@ -919,4 +1027,4 @@ describe('EnhancedGitScmProvider', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});
