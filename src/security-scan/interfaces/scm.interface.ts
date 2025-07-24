@@ -211,6 +211,7 @@ export interface ApiStatus {
     resetTime: string;
   };
   features?: string[];
+  error?: string;
 }
 
 /**
@@ -222,7 +223,7 @@ export interface ScmProviderRegistry {
   getProvider(name: string): ScmProvider | null;
   getProviderForUrl(repoUrl: string): ScmProvider | null;
   getAllProviders(): ScmProvider[];
-  getAvailableProviders(): ScmProvider[];
+  getAvailableProviders(): Promise<ScmProvider[]>;
   getProvidersByPlatform(platform: ScmPlatform): ScmProvider[];
 }
 
