@@ -13,19 +13,19 @@
 
 ## Project Overview
 
-The Repository Security Scanner is a comprehensive security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **intelligent change detection**, **multi-platform SCM support**, and a modern web interface for viewing results.
+The Repository Security Scanner is a security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **change detection**, **multi-platform SCM support**, and a web interface for viewing results.
 
 ### Key Features
 
 - **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
-- **Multi-Platform SCM Support**: GitHub, GitLab, and Bitbucket with intelligent provider selection
+- **Multi-Platform SCM Support**: GitHub, GitLab, and Bitbucket with provider selection
 - **Modern Web UI**: GitHub-style interface with instant code context viewing
 - **Embedded Code Context**: View code snippets directly in scan results without additional API calls
-- **Intelligent Change Detection**: Skip scans when no repository changes detected
-- **Automatic Provider Selection**: Best SCM provider automatically chosen based on repository URL
+- **Change Detection**: Skip scans when no repository changes detected
+- **Provider Selection**: Best SCM provider automatically chosen based on repository URL
 - **Scanner Summary Dashboard**: Real-time issue counts and scanner status
 - **Secure API**: API key authentication with input validation and sanitization
-- **Docker Ready**: Complete containerization with docker-compose support
+- **Docker Ready**: Containerization with docker-compose support
 - **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
 - **Scan Statistics**: Track scanning activity and repository history
 - **Force Scan Option**: Bypass change detection when needed
@@ -45,14 +45,14 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 
 ### Security Features
 
-- **API Key Authentication**: Simple and secure API access control
+- **API Key Authentication**: Secure API access control
 - **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
 - **Safe Scanner Execution**: Isolated scanner process execution
 
 ### SCM Abstraction Layer
 
-**Revolutionary multi-provider architecture for seamless source control integration:**
+**Multi-provider architecture for source control integration:**
 
 #### **Supported Platforms**
 - **GitHub**: 
@@ -61,10 +61,10 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
   - Enhanced metadata extraction
   - Rate limit handling
   
-- **GitLab**: **Enhanced Support**
+- **GitLab**:
   - **GitLab.com & Self-hosted**: Full support for both public GitLab.com and private GitLab instances
   - **Authentication**: Personal Access Token support for private repositories
-  - **Comprehensive Metadata**: Repository details, contributor stats, commit history
+  - **Metadata**: Repository details, contributor stats, commit history
   - **Private Repository Access**: Secure token-based authentication for private repos
   - **CI/CD Integration**: Compatible with GitLab CI/CD pipelines
 
@@ -74,16 +74,16 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
   - Fallback for any Git hosting platform
 
 #### **Key Capabilities**
-- **Intelligent Provider Selection**: Best provider automatically chosen based on URL
+- **Provider Selection**: Best provider automatically chosen based on URL
 - **Automatic Fallback**: Graceful degradation when providers fail
 - **Multi-Platform Authentication**: Token-based auth with environment variables
 - **Provider Health Monitoring**: Real-time status and performance tracking
-- **Easy Extension**: Add new providers with minimal code changes
+- **Extensible**: Add new providers with code changes
 - **Analytics & Insights**: Provider usage statistics and recommendations
 
 #### **Extensible Design**
 ```typescript
-// Adding a new provider is simple:
+// Adding a new provider:
 @Injectable()
 export class BitbucketScmProvider extends BaseScmProvider {
   // Implement platform-specific logic
@@ -156,7 +156,7 @@ winget install gitleaks
 
 #### 3. Configuration
 
-**Simple Setup:**
+**Setup:**
 The application is preconfigured with a default API key. For production, you can optionally set your own:
 
 ```bash
@@ -246,7 +246,7 @@ Access the web interface at `http://localhost:3000`
 - **Real-time Results**: Live scanner progress and issue counts
 - **Code Context Viewer**: Click any finding to see highlighted code snippets
 - **Scanner Summary**: Overview of all scanners with issue breakdown
-- **Force Scan**: Bypass change detection for complete rescans
+- **Force Scan**: Bypass change detection for rescans
 - **GitHub-style UI**: Familiar, modern interface design
 
 ### Usage:
@@ -325,7 +325,7 @@ x-api-key: your-api-key-here
 
 ### Postman Collection
 
-A comprehensive Postman collection is included for easy API testing and development.
+A Postman collection is included for API testing and development.
 
 #### Quick Start
 
@@ -372,7 +372,7 @@ A comprehensive Postman collection is included for easy API testing and developm
 **Pre-configured Test Cases:**
 - **Load Testing**: Multiple concurrent scans
 - **URL Format Testing**: Various repository URL patterns
-- **Error Scenarios**: Comprehensive error handling validation
+- **Error Scenarios**: Error handling validation
 - **Multi-Platform**: GitHub, GitLab, Bitbucket, and generic Git
 
 #### Advanced Usage
@@ -650,17 +650,17 @@ npm run test:ci
 ```
 
 ### Test Coverage
-The project includes comprehensive testing:
+The project includes testing:
 - **Unit Tests**: All services, providers, and utilities
 - **Integration Tests**: API endpoints and scanner integration
-- **E2E Tests**: Complete workflow testing
+- **E2E Tests**: Workflow testing
 - **Change Detection Tests**: Repository change tracking
 
 ## Architecture & Project Structure
 
 ### System Overview
 
-The Repository Security Scanner follows a **modular, layered architecture** built on NestJS principles, emphasizing security, scalability, and maintainability. The system features a **revolutionary SCM abstraction layer** that provides seamless multi-platform repository support.
+The Repository Security Scanner follows a **modular, layered architecture** built on NestJS principles, emphasizing security, scalability, and maintainability. The system features a **SCM abstraction layer** that provides multi-platform repository support.
 
 ```mermaid
 graph TD
@@ -724,7 +724,7 @@ repo-security-scanner-app/
 │   ├── index.html                   # Main UI application
 │   ├── script.js                   # Frontend JavaScript logic
 │   └── style.css                   # GitHub-inspired styling
-├── test/                            # Comprehensive test suites
+├── test/                            # Test suites
 │   ├── integration/                 # Integration test scenarios
 │   │   ├── security-scan.integration.spec.ts  # API integration tests
 │   │   ├── change-detection.integration.spec.ts # Change detection tests
@@ -737,7 +737,7 @@ repo-security-scanner-app/
 ├── Documentation
 ├── SCM_ABSTRACTION_LAYER.md        # SCM architecture guide
 ├── GITLAB_SUPPORT.md               # GitLab integration documentation
-└── README.md                       # Comprehensive documentation
+└── README.md                       # Documentation
 ```
 
 ### Enhanced Architectural Layers
@@ -750,7 +750,7 @@ repo-security-scanner-app/
 #### 2. **Business Logic Layer**
 - **Security Scan Service**: Orchestrates scanning workflows with multi-provider support
 - **SCM Manager Service**: High-level SCM operations across all providers
-- **Change Detection**: Intelligent repository change tracking with provider-specific optimizations
+- **Change Detection**: Repository change tracking with provider-specific optimizations
 - **Code Context Extraction**: Embedded code snippet generation with enhanced metadata
 - **Result Aggregation**: Multi-scanner result synthesis with structured output
 
@@ -770,7 +770,7 @@ repo-security-scanner-app/
 #### 5. **Infrastructure Layer**
 - **Temporary File Management**: Secure repository cloning and cleanup
 - **Process Execution**: Sandboxed scanner process management
-- **Error Handling**: Comprehensive error recovery and logging
+- **Error Handling**: Error recovery and logging
 
 ### Enhanced Core Components
 
@@ -790,7 +790,7 @@ export class ScmManagerService {
 @Injectable()
 export class ScmProviderRegistryService {
   // Provider registration and management
-  // Intelligent provider selection
+  // Provider selection
   // Health monitoring and analytics
 }
 ```
@@ -876,7 +876,7 @@ sequenceDiagram
 #### **Authentication Flow**
 1. **API Key Validation**: Multi-key support with format validation
 2. **Request Sanitization**: Input validation and path traversal protection  
-3. **Simple Validation**: Basic API key checking
+3. **Validation**: API key checking
 4. **Environment Separation**: Development fallback vs production enforcement
 
 #### **Scanner Isolation**
@@ -926,7 +926,7 @@ export class SecurityScanModule {}
 
 #### **Scalability Considerations**
 - **Stateless Design**: Horizontal scaling ready
-- **Pluggable Scanners**: Easy addition of new security tools
+- **Pluggable Scanners**: Addition of new security tools
 - **Configurable Timeouts**: Resource limit management
 - **Docker Support**: Container orchestration ready
 - **Cloud-Native Configuration**: Environment-based setup
@@ -981,7 +981,7 @@ docker logs -f security-scanner
 
 #### **SCM Provider Configuration**
 
-The repository scanner uses an **intelligent SCM abstraction layer** that automatically selects the best provider based on repository URLs:
+The repository scanner uses an **SCM abstraction layer** that automatically selects the best provider based on repository URLs:
 
 **Automatic Provider Selection:**
 - `https://github.com/user/repo` → **GitHub Provider** (with API integration)
@@ -990,7 +990,7 @@ The repository scanner uses an **intelligent SCM abstraction layer** that automa
 - `https://any-git-server.com/repo.git` → **Enhanced Git Provider** (universal fallback)
 
 **Authentication Benefits:**
-- **Without tokens**: Public repositories work seamlessly
+- **Without tokens**: Public repositories work without authentication
 - **With tokens**: Private repositories + enhanced metadata + higher rate limits
 - **Auto-detection**: No manual provider configuration needed
 - **Fallback support**: Always works even if API fails
@@ -1039,7 +1039,7 @@ curl -X POST http://localhost:3000/scan \
 #### GitLab Features Supported
 - **Public & Private Repositories**: Full access with proper authentication
 - **Self-hosted Instances**: Any GitLab instance (CE/EE)
-- **Comprehensive Metadata**: Project details, contributors, commit history
+- **Metadata**: Project details, contributors, commit history
 - **GitLab-specific Data**: Issues, merge requests, CI/CD status, container registry
 - **Security Scanning**: Works with all GitLab repository types
 
@@ -1053,7 +1053,7 @@ curl -X POST http://localhost:3000/scan \
 
 ### Authentication & Authorization
 - **API Key Authentication**: Secure API access control
-- **Request Validation**: Comprehensive input validation
+- **Request Validation**: Input validation
 - **CORS Configuration**: Proper cross-origin resource sharing
 
 ### Secure File Handling
@@ -1257,7 +1257,7 @@ interface SecurityScanner {
 
 **Solution**:
 - **Commit Hash Tracking**: Store last scanned commit hash per repository
-- **Smart Change Detection**: Compare current HEAD with stored hash
+- **Change Detection**: Compare current HEAD with stored hash
 - **Force Scan Option**: Override change detection when needed
 - **Metadata Caching**: Cache repository metadata to reduce API calls
 
@@ -1308,7 +1308,7 @@ try {
 
 **Solution**:
 - **Embedded Context**: Include code snippets directly in scan results
-- **Smart Context Window**: Configurable lines before/after findings
+- **Context Window**: Configurable lines before/after findings
 - **File Caching**: Cache file contents during scan for efficient context retrieval
 - **Fallback Mechanism**: Handle binary files, large files, and encoding issues
 
@@ -1328,7 +1328,7 @@ try {
 
 **Solution**:
 - **Async Processing**: Non-blocking scan operations
-- **Smart Caching**: Cache metadata, scan results, and file contents
+- **Caching**: Cache metadata, scan results, and file contents
 - **Database Optimization**: Efficient storage and retrieval of scan records
 - **Resource Monitoring**: Track memory, CPU, and disk usage
 
@@ -1344,7 +1344,7 @@ try {
 
 ### **Lessons Learned**
 
-1. **Abstraction Pays Off**: The SCM abstraction layer made adding new platforms trivial
+1. **Abstraction Benefits**: The SCM abstraction layer simplified adding new platforms
 2. **Fail Fast, Fail Safe**: Aggressive error handling prevents cascade failures
 3. **Observability First**: Built-in logging and metrics saved countless debugging hours
 4. **Testing Strategies**: Comprehensive mocking enabled reliable unit tests
@@ -1369,20 +1369,20 @@ try {
 
 ## What's New: SCM Abstraction Layer
 
-### **Revolutionary Multi-Provider Architecture**
+### **Multi-Provider Architecture**
 
-The Repository Security Scanner now features a **groundbreaking SCM abstraction layer** that transforms how the application handles source control management:
+The Repository Security Scanner features a **SCM abstraction layer** that handles source control management:
 
-#### **Key Innovations**
+#### **Key Features**
 
 - **Automatic Provider Selection**: No configuration needed - the system automatically chooses the optimal provider based on repository URLs
-- **Intelligent Fallback**: Seamless degradation when specific providers fail
-- **Extensible Design**: Adding new SCM providers requires minimal code changes
+- **Fallback**: Graceful degradation when specific providers fail
+- **Extensible Design**: Adding new SCM providers requires code changes
 - **Multi-Platform Authentication**: Unified authentication across GitHub, GitLab, and more
 - **Health Monitoring**: Real-time provider status and performance tracking
-- **Enhanced Performance**: Provider-specific optimizations for better speed and reliability
+- **Performance**: Provider-specific optimizations for speed and reliability
 
-#### **Immediate Benefits**
+#### **Usage Examples**
 
 ```bash
 # Works automatically with any supported platform:
@@ -1399,31 +1399,27 @@ curl -X POST http://localhost:3000/scan \
   -d '{"repoUrl": "https://git.company.com/repo.git"}'  # → Enhanced Git Provider
 ```
 
-#### **For Developers**
+#### **Developer Benefits**
 
-- **Zero Breaking Changes**: Existing API endpoints work unchanged
+- **Backward Compatibility**: Existing API endpoints work unchanged
 - **Enhanced Metadata**: Richer repository information from platform APIs
-- **Better Error Handling**: More informative error messages and automatic retries
+- **Error Handling**: Informative error messages and automatic retries
 - **Future-Proof**: Ready for additional platforms (Bitbucket, Azure DevOps, etc.)
 
-#### **Enterprise Ready**
+#### **Enterprise Features**
 
 - **Self-hosted GitLab**: Full support for GitLab CE/EE instances
 - **Private Repository Support**: Token-based authentication for all platforms
 - **Scalable Architecture**: Provider registry supports load balancing and failover
-- **Comprehensive Monitoring**: Health checks and performance metrics for all providers
+- **Monitoring**: Health checks and performance metrics for all providers
 
-> **Result**: A more robust, flexible, and maintainable security scanning platform that seamlessly works with any Git repository, anywhere.
+> **Result**: A robust, flexible, and maintainable security scanning platform that works with any Git repository.
 
 ## Additional Resources
 
-## Contributing
-
-We welcome contributions! The new **SCM abstraction layer** makes it easier than ever to extend the platform:
-
 ### **Adding New SCM Providers**
 ```typescript
-// Adding a new provider is as simple as:
+// Adding a new provider:
 @Injectable()
 export class BitbucketScmProvider extends BaseScmProvider {
   constructor() {
@@ -1448,7 +1444,7 @@ See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed guid
 ### **General Contributing**
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a feature branch (`git checkout -b feature/new-feature`)
 3. Make your changes
 4. Add tests for new functionality
 5. Ensure all tests pass (`npm run test:all`)
@@ -1469,7 +1465,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 <p align="center">
-  <strong>Secure by Design | Easy to Use | Thoroughly Tested</strong>
+  <strong>Secure by Design | Easy to Use | Well Tested</strong>
 </p>
 
 #### Repository Access Issues
@@ -1518,4 +1514,4 @@ NODE_ENV=development npm run start:dev
 
 ---
 
-**Built with ❤️ using NestJS, TypeScript, and modern security scanning tools.**
+**Built with love using NestJS, TypeScript, and modern security scanning tools.**
