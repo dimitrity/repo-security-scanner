@@ -309,7 +309,7 @@ x-api-key: your-api-key-here
 - Customize by setting the `API_KEYS` environment variable
 - All API endpoints require authentication (except static UI)
 
-### Postman Collection
+## Postman Collection
 
 A Postman collection is included for API testing and development.
 
