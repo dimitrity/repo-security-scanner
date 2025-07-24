@@ -19,8 +19,12 @@ describe('BitbucketScmProvider', () => {
   describe('canHandle', () => {
     it('should handle Bitbucket URLs', () => {
       expect(provider.canHandle('https://bitbucket.org/user/repo')).toBe(true);
-      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(true);
-      expect(provider.canHandle('https://www.bitbucket.org/user/repo')).toBe(true);
+      expect(provider.canHandle('https://bitbucket.org/user/repo.git')).toBe(
+        true,
+      );
+      expect(provider.canHandle('https://www.bitbucket.org/user/repo')).toBe(
+        true,
+      );
     });
 
     it('should not handle non-Bitbucket URLs', () => {
@@ -33,34 +37,42 @@ describe('BitbucketScmProvider', () => {
 
   describe('parseRepositoryUrl', () => {
     it('should parse valid Bitbucket URLs', () => {
-      const result = provider.parseRepositoryUrl('https://bitbucket.org/atlassian/design-system');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://bitbucket.org/atlassian/design-system',
+      );
+
       expect(result).toEqual({
         platform: 'bitbucket',
         hostname: 'bitbucket.org',
         owner: 'atlassian',
         repository: 'design-system',
         fullName: 'atlassian/design-system',
-        originalUrl: 'https://bitbucket.org/atlassian/design-system'
+        originalUrl: 'https://bitbucket.org/atlassian/design-system',
       });
     });
 
     it('should parse Bitbucket URLs with .git suffix', () => {
-      const result = provider.parseRepositoryUrl('https://bitbucket.org/user/repo.git');
-      
+      const result = provider.parseRepositoryUrl(
+        'https://bitbucket.org/user/repo.git',
+      );
+
       expect(result).toEqual({
         platform: 'bitbucket',
         hostname: 'bitbucket.org',
         owner: 'user',
         repository: 'repo',
         fullName: 'user/repo',
-        originalUrl: 'https://bitbucket.org/user/repo.git'
+        originalUrl: 'https://bitbucket.org/user/repo.git',
       });
     });
 
     it('should return null for invalid URLs', () => {
-      expect(provider.parseRepositoryUrl('https://github.com/user/repo')).toBeNull();
-      expect(provider.parseRepositoryUrl('https://bitbucket.org/user')).toBeNull();
+      expect(
+        provider.parseRepositoryUrl('https://github.com/user/repo'),
+      ).toBeNull();
+      expect(
+        provider.parseRepositoryUrl('https://bitbucket.org/user'),
+      ).toBeNull();
       expect(provider.parseRepositoryUrl('not-a-url')).toBeNull();
     });
   });
@@ -68,7 +80,7 @@ describe('BitbucketScmProvider', () => {
   describe('getConfig', () => {
     it('should return correct configuration', () => {
       const config = provider.getConfig();
-      
+
       expect(config.name).toBe('Bitbucket Provider');
       expect(config.platform).toBe('bitbucket');
       expect(config.hostnames).toEqual(['bitbucket.org', 'www.bitbucket.org']);
@@ -92,14 +104,19 @@ describe('BitbucketScmProvider', () => {
 
   describe('getSupportedHostnames', () => {
     it('should return supported hostnames', () => {
-      expect(provider.getSupportedHostnames()).toEqual(['bitbucket.org', 'www.bitbucket.org']);
+      expect(provider.getSupportedHostnames()).toEqual([
+        'bitbucket.org',
+        'www.bitbucket.org',
+      ]);
     });
   });
 
   describe('fetchRepoMetadata', () => {
     it('should create basic metadata when not authenticated', async () => {
-      const result = await provider.fetchRepoMetadata('https://bitbucket.org/atlassian/design-system');
-      
+      const result = await provider.fetchRepoMetadata(
+        'https://bitbucket.org/atlassian/design-system',
+      );
+
       expect(result).toEqual({
         name: 'design-system',
         description: 'Repository metadata unavailable (no API access)',
@@ -108,22 +125,26 @@ describe('BitbucketScmProvider', () => {
           hash: 'unknown',
           timestamp: expect.any(String),
           author: 'unknown',
-          message: 'Commit information unavailable'
+          message: 'Commit information unavailable',
         },
         common: {
-          webUrl: 'https://bitbucket.org/atlassian/design-system'
-        }
+          webUrl: 'https://bitbucket.org/atlassian/design-system',
+        },
       });
     });
 
     it('should handle invalid URLs', async () => {
-      await expect(provider.fetchRepoMetadata('invalid-url')).rejects.toThrow('Invalid Bitbucket repository URL');
+      await expect(provider.fetchRepoMetadata('invalid-url')).rejects.toThrow(
+        'Invalid Bitbucket repository URL',
+      );
     });
   });
 
   describe('getBranches', () => {
     it('should return empty array when not authenticated', async () => {
-      const result = await provider.getBranches('https://bitbucket.org/user/repo');
+      const result = await provider.getBranches(
+        'https://bitbucket.org/user/repo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -137,7 +158,9 @@ describe('BitbucketScmProvider', () => {
 
   describe('getContributors', () => {
     it('should return empty array (not supported by Bitbucket API v2.0)', async () => {
-      const result = await provider.getContributors('https://bitbucket.org/user/repo');
+      const result = await provider.getContributors(
+        'https://bitbucket.org/user/repo',
+      );
       expect(result).toEqual([]);
     });
   });
@@ -152,14 +175,16 @@ describe('BitbucketScmProvider', () => {
   describe('healthCheck', () => {
     it('should return health status', async () => {
       const result = await provider.healthCheck();
-      
-      expect(result).toEqual(expect.objectContaining({
-        isHealthy: expect.any(Boolean),
-        responseTime: expect.any(Number),
-        lastChecked: expect.any(String),
-        apiAvailable: expect.any(Boolean),
-        authenticationValid: expect.any(Boolean)
-      }));
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          isHealthy: expect.any(Boolean),
+          responseTime: expect.any(Number),
+          lastChecked: expect.any(String),
+          apiAvailable: expect.any(Boolean),
+          authenticationValid: expect.any(Boolean),
+        }),
+      );
 
       // Error property is optional
       if (result.error) {
@@ -172,7 +197,7 @@ describe('BitbucketScmProvider', () => {
     it('should configure authentication', () => {
       provider.configureAuthentication({
         type: 'token',
-        token: 'test-token'
+        token: 'test-token',
       });
 
       expect(provider.isAuthenticated()).toBe(true);
@@ -180,10 +205,10 @@ describe('BitbucketScmProvider', () => {
 
     it('should handle authentication removal', () => {
       provider.configureAuthentication({
-        type: 'none'
+        type: 'none',
       });
 
       expect(provider.isAuthenticated()).toBe(false);
     });
   });
-}); 
+});

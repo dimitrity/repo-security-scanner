@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { 
-  BaseScmProvider, 
-  ScmProviderConfig, 
-  RepositoryMetadata, 
-  ChangeDetectionResult, 
+import {
+  BaseScmProvider,
+  ScmProviderConfig,
+  RepositoryMetadata,
+  ChangeDetectionResult,
   CloneOptions,
   ScmAuthConfig,
   RepositoryInfo,
   ProviderHealthStatus,
   ApiStatus,
-  Contributor
+  Contributor,
 } from '../interfaces/scm.interface';
 import simpleGit from 'simple-git';
 import * as tmp from 'tmp-promise';
@@ -30,8 +30,8 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
       supportsPrivateRepos: true,
       supportsApi: false, // Generic git doesn't have API, but specific implementations do
       authentication: {
-        type: 'none'
-      }
+        type: 'none',
+      },
     });
   }
 
@@ -42,20 +42,22 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
     try {
       // Check if it's a valid URL
       new URL(repoUrl);
-      
+
       // Check for common Git URL patterns
       const gitUrlPatterns = [
         /^https?:\/\/.*\.git$/,
         /^https?:\/\/.*\/.*\/.*$/,
         /^git@.*:.*\/.*\.git$/,
-        /^ssh:\/\/git@.*\/.*$/
+        /^ssh:\/\/git@.*\/.*$/,
       ];
 
-      return gitUrlPatterns.some(pattern => pattern.test(repoUrl)) ||
-             repoUrl.includes('github.com') ||
-             repoUrl.includes('gitlab.com') ||
-             repoUrl.includes('bitbucket.org') ||
-             repoUrl.includes('.git');
+      return (
+        gitUrlPatterns.some((pattern) => pattern.test(repoUrl)) ||
+        repoUrl.includes('github.com') ||
+        repoUrl.includes('gitlab.com') ||
+        repoUrl.includes('bitbucket.org') ||
+        repoUrl.includes('.git')
+      );
     } catch {
       // Try SSH-style URLs
       return /^git@.*:.*\/.*/.test(repoUrl);
@@ -71,14 +73,17 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
       if (repoUrl.startsWith('http')) {
         const url = new URL(repoUrl);
         const pathParts = url.pathname.split('/').filter(Boolean);
-        
+
         if (pathParts.length >= 2) {
           const owner = pathParts[0];
-          const repository = pathParts[pathParts.length - 1].replace('.git', '');
-          
+          const repository = pathParts[pathParts.length - 1].replace(
+            '.git',
+            '',
+          );
+
           // Determine platform based on hostname
-          let platform = this.determinePlatform(url.hostname);
-          
+          const platform = this.determinePlatform(url.hostname);
+
           return {
             platform,
             hostname: url.hostname,
@@ -89,18 +94,19 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
           };
         }
       }
-      
+
       // Handle SSH URLs (git@hostname:owner/repo.git)
       if (repoUrl.startsWith('git@') || repoUrl.startsWith('ssh://')) {
-        const sshMatch = repoUrl.match(/git@([^:]+):(.+)\/(.+)\.git$/) ||
-                        repoUrl.match(/ssh:\/\/git@([^\/]+)\/(.+)\/(.+)\.git$/);
-        
+        const sshMatch =
+          repoUrl.match(/git@([^:]+):(.+)\/(.+)\.git$/) ||
+          repoUrl.match(/ssh:\/\/git@([^\/]+)\/(.+)\/(.+)\.git$/);
+
         if (sshMatch) {
           const hostname = sshMatch[1];
           const owner = sshMatch[2];
           const repository = sshMatch[3];
           const platform = this.determinePlatform(hostname);
-          
+
           return {
             platform,
             hostname,
@@ -114,7 +120,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
     } catch (error) {
       this.logger.warn(`Failed to parse repository URL: ${repoUrl}`, error);
     }
-    
+
     return null;
   }
 
@@ -123,9 +129,14 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    */
   private determinePlatform(hostname: string): any {
     if (hostname.includes('github.com')) return 'github';
-    if (hostname.includes('gitlab.com') || hostname.includes('gitlab.')) return 'gitlab';
+    if (hostname.includes('gitlab.com') || hostname.includes('gitlab.'))
+      return 'gitlab';
     if (hostname.includes('bitbucket.org')) return 'bitbucket';
-    if (hostname.includes('dev.azure.com') || hostname.includes('visualstudio.com')) return 'azure-devops';
+    if (
+      hostname.includes('dev.azure.com') ||
+      hostname.includes('visualstudio.com')
+    )
+      return 'azure-devops';
     if (hostname.includes('gitea.')) return 'gitea';
     if (hostname.includes('forgejo.')) return 'forgejo';
     if (hostname.includes('codeberg.org')) return 'codeberg';
@@ -135,25 +146,37 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
   /**
    * Enhanced clone with authentication support
    */
-  async cloneRepository(repoUrl: string, targetPath: string, options: CloneOptions = {}): Promise<void> {
+  async cloneRepository(
+    repoUrl: string,
+    targetPath: string,
+    options: CloneOptions = {},
+  ): Promise<void> {
     try {
       let cloneUrl = repoUrl;
-      
+
       // Apply authentication if available
       if (this.authConfig && this.authConfig.token) {
-        cloneUrl = this.applyTokenAuthentication(repoUrl, this.authConfig.token);
+        cloneUrl = this.applyTokenAuthentication(
+          repoUrl,
+          this.authConfig.token,
+        );
       }
 
       const cloneOptions = this.buildCloneOptions(options);
-      
-      this.logger.log(`Cloning repository ${repoUrl} to ${targetPath} with options:`, cloneOptions);
-      
+
+      this.logger.log(
+        `Cloning repository ${repoUrl} to ${targetPath} with options:`,
+        cloneOptions,
+      );
+
       await simpleGit().clone(cloneUrl, targetPath, cloneOptions);
-      
+
       this.logger.log(`Successfully cloned repository to ${targetPath}`);
     } catch (error) {
       this.logger.error(`Failed to clone repository ${repoUrl}:`, error);
-      throw new Error(`Clone failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Clone failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -165,11 +188,14 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
       if (repoUrl.startsWith('https://')) {
         const url = new URL(repoUrl);
         const hostname = url.hostname;
-        
+
         // Apply platform-specific token authentication
         if (hostname.includes('github.com')) {
           return `https://${token}@${hostname}${url.pathname}`;
-        } else if (hostname.includes('gitlab.com') || hostname.includes('gitlab.')) {
+        } else if (
+          hostname.includes('gitlab.com') ||
+          hostname.includes('gitlab.')
+        ) {
           return `https://oauth2:${token}@${hostname}${url.pathname}`;
         } else if (hostname.includes('bitbucket.org')) {
           return `https://x-token-auth:${token}@${hostname}${url.pathname}`;
@@ -178,7 +204,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
           return `https://${token}@${hostname}${url.pathname}`;
         }
       }
-      
+
       return repoUrl; // Return original URL if can't apply authentication
     } catch {
       return repoUrl;
@@ -190,23 +216,23 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    */
   private buildCloneOptions(options: CloneOptions): string[] {
     const cloneArgs: string[] = [];
-    
+
     if (options.depth) {
       cloneArgs.push('--depth', options.depth.toString());
     }
-    
+
     if (options.branch) {
       cloneArgs.push('--branch', options.branch);
     }
-    
+
     if (options.singleBranch) {
       cloneArgs.push('--single-branch');
     }
-    
+
     if (options.recursive) {
       cloneArgs.push('--recursive');
     }
-    
+
     return cloneArgs;
   }
 
@@ -215,7 +241,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    */
   async fetchRepoMetadata(repoUrl: string): Promise<RepositoryMetadata> {
     const repoInfo = this.parseRepositoryUrl(repoUrl);
-    
+
     try {
       // Try API-based metadata first (if available)
       const apiMetadata = await this.fetchFromApi(repoInfo);
@@ -223,9 +249,12 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
         return apiMetadata;
       }
     } catch (error) {
-      this.logger.warn('API metadata fetch failed, falling back to Git commands:', error);
+      this.logger.warn(
+        'API metadata fetch failed, falling back to Git commands:',
+        error,
+      );
     }
-    
+
     // Fallback to Git commands
     return this.fetchFromGitCommands(repoUrl, repoInfo);
   }
@@ -233,7 +262,9 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
   /**
    * Fetch metadata from platform APIs (abstract - to be implemented by specific providers)
    */
-  protected async fetchFromApi(repoInfo: RepositoryInfo | null): Promise<RepositoryMetadata | null> {
+  protected async fetchFromApi(
+    repoInfo: RepositoryInfo | null,
+  ): Promise<RepositoryMetadata | null> {
     // Base implementation returns null - specific providers can override
     return null;
   }
@@ -241,18 +272,21 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
   /**
    * Fetch metadata using Git commands
    */
-  private async fetchFromGitCommands(repoUrl: string, repoInfo: RepositoryInfo | null): Promise<RepositoryMetadata> {
+  private async fetchFromGitCommands(
+    repoUrl: string,
+    repoInfo: RepositoryInfo | null,
+  ): Promise<RepositoryMetadata> {
     const tmpDir = await tmp.dir({ unsafeCleanup: true });
-    
+
     try {
       // Shallow clone for metadata
       await this.cloneRepository(repoUrl, tmpDir.path, { depth: 1 });
-      
+
       const git = simpleGit(tmpDir.path);
-      
+
       // Get repository name
       const name = repoInfo?.repository || this.extractRepoNameFromUrl(repoUrl);
-      
+
       // Get default branch
       let defaultBranch = 'main';
       try {
@@ -266,14 +300,14 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
           defaultBranch = 'master';
         }
       }
-      
+
       // Get latest commit
       const log = await git.log({ maxCount: 1 });
       const latestCommit = log.latest;
-      
+
       // Get description from README
       const description = await this.extractDescription(tmpDir.path);
-      
+
       return {
         name,
         description: description || 'No description available',
@@ -287,7 +321,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
         common: {
           webUrl: this.convertToWebUrl(repoUrl),
           cloneUrl: repoUrl,
-        }
+        },
       };
     } finally {
       await tmpDir.cleanup();
@@ -316,13 +350,13 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
     if (repoUrl.startsWith('http')) {
       return repoUrl.replace('.git', '');
     }
-    
+
     // Convert SSH to HTTPS
     const sshMatch = repoUrl.match(/git@([^:]+):(.+)\.git$/);
     if (sshMatch) {
       return `https://${sshMatch[1]}/${sshMatch[2]}`;
     }
-    
+
     return repoUrl;
   }
 
@@ -330,21 +364,33 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    * Extract description from README files
    */
   private async extractDescription(repoPath: string): Promise<string | null> {
-    const readmeFiles = ['README.md', 'README.txt', 'README.rst', 'readme.md', 'Readme.md'];
-    
+    const readmeFiles = [
+      'README.md',
+      'README.txt',
+      'README.rst',
+      'readme.md',
+      'Readme.md',
+    ];
+
     for (const readmeFile of readmeFiles) {
       const readmePath = require('path').join(repoPath, readmeFile);
-      
+
       if (fs.existsSync(readmePath)) {
         try {
           const content = fs.readFileSync(readmePath, 'utf8');
-          const lines = content.split('\n').filter(line => line.trim());
-          
+          const lines = content.split('\n').filter((line) => line.trim());
+
           if (lines.length > 0) {
             // Remove markdown formatting
-            const firstLine = lines[0].replace(/^#+\s*/, '').replace(/[*`]/g, '').trim();
+            const firstLine = lines[0]
+              .replace(/^#+\s*/, '')
+              .replace(/[*`]/g, '')
+              .trim();
             if (firstLine && firstLine.length > 10) {
-              return firstLine.substring(0, 200) + (firstLine.length > 200 ? '...' : '');
+              return (
+                firstLine.substring(0, 200) +
+                (firstLine.length > 200 ? '...' : '')
+              );
             }
           }
         } catch (error) {
@@ -352,7 +398,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
         }
       }
     }
-    
+
     return null;
   }
 
@@ -361,7 +407,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    */
   async getLastCommitHash(repoUrl: string): Promise<string> {
     const tmpDir = await tmp.dir({ unsafeCleanup: true });
-    
+
     try {
       await this.cloneRepository(repoUrl, tmpDir.path, { depth: 1 });
       const git = simpleGit(tmpDir.path);
@@ -378,28 +424,35 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
   /**
    * Enhanced change detection
    */
-  async hasChangesSince(repoUrl: string, lastCommitHash: string): Promise<ChangeDetectionResult> {
+  async hasChangesSince(
+    repoUrl: string,
+    lastCommitHash: string,
+  ): Promise<ChangeDetectionResult> {
     try {
       const currentCommitHash = await this.getLastCommitHash(repoUrl);
-      
+
       if (currentCommitHash === 'unknown' || lastCommitHash === 'unknown') {
         return {
           hasChanges: true,
           lastCommitHash: currentCommitHash,
-          error: 'Unable to determine commit hashes'
+          error: 'Unable to determine commit hashes',
         };
       }
-      
+
       if (currentCommitHash === lastCommitHash) {
         return {
           hasChanges: false,
           lastCommitHash: currentCommitHash,
         };
       }
-      
+
       // Get detailed change information
-      const changeSummary = await this.getChangeSummary(repoUrl, lastCommitHash, currentCommitHash);
-      
+      const changeSummary = await this.getChangeSummary(
+        repoUrl,
+        lastCommitHash,
+        currentCommitHash,
+      );
+
       return {
         hasChanges: true,
         lastCommitHash: currentCommitHash,
@@ -410,7 +463,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
       return {
         hasChanges: true,
         lastCommitHash: await this.getLastCommitHash(repoUrl),
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -418,13 +471,17 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
   /**
    * Get detailed change summary
    */
-  private async getChangeSummary(repoUrl: string, fromCommit: string, toCommit: string) {
+  private async getChangeSummary(
+    repoUrl: string,
+    fromCommit: string,
+    toCommit: string,
+  ) {
     const tmpDir = await tmp.dir({ unsafeCleanup: true });
-    
+
     try {
       await this.cloneRepository(repoUrl, tmpDir.path);
       const git = simpleGit(tmpDir.path);
-      
+
       // Get commit count
       let commits = 0;
       try {
@@ -439,7 +496,7 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
           commits = 0;
         }
       }
-      
+
       // Get diff stats
       let diffStats: any = { files: [], insertions: 0, deletions: 0 };
       try {
@@ -452,13 +509,13 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
           // Return minimal info
         }
       }
-      
+
       return {
         filesChanged: diffStats.files.length,
         additions: diffStats.insertions,
         deletions: diffStats.deletions,
         commits,
-        commitRange: `${fromCommit.substring(0, 7)}..${toCommit.substring(0, 7)}`
+        commitRange: `${fromCommit.substring(0, 7)}..${toCommit.substring(0, 7)}`,
       };
     } finally {
       await tmpDir.cleanup();
@@ -470,14 +527,14 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    */
   async healthCheck(): Promise<ProviderHealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       // Test git command availability
       const git = simpleGit();
       await git.version();
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       return {
         isHealthy: true,
         responseTime,
@@ -488,7 +545,8 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
       return {
         isHealthy: false,
         lastChecked: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Git command not available',
+        error:
+          error instanceof Error ? error.message : 'Git command not available',
         authenticationValid: false,
       };
     }
@@ -499,9 +557,9 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    */
   async validateAuthentication(): Promise<boolean> {
     if (!this.isAuthenticated()) return true; // No auth needed for public repos
-    
+
     // For generic Git provider, we can't easily validate tokens without knowing the platform
     // Specific platform providers should override this method
     return true;
   }
-} 
+}

@@ -15,7 +15,7 @@ describe('ApiKeyGuard', () => {
       header: jest.fn().mockReturnValue(apiKey),
       ip: '127.0.0.1',
       get: jest.fn().mockReturnValue('test-user-agent'),
-      path: '/test'
+      path: '/test',
     } as unknown as Request;
 
     return {
@@ -91,14 +91,18 @@ describe('ApiKeyGuard', () => {
       configService.isValidApiKey.mockReturnValue(false);
       const context = createMockContext('UPPERCASE-API-KEY');
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
-      expect(configService.isValidApiKey).toHaveBeenCalledWith('UPPERCASE-API-KEY');
+      expect(configService.isValidApiKey).toHaveBeenCalledWith(
+        'UPPERCASE-API-KEY',
+      );
     });
 
     it('should handle API keys with whitespace', () => {
       configService.isValidApiKey.mockReturnValue(false);
       const context = createMockContext(' api-key-with-spaces ');
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
-      expect(configService.isValidApiKey).toHaveBeenCalledWith(' api-key-with-spaces ');
+      expect(configService.isValidApiKey).toHaveBeenCalledWith(
+        ' api-key-with-spaces ',
+      );
     });
 
     it('should verify the correct header is checked', () => {
@@ -107,7 +111,7 @@ describe('ApiKeyGuard', () => {
         header: jest.fn().mockReturnValue(validApiKey),
         ip: '127.0.0.1',
         get: jest.fn().mockReturnValue('test-user-agent'),
-        path: '/test'
+        path: '/test',
       } as unknown as Request;
 
       const context = {
@@ -123,10 +127,10 @@ describe('ApiKeyGuard', () => {
     it('should handle multiple calls with same context', () => {
       configService.isValidApiKey.mockReturnValue(true);
       const context = createMockContext(validApiKey);
-      
+
       // First call should succeed
       expect(guard.canActivate(context)).toBe(true);
-      
+
       // Second call should also succeed
       expect(guard.canActivate(context)).toBe(true);
     });
@@ -134,14 +138,18 @@ describe('ApiKeyGuard', () => {
     it('should handle multiple calls with different contexts', () => {
       const validContext = createMockContext(validApiKey);
       const invalidContext = createMockContext('invalid-key');
-      
-      configService.isValidApiKey.mockImplementation((key) => key === validApiKey);
-      
+
+      configService.isValidApiKey.mockImplementation(
+        (key) => key === validApiKey,
+      );
+
       // Valid context should succeed
       expect(guard.canActivate(validContext)).toBe(true);
-      
+
       // Invalid context should fail
-      expect(() => guard.canActivate(invalidContext)).toThrow(UnauthorizedException);
+      expect(() => guard.canActivate(invalidContext)).toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -164,7 +172,7 @@ describe('ApiKeyGuard', () => {
       configService.isValidApiKey.mockImplementation(() => {
         throw new Error('ConfigService error');
       });
-      
+
       const context = createMockContext('some-key');
       expect(() => guard.canActivate(context)).toThrow('ConfigService error');
     });
@@ -174,7 +182,7 @@ describe('ApiKeyGuard', () => {
     it('should throw UnauthorizedException with correct message for invalid key', () => {
       configService.isValidApiKey.mockReturnValue(false);
       const context = createMockContext('wrong-key');
-      
+
       try {
         guard.canActivate(context);
         fail('Expected UnauthorizedException to be thrown');
@@ -186,7 +194,7 @@ describe('ApiKeyGuard', () => {
 
     it('should throw UnauthorizedException with correct message for missing key', () => {
       const context = createMockContext(undefined);
-      
+
       try {
         guard.canActivate(context);
         fail('Expected UnauthorizedException to be thrown');
@@ -200,7 +208,7 @@ describe('ApiKeyGuard', () => {
       const mockRequest = {
         ip: '127.0.0.1',
         get: jest.fn().mockReturnValue('test-user-agent'),
-        path: '/test'
+        path: '/test',
       } as any; // Missing header method
 
       const context = {
@@ -220,9 +228,9 @@ describe('ApiKeyGuard', () => {
 
       configService.isValidApiKey.mockReturnValue(false);
       const context = createMockContext('invalid-key');
-      
+
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
-      
+
       logSpy.mockRestore();
       warnSpy.mockRestore();
     });
@@ -231,11 +239,11 @@ describe('ApiKeyGuard', () => {
       configService.isValidApiKey.mockReturnValue(true);
       const longApiKey = 'very-long-api-key-that-should-be-truncated-in-logs';
       const context = createMockContext(longApiKey);
-      
+
       // The implementation should only log the first 4 characters + ****
       guard.canActivate(context);
-      
+
       expect(configService.isValidApiKey).toHaveBeenCalledWith(longApiKey);
     });
   });
-}); 
+});

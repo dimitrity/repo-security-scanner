@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { 
-  ScmProvider, 
-  ScmProviderRegistry, 
-  ScmPlatform, 
-  ProviderHealthStatus 
+import {
+  ScmProvider,
+  ScmProviderRegistry,
+  ScmPlatform,
+  ProviderHealthStatus,
 } from '../interfaces/scm.interface';
 
 /**
@@ -34,14 +34,16 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
     this.platformProviders.get(platform)!.push(provider);
 
     // Register by hostname
-    hostnames.forEach(hostname => {
+    hostnames.forEach((hostname) => {
       if (!this.hostnameProviders.has(hostname)) {
         this.hostnameProviders.set(hostname, []);
       }
       this.hostnameProviders.get(hostname)!.push(provider);
     });
 
-    this.logger.log(`Registered SCM provider: ${name} (${platform}) - Hostnames: ${hostnames.join(', ')}`);
+    this.logger.log(
+      `Registered SCM provider: ${name} (${platform}) - Hostnames: ${hostnames.join(', ')}`,
+    );
   }
 
   /**
@@ -63,7 +65,9 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
     // Remove from platform registry
     const platformProvidersList = this.platformProviders.get(platform);
     if (platformProvidersList) {
-      const index = platformProvidersList.findIndex(p => p.getName() === name);
+      const index = platformProvidersList.findIndex(
+        (p) => p.getName() === name,
+      );
       if (index >= 0) {
         platformProvidersList.splice(index, 1);
       }
@@ -73,10 +77,12 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
     }
 
     // Remove from hostname registry
-    hostnames.forEach(hostname => {
+    hostnames.forEach((hostname) => {
       const hostnameProvidersList = this.hostnameProviders.get(hostname);
       if (hostnameProvidersList) {
-        const index = hostnameProvidersList.findIndex(p => p.getName() === name);
+        const index = hostnameProvidersList.findIndex(
+          (p) => p.getName() === name,
+        );
         if (index >= 0) {
           hostnameProvidersList.splice(index, 1);
         }
@@ -108,19 +114,33 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
       const exactMatches = this.hostnameProviders.get(hostname);
       if (exactMatches && exactMatches.length > 0) {
         // Return the first provider that can handle this URL
-        const capableProvider = exactMatches.find(provider => provider.canHandle(repoUrl));
+        const capableProvider = exactMatches.find((provider) =>
+          provider.canHandle(repoUrl),
+        );
         if (capableProvider) {
-          this.logger.log(`Found exact hostname match for ${repoUrl}: ${capableProvider.getName()}`);
+          this.logger.log(
+            `Found exact hostname match for ${repoUrl}: ${capableProvider.getName()}`,
+          );
           return capableProvider;
         }
       }
 
       // Second, try partial hostname matching
-      for (const [registeredHostname, providers] of this.hostnameProviders.entries()) {
-        if (hostname.includes(registeredHostname) || registeredHostname.includes(hostname)) {
-          const capableProvider = providers.find(provider => provider.canHandle(repoUrl));
+      for (const [
+        registeredHostname,
+        providers,
+      ] of this.hostnameProviders.entries()) {
+        if (
+          hostname.includes(registeredHostname) ||
+          registeredHostname.includes(hostname)
+        ) {
+          const capableProvider = providers.find((provider) =>
+            provider.canHandle(repoUrl),
+          );
           if (capableProvider) {
-            this.logger.log(`Found partial hostname match for ${repoUrl}: ${capableProvider.getName()}`);
+            this.logger.log(
+              `Found partial hostname match for ${repoUrl}: ${capableProvider.getName()}`,
+            );
             return capableProvider;
           }
         }
@@ -129,7 +149,9 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
       // Third, ask all providers if they can handle this URL
       for (const provider of this.providers.values()) {
         if (provider.canHandle(repoUrl)) {
-          this.logger.log(`Found capable provider for ${repoUrl}: ${provider.getName()}`);
+          this.logger.log(
+            `Found capable provider for ${repoUrl}: ${provider.getName()}`,
+          );
           return provider;
         }
       }
@@ -164,9 +186,12 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
             availableProviders.push(provider);
           }
         } catch (error) {
-          this.logger.warn(`Health check failed for provider ${provider.getName()}:`, error);
+          this.logger.warn(
+            `Health check failed for provider ${provider.getName()}:`,
+            error,
+          );
         }
-      })
+      }),
     );
 
     return availableProviders;
@@ -187,8 +212,11 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
     providersByPlatform: Record<ScmPlatform, number>;
     supportedHostnames: string[];
   } {
-    const providersByPlatform: Record<ScmPlatform, number> = {} as Record<ScmPlatform, number>;
-    
+    const providersByPlatform: Record<ScmPlatform, number> = {} as Record<
+      ScmPlatform,
+      number
+    >;
+
     for (const [platform, providers] of this.platformProviders.entries()) {
       providersByPlatform[platform] = providers.length;
     }
@@ -205,7 +233,7 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
    */
   async performHealthChecks(): Promise<Record<string, ProviderHealthStatus>> {
     const results: Record<string, ProviderHealthStatus> = {};
-    
+
     await Promise.all(
       Array.from(this.providers.entries()).map(async ([name, provider]) => {
         try {
@@ -217,7 +245,7 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
             error: error instanceof Error ? error.message : 'Unknown error',
           };
         }
-      })
+      }),
     );
 
     return results;
@@ -241,10 +269,14 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
    * Check if a hostname is supported
    */
   isHostnameSupported(hostname: string): boolean {
-    return this.hostnameProviders.has(hostname) || 
-           Array.from(this.hostnameProviders.keys()).some(registeredHostname => 
-             hostname.includes(registeredHostname) || registeredHostname.includes(hostname)
-           );
+    return (
+      this.hostnameProviders.has(hostname) ||
+      Array.from(this.hostnameProviders.keys()).some(
+        (registeredHostname) =>
+          hostname.includes(registeredHostname) ||
+          registeredHostname.includes(hostname),
+      )
+    );
   }
 
   /**
@@ -272,21 +304,28 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
 
       // Add reasoning
       if (primary) {
-        reasons.push(`Primary: ${primary.getName()} - Direct hostname match or capability`);
+        reasons.push(
+          `Primary: ${primary.getName()} - Direct hostname match or capability`,
+        );
       } else {
         reasons.push('No primary provider found - URL may not be supported');
       }
 
       if (alternatives.length > 0) {
-        reasons.push(`Alternatives: ${alternatives.map(p => p.getName()).join(', ')}`);
+        reasons.push(
+          `Alternatives: ${alternatives.map((p) => p.getName()).join(', ')}`,
+        );
       }
 
       if (!this.isHostnameSupported(hostname)) {
-        reasons.push(`Warning: Hostname ${hostname} is not explicitly supported`);
+        reasons.push(
+          `Warning: Hostname ${hostname} is not explicitly supported`,
+        );
       }
-
     } catch (error) {
-      reasons.push(`Error analyzing URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      reasons.push(
+        `Error analyzing URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
 
     return { primary, alternatives, reasons };
@@ -301,4 +340,4 @@ export class ScmProviderRegistryService implements ScmProviderRegistry {
     this.hostnameProviders.clear();
     this.logger.log('Cleared all SCM providers from registry');
   }
-} 
+}

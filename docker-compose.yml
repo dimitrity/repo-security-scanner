@@ -7,6 +7,13 @@ services:
       - NODE_ENV=production
       - API_KEYS=${API_KEYS:-your-secure-production-key-2025}
       - PORT=3000
+      # Rate Limiting (Throttler) Configuration
+      - THROTTLE_TTL=${THROTTLE_TTL:-60}
+      - THROTTLE_LIMIT=${THROTTLE_LIMIT:-10}
+      - SCAN_THROTTLE_TTL=${SCAN_THROTTLE_TTL:-300}
+      - SCAN_THROTTLE_LIMIT=${SCAN_THROTTLE_LIMIT:-5}
+      - METADATA_THROTTLE_TTL=${METADATA_THROTTLE_TTL:-60}
+      - METADATA_THROTTLE_LIMIT=${METADATA_THROTTLE_LIMIT:-20}
       # GitLab configuration
       - GITLAB_TOKEN=${GITLAB_TOKEN:-}
       - GITLAB_ACCESS_TOKEN=${GITLAB_ACCESS_TOKEN:-}

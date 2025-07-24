@@ -106,11 +106,11 @@ async function demonstrateProviderSelection(repo) {
       }
       
       // Show security scan results
-      const securityIssues = scanResult.securityIssues || [];
-      const allIssues = scanResult.allSecurityIssues || {};
-      
-      console.log(`🚨 Security Issues Found: ${securityIssues.length}`);
-      console.log(`🛠️  Scanners Used: ${Object.keys(allIssues).join(', ') || 'None'}`);
+          const findings = scanResult.findings || [];
+    const allFindings = scanResult.allFindings || {};
+    
+    console.log(`🚨 Findings Found: ${findings.length}`);
+      console.log(`🛠️  Scanners Used: ${Object.keys(allFindings).join(', ') || 'None'}`);
       
       // Show scanner breakdown
       for (const [scanner, issues] of Object.entries(allIssues)) {

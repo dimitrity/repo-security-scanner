@@ -38,7 +38,9 @@ describe('SecurityScan Integration Tests', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    );
     await app.init();
 
     scanService = moduleFixture.get<SecurityScanService>(SecurityScanService);
@@ -97,7 +99,7 @@ describe('SecurityScan Integration Tests', () => {
       expect(mockExec).toHaveBeenCalledWith(
         `semgrep --config=auto --json --quiet ${mockTmpDir.path}`,
         { maxBuffer: 1024 * 1024 * 10 },
-        expect.any(Function)
+        expect.any(Function),
       );
 
       // Verify cleanup was called
@@ -116,7 +118,9 @@ describe('SecurityScan Integration Tests', () => {
       mockGit.clone.mockRejectedValue(new Error('Repository not found'));
 
       // Execute scan and expect failure
-      await expect(scanService.scanRepository(testRepoUrl)).rejects.toThrow('Repository not found');
+      await expect(scanService.scanRepository(testRepoUrl)).rejects.toThrow(
+        'Repository not found',
+      );
 
       // Verify cleanup was still called
       expect(mockTmpDir.cleanup).toHaveBeenCalled();
@@ -135,7 +139,9 @@ describe('SecurityScan Integration Tests', () => {
       });
 
       // Execute scan and expect failure
-      await expect(scanService.scanRepository(testRepoUrl)).rejects.toThrow('Semgrep command failed');
+      await expect(scanService.scanRepository(testRepoUrl)).rejects.toThrow(
+        'Semgrep command failed',
+      );
 
       // Verify cleanup was still called
       expect(mockTmpDir.cleanup).toHaveBeenCalled();
@@ -242,7 +248,9 @@ describe('SecurityScan Integration Tests', () => {
       mockGit.clone.mockRejectedValue(new Error('Git clone failed'));
 
       // Test that git failure is caught
-      await expect(scmManager.cloneRepository(repoUrl, targetPath)).rejects.toThrow('Git clone failed');
+      await expect(
+        scmManager.cloneRepository(repoUrl, targetPath),
+      ).rejects.toThrow('Git clone failed');
 
       // Mock successful git clone but semgrep failure
       mockGit.clone.mockResolvedValue(undefined);
@@ -254,7 +262,9 @@ describe('SecurityScan Integration Tests', () => {
       });
 
       // Test that semgrep failure is caught
-      await expect(semgrepScanner.scan(targetPath)).rejects.toThrow('Semgrep failed');
+      await expect(semgrepScanner.scan(targetPath)).rejects.toThrow(
+        'Semgrep failed',
+      );
     });
   });
 
@@ -286,7 +296,9 @@ describe('SecurityScan Integration Tests', () => {
       });
 
       // Execute scan and expect failure
-      await expect(scanService.scanRepository('https://github.com/test/repo')).rejects.toThrow();
+      await expect(
+        scanService.scanRepository('https://github.com/test/repo'),
+      ).rejects.toThrow();
 
       // Verify cleanup was called
       expect(mockTmpDir.cleanup).toHaveBeenCalled();
@@ -305,7 +317,9 @@ describe('SecurityScan Integration Tests', () => {
       });
 
       // Execute scan
-      const result = await scanService.scanRepository('https://github.com/test/repo');
+      const result = await scanService.scanRepository(
+        'https://github.com/test/repo',
+      );
 
       // Should return empty findings
       expect(result.findings).toHaveLength(0);
@@ -334,7 +348,9 @@ describe('SecurityScan Integration Tests', () => {
       });
 
       // Execute scan
-      const result = await scanService.scanRepository('https://github.com/test/repo');
+      const result = await scanService.scanRepository(
+        'https://github.com/test/repo',
+      );
 
       // Verify all findings are processed
       expect(result.findings).toHaveLength(1000);
@@ -353,13 +369,13 @@ describe('SecurityScan Integration Tests', () => {
 
       // Execute multiple concurrent scans
       const scanPromises = Array.from({ length: 5 }, (_, i) =>
-        scanService.scanRepository(`https://github.com/test/repo${i}`)
+        scanService.scanRepository(`https://github.com/test/repo${i}`),
       );
 
       const results = await Promise.all(scanPromises);
 
       // Verify all scans completed successfully
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toHaveProperty('repository');
         expect(result).toHaveProperty('scanner');
         expect(result).toHaveProperty('findings');
@@ -369,4 +385,4 @@ describe('SecurityScan Integration Tests', () => {
       expect(mockTmpDir.cleanup).toHaveBeenCalledTimes(5);
     });
   });
-}); 
+});

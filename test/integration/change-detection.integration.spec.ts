@@ -64,7 +64,9 @@ describe('Change Detection Integration', () => {
 
       expect(response.body.changeDetection.scanSkipped).toBe(true);
       expect(response.body.changeDetection.hasChanges).toBe(false);
-      expect(response.body.changeDetection.reason).toBe('No changes detected since last scan');
+      expect(response.body.changeDetection.reason).toBe(
+        'No changes detected since last scan',
+      );
       expect(response.body.scanner.name).toBe('Change Detection');
       expect(response.body.findings).toEqual([
         {
@@ -87,7 +89,7 @@ describe('Change Detection Integration', () => {
 
       // Simulate changes by updating the scan record with a different commit hash
       const records = scanStorage.getAllScanRecords();
-      const record = records.find(r => r.repoUrl === testRepoUrl);
+      const record = records.find((r) => r.repoUrl === testRepoUrl);
       if (record) {
         scanStorage.updateScanRecord(testRepoUrl, 'different-commit-hash');
       }
@@ -173,7 +175,7 @@ describe('Change Detection Integration', () => {
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThan(0);
-      
+
       const record = response.body.find((r: any) => r.repoUrl === testRepoUrl);
       expect(record).toBeDefined();
       expect(record).toHaveProperty('repoUrl');
@@ -210,4 +212,4 @@ describe('Change Detection Integration', () => {
         .expect(400);
     });
   });
-}); 
+});

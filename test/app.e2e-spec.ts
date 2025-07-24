@@ -12,7 +12,9 @@ describe('SecurityScanController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    );
     await app.init();
   });
 
@@ -30,7 +32,7 @@ describe('SecurityScanController (e2e)', () => {
       expect(res.body).toHaveProperty('repository');
       expect(res.body).toHaveProperty('scanner');
       expect(res.body).toHaveProperty('findings');
-      
+
       // Validate repository structure
       expect(res.body.repository).toHaveProperty('name');
       expect(res.body.repository).toHaveProperty('description');
@@ -38,11 +40,11 @@ describe('SecurityScanController (e2e)', () => {
       expect(res.body.repository).toHaveProperty('lastCommit');
       expect(res.body.repository.lastCommit).toHaveProperty('hash');
       expect(res.body.repository.lastCommit).toHaveProperty('timestamp');
-      
+
       // Validate scanner structure
       expect(res.body.scanner).toHaveProperty('name');
       expect(res.body.scanner).toHaveProperty('version');
-      
+
       // Validate findings structure
       expect(Array.isArray(res.body.findings)).toBe(true);
     });
@@ -116,9 +118,9 @@ describe('SecurityScanController (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/scan')
         .set('x-api-key', validApiKey)
-        .send({ 
+        .send({
           repoUrl: validRepoUrl,
-          extraProperty: 'should-be-rejected'
+          extraProperty: 'should-be-rejected',
         });
 
       expect(res.status).toBe(400);
@@ -177,7 +179,7 @@ describe('SecurityScanController (e2e)', () => {
 
       expect(res1.status).toBe(201);
       expect(res2.status).toBe(201);
-      
+
       // Both responses should have the same structure
       expect(Object.keys(res1.body)).toEqual(Object.keys(res2.body));
       expect(res1.body).toHaveProperty('repository');
@@ -190,12 +192,12 @@ describe('SecurityScanController (e2e)', () => {
         request(app.getHttpServer())
           .post('/scan')
           .set('x-api-key', validApiKey)
-          .send({ repoUrl: validRepoUrl })
+          .send({ repoUrl: validRepoUrl }),
       );
 
       const responses = await Promise.all(requests);
-      
-      responses.forEach(res => {
+
+      responses.forEach((res) => {
         expect(res.status).toBe(201);
         expect(res.body).toHaveProperty('repository');
         expect(res.body).toHaveProperty('scanner');
@@ -226,7 +228,9 @@ describe('SecurityScanController (e2e)', () => {
       expect(res.status).toBe(200);
       expect(res.headers['access-control-allow-origin']).toBe('*');
       expect(res.headers['access-control-allow-methods']).toContain('POST');
-      expect(res.headers['access-control-allow-headers']).toContain('x-api-key');
+      expect(res.headers['access-control-allow-headers']).toContain(
+        'x-api-key',
+      );
     });
   });
 

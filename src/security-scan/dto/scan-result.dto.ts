@@ -1,4 +1,3 @@
-
 export class ScanResultDto {
   repository: {
     name: string;
@@ -13,46 +12,7 @@ export class ScanResultDto {
     name: string;
     version: string;
   };
-  // New primary properties with updated terminology
-  securityIssues: Array<{
-    ruleId: string;
-    message: string;
-    filePath: string;
-    line: number;
-    severity: string;
-    codeContext?: {
-      filePath: string;
-      line: number;
-      startLine: number;
-      endLine: number;
-      context: Array<{
-        lineNumber: number;
-        content: string;
-        isTargetLine: boolean;
-      }>;
-    };
-  }>;
-  allSecurityIssues: {
-    [scannerName: string]: Array<{
-      ruleId: string;
-      message: string;
-      filePath: string;
-      line: number;
-      severity: string;
-      codeContext?: {
-        filePath: string;
-        line: number;
-        startLine: number;
-        endLine: number;
-        context: Array<{
-          lineNumber: number;
-          content: string;
-          isTargetLine: boolean;
-        }>;
-      };
-    }>;
-  };
-  // Legacy compatibility properties
+  // Primary findings array
   findings: Array<{
     ruleId: string;
     message: string;
@@ -71,7 +31,8 @@ export class ScanResultDto {
       }>;
     };
   }>;
-  allFindings?: {
+  // Findings organized by scanner
+  allFindings: {
     [scannerName: string]: Array<{
       ruleId: string;
       message: string;
@@ -103,13 +64,13 @@ export class ScanResultDto {
     scanSkipped?: boolean;
     reason?: string;
   };
-  // New structured response properties
+  // Structured response properties
   summary?: {
-    totalSecurityIssues: number;
+    totalFindings: number;
     scanners: Array<{
       name: string;
       version: string;
-      securityIssuesFound: number;
+      findingsFound: number;
       summary: string;
     }>;
   };
@@ -117,14 +78,14 @@ export class ScanResultDto {
     scanners: Array<{
       name: string;
       version: string;
-      totalSecurityIssues: number;
+      totalFindings: number;
       severityBreakdown: {
         high: number;
         medium: number;
         low: number;
         info: number;
       };
-      securityIssues: {
+      findings: {
         high: Array<any>;
         medium: Array<any>;
         low: Array<any>;
@@ -132,4 +93,4 @@ export class ScanResultDto {
       };
     }>;
   };
-} 
+}

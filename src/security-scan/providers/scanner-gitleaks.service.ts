@@ -18,20 +18,21 @@ export class GitleaksScanner implements SecurityScanner {
 
   async scan(targetPath: string): Promise<any[]> {
     this.logger.log(`Starting Gitleaks scan for ${targetPath}`);
-    
+
     try {
       // Validate target path
       this.validateAndSanitizePath(targetPath);
-      
+
       // Check if gitleaks is installed
       await this.checkGitleaksInstallation();
-      
+
       // Run gitleaks scan
       const findings = await this.runGitleaksScan(targetPath);
-      
-      this.logger.log(`Gitleaks scan completed. Found ${findings.length} potential secrets.`);
+
+      this.logger.log(
+        `Gitleaks scan completed. Found ${findings.length} potential secrets.`,
+      );
       return findings;
-      
     } catch (error) {
       this.logger.error(`Gitleaks scan failed: ${error.message}`);
       throw new Error(`Gitleaks scan failed: ${error.message}`);
@@ -45,12 +46,12 @@ export class GitleaksScanner implements SecurityScanner {
 
     // Resolve to absolute path
     const resolvedPath = path.resolve(targetPath);
-    
+
     // Check if path exists and is a directory
     if (!fs.existsSync(resolvedPath)) {
       throw new Error(`Target path does not exist: ${resolvedPath}`);
     }
-    
+
     const stats = fs.statSync(resolvedPath);
     if (!stats.isDirectory()) {
       throw new Error(`Target path is not a directory: ${resolvedPath}`);
@@ -60,9 +61,11 @@ export class GitleaksScanner implements SecurityScanner {
     const currentDir = process.cwd();
     const isInCurrentDir = resolvedPath.startsWith(currentDir);
     const isInTempDir = this.isInTempDirectory(resolvedPath);
-    
+
     if (!isInCurrentDir && !isInTempDir) {
-      throw new Error(`Target path is outside allowed directories: ${resolvedPath}`);
+      throw new Error(
+        `Target path is outside allowed directories: ${resolvedPath}`,
+      );
     }
   }
 
@@ -74,19 +77,22 @@ export class GitleaksScanner implements SecurityScanner {
   private isInTempDirectory(resolvedPath: string): boolean {
     const os = require('os');
     const tmpDir = os.tmpdir();
-    
+
     // Check common temporary directory patterns
     const tempPaths = [
-      '/tmp',           // Linux/Unix standard
-      tmpDir,           // OS-specific temp directory (e.g., /var/folders on macOS)
-      '/temp',          // Windows alternative
-      '/var/tmp',       // Unix alternative
+      '/tmp', // Linux/Unix standard
+      tmpDir, // OS-specific temp directory (e.g., /var/folders on macOS)
+      '/temp', // Windows alternative
+      '/var/tmp', // Unix alternative
     ];
-    
+
     // Also check for any path containing 'tmp-' pattern (from tmp-promise)
     const hasTmpPattern = resolvedPath.includes('/tmp-');
-    
-    return tempPaths.some(tempPath => resolvedPath.startsWith(tempPath)) || hasTmpPattern;
+
+    return (
+      tempPaths.some((tempPath) => resolvedPath.startsWith(tempPath)) ||
+      hasTmpPattern
+    );
   }
 
   private async checkGitleaksInstallation(): Promise<void> {
@@ -111,12 +117,16 @@ export class GitleaksScanner implements SecurityScanner {
           this.logger.log(`Gitleaks version: ${stdout.trim()}`);
           resolve();
         } else {
-          reject(new Error(`Gitleaks not found or not accessible. Error: ${stderr}`));
+          reject(
+            new Error(`Gitleaks not found or not accessible. Error: ${stderr}`),
+          );
         }
       });
 
       gitleaksCheck.on('error', (error) => {
-        reject(new Error(`Failed to check Gitleaks installation: ${error.message}`));
+        reject(
+          new Error(`Failed to check Gitleaks installation: ${error.message}`),
+        );
       });
     });
   }
@@ -124,16 +134,22 @@ export class GitleaksScanner implements SecurityScanner {
   private async runGitleaksScan(targetPath: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       // Gitleaks command with JSON output
-      const gitleaksProcess = spawn('gitleaks', [
-        'detect',
-        '--source', targetPath,
-        '--report-format', 'json',
-        '--no-banner',
-        '--verbose'
-      ], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: targetPath,
-      });
+      const gitleaksProcess = spawn(
+        'gitleaks',
+        [
+          'detect',
+          '--source',
+          targetPath,
+          '--report-format',
+          'json',
+          '--no-banner',
+          '--verbose',
+        ],
+        {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: targetPath,
+        },
+      );
 
       let stdout = '';
       let stderr = '';
@@ -147,24 +163,39 @@ export class GitleaksScanner implements SecurityScanner {
       });
 
       gitleaksProcess.on('close', (code) => {
-        if (code === 0 || code === 1) { // Gitleaks returns 1 when secrets are found
+        if (code === 0 || code === 1) {
+          // Gitleaks returns 1 when secrets are found
           try {
             // Parse findings from output
             const findings = this.parseGitleaksOutput(stdout, targetPath);
-            
+
             // Always add a scan summary finding, even if no secrets found
-            const scanSummary = this.createScanSummaryFinding(code, stdout, stderr, findings.length);
+            const scanSummary = this.createScanSummaryFinding(
+              code,
+              stdout,
+              stderr,
+              findings.length,
+            );
             findings.push(scanSummary);
-            
+
             resolve(findings);
           } catch (parseError) {
-            this.logger.warn(`Failed to parse Gitleaks output: ${parseError.message}`);
+            this.logger.warn(
+              `Failed to parse Gitleaks output: ${parseError.message}`,
+            );
             // Return scan summary even if parsing fails
-            const scanSummary = this.createScanSummaryFinding(code, stdout, stderr, 0);
+            const scanSummary = this.createScanSummaryFinding(
+              code,
+              stdout,
+              stderr,
+              0,
+            );
             resolve([scanSummary]);
           }
         } else {
-          reject(new Error(`Gitleaks scan failed with code ${code}: ${stderr}`));
+          reject(
+            new Error(`Gitleaks scan failed with code ${code}: ${stderr}`),
+          );
         }
       });
 
@@ -196,7 +227,9 @@ export class GitleaksScanner implements SecurityScanner {
         if (!trimmedLine) {
           // Empty line indicates end of a finding
           if (Object.keys(currentFinding).length > 0) {
-            findings.push(this.transformGitleaksFinding(currentFinding, targetPath));
+            findings.push(
+              this.transformGitleaksFinding(currentFinding, targetPath),
+            );
             currentFinding = {};
           }
           continue;
@@ -207,7 +240,7 @@ export class GitleaksScanner implements SecurityScanner {
         if (colonIndex > 0) {
           const key = trimmedLine.substring(0, colonIndex).trim();
           const value = trimmedLine.substring(colonIndex + 1).trim();
-          
+
           switch (key) {
             case 'Finding':
               currentFinding.Finding = value;
@@ -251,7 +284,9 @@ export class GitleaksScanner implements SecurityScanner {
 
       // Don't forget the last finding if there's no empty line at the end
       if (Object.keys(currentFinding).length > 0) {
-        findings.push(this.transformGitleaksFinding(currentFinding, targetPath));
+        findings.push(
+          this.transformGitleaksFinding(currentFinding, targetPath),
+        );
       }
 
       return findings;
@@ -261,7 +296,10 @@ export class GitleaksScanner implements SecurityScanner {
     }
   }
 
-  private transformGitleaksFinding(gitleaksFinding: any, targetPath: string): any {
+  private transformGitleaksFinding(
+    gitleaksFinding: any,
+    targetPath: string,
+  ): any {
     return {
       ruleId: `gitleaks.${gitleaksFinding.RuleID || 'unknown'}`,
       message: gitleaksFinding.Finding || 'Secret detected',
@@ -282,8 +320,6 @@ export class GitleaksScanner implements SecurityScanner {
     };
   }
 
-
-
   private mapGitleaksSeverity(ruleId: string): string {
     // Map Gitleaks rule IDs to severity levels
     const highSeverityRules = [
@@ -299,29 +335,31 @@ export class GitleaksScanner implements SecurityScanner {
       'secret',
     ];
 
-    const mediumSeverityRules = [
-      'email',
-      'url',
-      'ip-address',
-      'credit-card',
-    ];
+    const mediumSeverityRules = ['email', 'url', 'ip-address', 'credit-card'];
 
     const ruleIdLower = ruleId.toLowerCase();
-    
-    if (highSeverityRules.some(rule => ruleIdLower.includes(rule))) {
+
+    if (highSeverityRules.some((rule) => ruleIdLower.includes(rule))) {
       return 'high';
-    } else if (mediumSeverityRules.some(rule => ruleIdLower.includes(rule))) {
+    } else if (mediumSeverityRules.some((rule) => ruleIdLower.includes(rule))) {
       return 'medium';
     } else {
       return 'low';
     }
   }
 
-  private createScanSummaryFinding(exitCode: number, stdout: string, stderr: string, secretsFound: number): any {
-    const status = exitCode === 0 ? 'completed_no_secrets' : 'completed_with_secrets';
-    const message = secretsFound === 0 
-      ? 'Gitleaks scan completed - no secrets found'
-      : `Gitleaks scan completed - found ${secretsFound} potential secret(s)`;
+  private createScanSummaryFinding(
+    exitCode: number,
+    stdout: string,
+    stderr: string,
+    secretsFound: number,
+  ): any {
+    const status =
+      exitCode === 0 ? 'completed_no_secrets' : 'completed_with_secrets';
+    const message =
+      secretsFound === 0
+        ? 'Gitleaks scan completed - no secrets found'
+        : `Gitleaks scan completed - found ${secretsFound} potential secret(s)`;
 
     return {
       ruleId: 'gitleaks.scan-summary',
@@ -345,4 +383,4 @@ export class GitleaksScanner implements SecurityScanner {
       timestamp: new Date().toISOString(),
     };
   }
-} 
+}

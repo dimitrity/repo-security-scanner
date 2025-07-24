@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EnhancedGitScmProvider } from './scm-git-enhanced.provider';
-import { 
-  RepositoryMetadata, 
-  RepositoryInfo, 
-  ApiStatus, 
+import {
+  RepositoryMetadata,
+  RepositoryInfo,
+  ApiStatus,
   Contributor,
   SearchResult,
-  ProviderHealthStatus 
+  ProviderHealthStatus,
 } from '../interfaces/scm.interface';
 
 /**
@@ -14,7 +14,6 @@ import {
  */
 @Injectable()
 export class GitLabScmProvider extends EnhancedGitScmProvider {
-
   constructor() {
     super();
     this.config = {
@@ -25,12 +24,12 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       supportsPrivateRepos: true,
       supportsApi: true,
       authentication: {
-        type: 'token'
+        type: 'token',
       },
       rateLimit: {
         requestsPerHour: 2000, // GitLab rate limits
-        burstLimit: 50
-      }
+        burstLimit: 50,
+      },
     };
   }
 
@@ -40,7 +39,9 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
   canHandle(repoUrl: string): boolean {
     try {
       const url = new URL(repoUrl);
-      return url.hostname.includes('gitlab.com') || url.hostname.includes('gitlab.');
+      return (
+        url.hostname.includes('gitlab.com') || url.hostname.includes('gitlab.')
+      );
     } catch {
       return false;
     }
@@ -59,7 +60,9 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
   /**
    * Fetch metadata from GitLab API
    */
-  protected async fetchFromApi(repoInfo: RepositoryInfo | null): Promise<RepositoryMetadata | null> {
+  protected async fetchFromApi(
+    repoInfo: RepositoryInfo | null,
+  ): Promise<RepositoryMetadata | null> {
     if (!repoInfo || repoInfo.platform !== 'gitlab') {
       return null;
     }
@@ -68,14 +71,20 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       const apiBaseUrl = this.getApiBaseUrl(repoInfo.hostname);
       const projectPath = encodeURIComponent(repoInfo.fullName);
       const headers = this.buildApiHeaders();
-      
-      const response = await fetch(`${apiBaseUrl}/projects/${projectPath}`, { headers });
-      
+
+      const response = await fetch(`${apiBaseUrl}/projects/${projectPath}`, {
+        headers,
+      });
+
       if (!response.ok) {
         if (response.status === 401) {
-          this.logger.warn('GitLab API authentication failed - token may be invalid or expired');
+          this.logger.warn(
+            'GitLab API authentication failed - token may be invalid or expired',
+          );
         } else if (response.status === 403) {
-          this.logger.warn('GitLab API access forbidden - repository may be private or token lacks permissions');
+          this.logger.warn(
+            'GitLab API access forbidden - repository may be private or token lacks permissions',
+          );
         } else if (response.status === 404) {
           this.logger.warn('GitLab repository not found or access denied');
         }
@@ -83,11 +92,15 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       }
 
       const data = await response.json();
-      
+
       // Get additional data if authenticated
       let additionalData = {};
       if (this.authConfig?.token) {
-        additionalData = await this.fetchAdditionalGitLabData(apiBaseUrl, projectPath, headers);
+        additionalData = await this.fetchAdditionalGitLabData(
+          apiBaseUrl,
+          projectPath,
+          headers,
+        );
       }
 
       return {
@@ -96,9 +109,12 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
         defaultBranch: data.default_branch || 'main',
         lastCommit: {
           hash: additionalData['lastCommitHash'] || 'latest',
-          timestamp: additionalData['lastCommitDate'] || data.last_activity_at || new Date().toISOString(),
+          timestamp:
+            additionalData['lastCommitDate'] ||
+            data.last_activity_at ||
+            new Date().toISOString(),
           message: additionalData['lastCommitMessage'],
-          author: additionalData['lastCommitAuthor']
+          author: additionalData['lastCommitAuthor'],
         },
         platform: {
           gitlab: {
@@ -111,7 +127,7 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
               name: data.namespace?.name,
               path: data.namespace?.path,
               kind: data.namespace?.kind,
-              fullPath: data.namespace?.full_path
+              fullPath: data.namespace?.full_path,
             },
             visibility: data.visibility,
             forksCount: data.forks_count,
@@ -122,7 +138,8 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
             snippetsEnabled: data.snippets_enabled,
             containerRegistryEnabled: data.container_registry_enabled,
             packagesEnabled: data.packages_enabled,
-            securityAndComplianceEnabled: data.security_and_compliance_access_level !== 'disabled',
+            securityAndComplianceEnabled:
+              data.security_and_compliance_access_level !== 'disabled',
             analyticsEnabled: data.analytics_access_level !== 'disabled',
             buildsEnabled: data.builds_enabled,
             webUrl: data.web_url,
@@ -133,11 +150,16 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
             topics: data.topics || [],
             createdAt: data.created_at,
             lastActivityAt: data.last_activity_at,
-            ...additionalData
-          }
+            ...additionalData,
+          },
         },
         common: {
-          visibility: data.visibility === 'private' ? 'private' : data.visibility === 'internal' ? 'internal' : 'public',
+          visibility:
+            data.visibility === 'private'
+              ? 'private'
+              : data.visibility === 'internal'
+                ? 'internal'
+                : 'public',
           forksCount: data.forks_count,
           starsCount: data.star_count,
           issuesCount: data.open_issues_count,
@@ -151,8 +173,8 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
           cloneUrl: data.http_url_to_repo,
           sshUrl: data.ssh_url_to_repo,
           archived: data.archived,
-          disabled: false // GitLab doesn't have disabled concept like GitHub
-        }
+          disabled: false, // GitLab doesn't have disabled concept like GitHub
+        },
       };
     } catch (error) {
       this.logger.warn('GitLab API fetch failed:', error);
@@ -166,7 +188,7 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
   private buildApiHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'Repository-Security-Scanner/1.0'
+      'User-Agent': 'Repository-Security-Scanner/1.0',
     };
 
     if (this.authConfig?.token) {
@@ -179,12 +201,19 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
   /**
    * Fetch additional GitLab data for authenticated requests
    */
-  private async fetchAdditionalGitLabData(apiBaseUrl: string, projectPath: string, headers: Record<string, string>): Promise<Record<string, any>> {
+  private async fetchAdditionalGitLabData(
+    apiBaseUrl: string,
+    projectPath: string,
+    headers: Record<string, string>,
+  ): Promise<Record<string, any>> {
     const additionalData: Record<string, any> = {};
 
     try {
       // Get latest commit
-      const commitsResponse = await fetch(`${apiBaseUrl}/projects/${projectPath}/repository/commits?per_page=1`, { headers });
+      const commitsResponse = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/repository/commits?per_page=1`,
+        { headers },
+      );
       if (commitsResponse.ok) {
         const commits = await commitsResponse.json();
         if (commits.length > 0) {
@@ -197,21 +226,29 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       }
 
       // Get contributors
-      const contributorsResponse = await fetch(`${apiBaseUrl}/projects/${projectPath}/repository/contributors`, { headers });
+      const contributorsResponse = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/repository/contributors`,
+        { headers },
+      );
       if (contributorsResponse.ok) {
         const contributors = await contributorsResponse.json();
         additionalData.contributorCount = contributors.length;
-        additionalData.topContributors = contributors.slice(0, 5).map((c: any) => ({
-          name: c.name,
-          email: c.email,
-          commits: c.commits,
-          additions: c.additions,
-          deletions: c.deletions
-        }));
+        additionalData.topContributors = contributors
+          .slice(0, 5)
+          .map((c: any) => ({
+            name: c.name,
+            email: c.email,
+            commits: c.commits,
+            additions: c.additions,
+            deletions: c.deletions,
+          }));
       }
 
       // Get languages
-      const languagesResponse = await fetch(`${apiBaseUrl}/projects/${projectPath}/languages`, { headers });
+      const languagesResponse = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/languages`,
+        { headers },
+      );
       if (languagesResponse.ok) {
         const languages = await languagesResponse.json();
         const languageEntries = Object.entries(languages);
@@ -224,7 +261,10 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       }
 
       // Get merge requests count
-      const mergeRequestsResponse = await fetch(`${apiBaseUrl}/projects/${projectPath}/merge_requests?state=opened&per_page=1`, { headers });
+      const mergeRequestsResponse = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/merge_requests?state=opened&per_page=1`,
+        { headers },
+      );
       if (mergeRequestsResponse.ok) {
         const totalHeader = mergeRequestsResponse.headers.get('X-Total');
         if (totalHeader) {
@@ -233,7 +273,10 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       }
 
       // Get pipeline status
-      const pipelinesResponse = await fetch(`${apiBaseUrl}/projects/${projectPath}/pipelines?per_page=1`, { headers });
+      const pipelinesResponse = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/pipelines?per_page=1`,
+        { headers },
+      );
       if (pipelinesResponse.ok) {
         const pipelines = await pipelinesResponse.json();
         if (pipelines.length > 0) {
@@ -243,11 +286,10 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
             ref: pipelines[0].ref,
             sha: pipelines[0].sha,
             createdAt: pipelines[0].created_at,
-            updatedAt: pipelines[0].updated_at
+            updatedAt: pipelines[0].updated_at,
           };
         }
       }
-
     } catch (error) {
       this.logger.warn('Failed to fetch additional GitLab data:', error);
     }
@@ -266,9 +308,12 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       const apiBaseUrl = this.getApiBaseUrl(repoInfo.hostname);
       const projectPath = encodeURIComponent(repoInfo.fullName);
       const headers = this.buildApiHeaders();
-      
-      const response = await fetch(`${apiBaseUrl}/projects/${projectPath}/repository/branches`, { headers });
-      
+
+      const response = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/repository/branches`,
+        { headers },
+      );
+
       if (response.ok) {
         const branches = await response.json();
         return branches.map((branch: any) => branch.name);
@@ -291,9 +336,12 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       const apiBaseUrl = this.getApiBaseUrl(repoInfo.hostname);
       const projectPath = encodeURIComponent(repoInfo.fullName);
       const headers = this.buildApiHeaders();
-      
-      const response = await fetch(`${apiBaseUrl}/projects/${projectPath}/repository/tags`, { headers });
-      
+
+      const response = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/repository/tags`,
+        { headers },
+      );
+
       if (response.ok) {
         const tags = await response.json();
         return tags.map((tag: any) => tag.name);
@@ -316,16 +364,19 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       const apiBaseUrl = this.getApiBaseUrl(repoInfo.hostname);
       const projectPath = encodeURIComponent(repoInfo.fullName);
       const headers = this.buildApiHeaders();
-      
-      const response = await fetch(`${apiBaseUrl}/projects/${projectPath}/repository/contributors`, { headers });
-      
+
+      const response = await fetch(
+        `${apiBaseUrl}/projects/${projectPath}/repository/contributors`,
+        { headers },
+      );
+
       if (response.ok) {
         const contributors = await response.json();
         return contributors.map((contributor: any) => ({
           name: contributor.name,
           email: contributor.email,
           contributions: contributor.commits,
-          type: 'user' // GitLab doesn't distinguish bots in contributors API
+          type: 'user', // GitLab doesn't distinguish bots in contributors API
         }));
       }
     } catch (error) {
@@ -343,7 +394,7 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       const headers = this.buildApiHeaders();
       const searchUrl = `https://gitlab.com/api/v4/projects?search=${encodeURIComponent(query)}&visibility=public`;
       const response = await fetch(searchUrl, { headers });
-      
+
       if (response.ok) {
         const projects = await response.json();
         return projects.map((project: any) => ({
@@ -355,7 +406,7 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
           language: '', // Would need additional API call to get main language
           stars: project.star_count,
           forks: project.forks_count,
-          updatedAt: project.last_activity_at
+          updatedAt: project.last_activity_at,
         }));
       }
     } catch (error) {
@@ -371,14 +422,24 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
   async getApiStatus(): Promise<ApiStatus> {
     try {
       const headers = this.buildApiHeaders();
-      const response = await fetch('https://gitlab.com/api/v4/version', { headers });
-      
+      const response = await fetch('https://gitlab.com/api/v4/version', {
+        headers,
+      });
+
       if (response.ok) {
         const data = await response.json();
         return {
           available: true,
           version: data.version,
-          features: ['repositories', 'commits', 'branches', 'tags', 'contributors', 'merge_requests', 'pipelines']
+          features: [
+            'repositories',
+            'commits',
+            'branches',
+            'tags',
+            'contributors',
+            'merge_requests',
+            'pipelines',
+          ],
         };
       }
     } catch (error) {
@@ -387,7 +448,7 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
 
     return {
       available: false,
-      error: 'Unable to connect to GitLab API'
+      error: 'Unable to connect to GitLab API',
     };
   }
 
@@ -399,7 +460,9 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
 
     try {
       const headers = this.buildApiHeaders();
-      const response = await fetch('https://gitlab.com/api/v4/user', { headers });
+      const response = await fetch('https://gitlab.com/api/v4/user', {
+        headers,
+      });
       return response.ok;
     } catch {
       return false;
@@ -411,16 +474,16 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
    */
   async healthCheck(): Promise<ProviderHealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       // Check GitLab API availability
       const response = await fetch('https://gitlab.com/api/v4/version');
       const responseTime = Date.now() - startTime;
-      
+
       if (response.ok) {
         const authValid = await this.validateAuthentication();
         const apiStatus = await this.getApiStatus();
-        
+
         return {
           isHealthy: true,
           responseTime,
@@ -447,4 +510,4 @@ export class GitLabScmProvider extends EnhancedGitScmProvider {
       };
     }
   }
-} 
+}
