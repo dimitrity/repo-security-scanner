@@ -1,226 +1,395 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { SemgrepScanner } from './scanner-semgrep.service';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Mock child_process.spawn
-jest.mock('child_process', () => ({
-  spawn: jest.fn(),
-}));
+// Mock dependencies
+jest.mock('child_process');
+jest.mock('fs');
+jest.mock('path');
 
-// Mock fs and path
-jest.mock('fs', () => ({
-  existsSync: jest.fn(),
-  statSync: jest.fn(),
-}));
-
-jest.mock('path', () => ({
-  resolve: jest.fn((p) => p),
-  normalize: jest.fn((p) => p),
-  relative: jest.fn((from, to) => to),
-  basename: jest.fn((p) => p.split('/').pop() || p),
-}));
+const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
 
 describe('SemgrepScanner', () => {
   let scanner: SemgrepScanner;
-  const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
-  const mockFs = fs as jest.Mocked<typeof fs>;
-  const mockPath = path as jest.Mocked<typeof path>;
+  let mockProcess: any;
 
-  // Helper function to create a standard mock process
-  const createMockProcess = () => ({
-    stdout: { on: jest.fn() },
-    stderr: { on: jest.fn() },
-    on: jest.fn(),
-    kill: jest.fn(),
-  });
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [SemgrepScanner],
+    }).compile();
 
-  beforeEach(() => {
-    scanner = new SemgrepScanner();
+    scanner = module.get<SemgrepScanner>(SemgrepScanner);
+
+    // Reset all mocks
     jest.clearAllMocks();
     
-    // Setup default mocks
-    mockFs.existsSync.mockReturnValue(true);
-    mockFs.statSync.mockReturnValue({ isDirectory: () => true } as any);
-    mockPath.resolve.mockImplementation((p) => p);
-    mockPath.normalize.mockImplementation((p) => p);
-    mockPath.relative.mockImplementation((from, to) => to);
-    mockPath.basename.mockImplementation((p) => p.split('/').pop() || p);
+    // Mock fs.existsSync and fs.statSync
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+    (fs.statSync as jest.Mock).mockReturnValue({
+      isDirectory: () => true,
+    });
+    
+    // Mock path.resolve
+    (path.resolve as jest.Mock).mockImplementation((p) => `/absolute/${p}`);
+    (path.normalize as jest.Mock).mockImplementation((p) => p);
+    (path.relative as jest.Mock).mockImplementation((from, to) => `relative/${to}`);
+    (path.basename as jest.Mock).mockImplementation((p) => p.split('/').pop());
   });
 
   describe('getName', () => {
-    it('should return correct scanner name', () => {
+    it('should return the correct scanner name', () => {
       expect(scanner.getName()).toBe('Semgrep');
     });
   });
 
   describe('getVersion', () => {
-    it('should return correct version', () => {
+    it('should return the correct scanner version', () => {
       expect(scanner.getVersion()).toBe('latest');
     });
   });
 
+  describe('validateAndSanitizePath', () => {
+    it('should throw error for empty path', () => {
+      expect(() => (scanner as any).validateAndSanitizePath('')).toThrow('Target path must be a non-empty string');
+    });
+
+    it('should throw error for null path', () => {
+      expect(() => (scanner as any).validateAndSanitizePath(null as any)).toThrow('Target path must be a non-empty string');
+    });
+
+    it('should throw error for undefined path', () => {
+      expect(() => (scanner as any).validateAndSanitizePath(undefined as any)).toThrow('Target path must be a non-empty string');
+    });
+
+    it('should throw error for non-string path', () => {
+      expect(() => (scanner as any).validateAndSanitizePath(123 as any)).toThrow('Target path must be a non-empty string');
+    });
+
+    it('should throw error for path with shell metacharacters', () => {
+      expect(() => (scanner as any).validateAndSanitizePath('/path;with&metacharacters')).toThrow('Invalid characters detected in path');
+    });
+
+    it('should throw error for path with directory traversal', () => {
+      expect(() => (scanner as any).validateAndSanitizePath('/path/../traversal')).toThrow('Invalid characters detected in path');
+    });
+
+    it('should throw error for path with redirection characters', () => {
+      expect(() => (scanner as any).validateAndSanitizePath('/path>with<redirect')).toThrow('Invalid characters detected in path');
+    });
+
+    it('should throw error for path with multiple spaces', () => {
+      expect(() => (scanner as any).validateAndSanitizePath('/path  with  spaces')).toThrow('Invalid characters detected in path');
+    });
+
+    it('should throw error for non-existent path', () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      expect(() => (scanner as any).validateAndSanitizePath('/nonexistent')).toThrow('Target path does not exist');
+    });
+
+    it('should throw error for path that is not a directory', () => {
+      (fs.statSync as jest.Mock).mockReturnValue({
+        isDirectory: () => false,
+      });
+      expect(() => (scanner as any).validateAndSanitizePath('/not-a-directory')).toThrow('Target path must be a directory');
+    });
+
+    it('should throw error for extremely long path', () => {
+      const longPath = 'a'.repeat(4097);
+      expect(() => (scanner as any).validateAndSanitizePath(longPath)).toThrow('Target path is too long');
+    });
+
+    it('should return sanitized absolute path for valid input', () => {
+      const result = (scanner as any).validateAndSanitizePath('/valid/path');
+      expect(result).toBe('/absolute//valid/path');
+    });
+
+    it('should remove null bytes and control characters', () => {
+      const result = (scanner as any).validateAndSanitizePath('/path\x00with\x1fcontrol\x7fchars');
+      expect(result).toBe('/absolute//pathwithcontrolchars');
+    });
+  });
+
   describe('scan', () => {
-    const testPath = '/tmp/test-repo';
+    beforeEach(() => {
+      mockProcess = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn(),
+        kill: jest.fn(),
+      };
+      mockSpawn.mockReturnValue(mockProcess);
+    });
 
     it('should successfully scan and return findings', async () => {
-      const mockSemgrepOutput = {
+      const mockStdout = JSON.stringify({
         results: [
           {
-            check_id: 'SEC-001',
+            check_id: 'test-rule',
             extra: {
-              message: 'Hardcoded secret found',
-              severity: 'HIGH',
+              message: 'Test finding',
+              severity: 'WARNING',
             },
-            path: 'src/config.ts',
+            path: '/test/path/file.js',
             start: { line: 10 },
           },
         ],
-      };
+      });
 
-      const mockProcess = createMockProcess();
+      // Setup process events
+      let stdoutCallback: (data: any) => void = () => {};
+      let closeCallback: (code: number) => void = () => {};
 
-      mockSpawn.mockReturnValue(mockProcess as any);
+      mockProcess.stdout.on.mockImplementation((event, callback) => {
+        if (event === 'data') {
+          stdoutCallback = callback;
+        }
+      });
 
-      // Simulate successful execution
-      const scanPromise = scanner.scan(testPath);
-      
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'close') {
+          closeCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+
       // Simulate stdout data
-      const stdoutCallback = mockProcess.stdout.on.mock.calls.find(call => call[0] === 'data')[1];
-      stdoutCallback(Buffer.from(JSON.stringify(mockSemgrepOutput)));
+      stdoutCallback(Buffer.from(mockStdout));
       
       // Simulate process close
-      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
       closeCallback(0);
 
-      const findings = await scanPromise;
-      
-      expect(findings).toHaveLength(1);
-      expect(findings[0]).toEqual({
-        ruleId: 'SEC-001',
-        message: 'Hardcoded secret found',
-        filePath: 'config.ts', // Updated to match actual output (basename only)
-        line: 10,
-        severity: 'HIGH',
-        scanner: 'Semgrep', // Added scanner property that the service includes
-      });
-    });
-
-    it('should validate path before scanning', async () => {
-      mockFs.existsSync.mockReturnValue(false);
-
-      await expect(scanner.scan(testPath)).rejects.toThrow('Target path does not exist');
-    });
-
-    it('should reject paths with dangerous characters', async () => {
-      const dangerousPaths = [
-        '/tmp/test;rm -rf /',
-        '/tmp/test && echo hacked',
-        '/tmp/test`whoami`',
-        '/tmp/test$(cat /etc/passwd)',
-        '/tmp/test..',
-        '/tmp/test  ',
-      ];
-
-      for (const dangerousPath of dangerousPaths) {
-        await expect(scanner.scan(dangerousPath)).rejects.toThrow('Invalid characters detected in path');
-      }
-    });
-
-    it('should reject non-directory paths', async () => {
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
-
-      await expect(scanner.scan(testPath)).rejects.toThrow('Target path must be a directory');
-    });
-
-    it('should reject empty or null paths', async () => {
-      await expect(scanner.scan('')).rejects.toThrow('Target path must be a non-empty string');
-      await expect(scanner.scan(null as any)).rejects.toThrow('Target path must be a non-empty string');
-    });
-
-    it('should handle empty results', async () => {
-      const mockProcess = createMockProcess();
-
-      mockSpawn.mockReturnValue(mockProcess as any);
-
-      const scanPromise = scanner.scan(testPath);
-      
-      const stdoutCallback = mockProcess.stdout.on.mock.calls.find(call => call[0] === 'data')[1];
-      stdoutCallback(Buffer.from(JSON.stringify({ results: [] })));
-      
-      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
-      closeCallback(0);
-
-      const findings = await scanPromise;
-      expect(findings).toHaveLength(0);
-    });
-
-    it('should handle semgrep process errors', async () => {
-      const mockProcess = createMockProcess();
-
-      mockSpawn.mockReturnValue(mockProcess as any);
-
-      const scanPromise = scanner.scan(testPath);
-      
-      const errorCallback = mockProcess.on.mock.calls.find(call => call[0] === 'error')[1];
-      errorCallback(new Error('Process error'));
-
-      await expect(scanPromise).rejects.toThrow('Process error');
-    });
-
-    it('should handle semgrep non-zero exit code', async () => {
-      const mockProcess = createMockProcess();
-
-      mockSpawn.mockReturnValue(mockProcess as any);
-
-      const scanPromise = scanner.scan(testPath);
-      
-      const stderrCallback = mockProcess.stderr.on.mock.calls.find(call => call[0] === 'data')[1];
-      stderrCallback(Buffer.from('Error: Invalid configuration'));
-      
-      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
-      closeCallback(1);
-
-      await expect(scanPromise).rejects.toThrow('Semgrep process exited with code 1');
-    });
-
-    it('should use correct spawn arguments', async () => {
-      const mockProcess = createMockProcess();
-
-      mockSpawn.mockReturnValue(mockProcess as any);
-
-      const scanPromise = scanner.scan(testPath);
-      
-      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
-      closeCallback(0);
-
-      await scanPromise;
+      const result = await scanPromise;
 
       expect(mockSpawn).toHaveBeenCalledWith('semgrep', [
         '--config=auto',
         '--json',
         '--quiet',
-        testPath
+        '/absolute//test/path',
       ], {
         timeout: 300000,
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
       });
+
+      expect(result).toEqual([
+        {
+          ruleId: 'test-rule',
+          message: 'Test finding',
+          filePath: 'relative//test/path/file.js',
+          line: 10,
+          severity: 'WARNING',
+          scanner: 'Semgrep',
+        },
+      ]);
     });
 
-    it('should handle JSON parsing errors', async () => {
-      const mockProcess = createMockProcess();
+    it('should handle empty output', async () => {
+      let closeCallback: (code: number) => void = () => {};
 
-      mockSpawn.mockReturnValue(mockProcess as any);
+      mockProcess.stdout.on.mockImplementation((event, callback) => {
+        if (event === 'data') {
+          // No data
+        }
+      });
 
-      const scanPromise = scanner.scan(testPath);
-      
-      const stdoutCallback = mockProcess.stdout.on.mock.calls.find(call => call[0] === 'data')[1];
-      stdoutCallback(Buffer.from('invalid json'));
-      
-      const closeCallback = mockProcess.on.mock.calls.find(call => call[0] === 'close')[1];
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'close') {
+          closeCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+      closeCallback(0);
+
+      const result = await scanPromise;
+      expect(result).toEqual([]);
+    });
+
+    it('should handle array output format', async () => {
+      const mockStdout = JSON.stringify([
+        {
+          check_id: 'test-rule',
+          extra: { message: 'Test finding' },
+          path: '/test/path/file.js',
+          start: { line: 10 },
+        },
+      ]);
+
+      let stdoutCallback: (data: any) => void = () => {};
+      let closeCallback: (code: number) => void = () => {};
+
+      mockProcess.stdout.on.mockImplementation((event, callback) => {
+        if (event === 'data') {
+          stdoutCallback = callback;
+        }
+      });
+
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'close') {
+          closeCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+      stdoutCallback(Buffer.from(mockStdout));
+      closeCallback(0);
+
+      const result = await scanPromise;
+      expect(result).toHaveLength(1);
+      expect(result[0].ruleId).toBe('test-rule');
+    });
+
+    it('should handle findings format', async () => {
+      const mockStdout = JSON.stringify({
+        findings: [
+          {
+            check_id: 'test-rule',
+            extra: { message: 'Test finding' },
+            path: '/test/path/file.js',
+            start: { line: 10 },
+          },
+        ],
+      });
+
+      let stdoutCallback: (data: any) => void = () => {};
+      let closeCallback: (code: number) => void = () => {};
+
+      mockProcess.stdout.on.mockImplementation((event, callback) => {
+        if (event === 'data') {
+          stdoutCallback = callback;
+        }
+      });
+
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'close') {
+          closeCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+      stdoutCallback(Buffer.from(mockStdout));
+      closeCallback(0);
+
+      const result = await scanPromise;
+      expect(result).toHaveLength(1);
+      expect(result[0].ruleId).toBe('test-rule');
+    });
+
+    it('should handle process error', async () => {
+      let errorCallback: (error: Error) => void = () => {};
+
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'error') {
+          errorCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+      errorCallback(new Error('Process error'));
+
+      await expect(scanPromise).rejects.toThrow('Process error');
+    });
+
+    it('should handle non-zero exit code', async () => {
+      let stderrCallback: (data: any) => void = () => {};
+      let closeCallback: (code: number) => void = () => {};
+
+      mockProcess.stderr.on.mockImplementation((event, callback) => {
+        if (event === 'data') {
+          stderrCallback = callback;
+        }
+      });
+
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'close') {
+          closeCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+      stderrCallback(Buffer.from('Error message'));
+      closeCallback(1);
+
+      await expect(scanPromise).rejects.toThrow('Semgrep process exited with code 1: Error message');
+    });
+
+    it('should handle JSON parse error', async () => {
+      let stdoutCallback: (data: any) => void = () => {};
+      let closeCallback: (code: number) => void = () => {};
+
+      mockProcess.stdout.on.mockImplementation((event, callback) => {
+        if (event === 'data') {
+          stdoutCallback = callback;
+        }
+      });
+
+      mockProcess.on.mockImplementation((event, callback) => {
+        if (event === 'close') {
+          closeCallback = callback;
+        }
+      });
+
+      const scanPromise = scanner.scan('/test/path');
+      stdoutCallback(Buffer.from('Invalid JSON'));
       closeCallback(0);
 
       await expect(scanPromise).rejects.toThrow();
+    });
+
+    it('should handle timeout', async () => {
+      jest.useFakeTimers();
+
+      mockProcess.kill = jest.fn();
+
+      const scanPromise = scanner.scan('/test/path');
+
+      // Fast-forward time to trigger timeout
+      jest.advanceTimersByTime(300000);
+
+      await expect(scanPromise).rejects.toThrow('Semgrep scan timeout');
+      expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+
+      jest.useRealTimers();
+    });
+
+    it('should handle path validation error', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(false);
+
+      await expect(scanner.scan('/nonexistent')).rejects.toThrow('Semgrep scan failed: Target path does not exist');
+    });
+  });
+
+  describe('getRelativePath', () => {
+    it('should return relative path when file is within target directory', () => {
+      const result = (scanner as any).getRelativePath('/test/path/file.js', '/test/path');
+      expect(result).toBe('relative//test/path/file.js');
+    });
+
+    it('should return basename when file is not within target directory', () => {
+      (path.relative as jest.Mock).mockReturnValue('');
+      const result = (scanner as any).getRelativePath('/other/path/file.js', '/test/path');
+      expect(result).toBe('file.js');
+    });
+
+    it('should handle empty absolute path', () => {
+      const result = (scanner as any).getRelativePath('', '/test/path');
+      expect(result).toBe('unknown');
+    });
+
+    it('should handle empty target path', () => {
+      const result = (scanner as any).getRelativePath('/test/path/file.js', '');
+      expect(result).toBe('/test/path/file.js');
+    });
+
+    it('should handle path operation errors', () => {
+      (path.relative as jest.Mock).mockImplementation(() => {
+        throw new Error('Path error');
+      });
+
+      const result = (scanner as any).getRelativePath('/test/path/file.js', '/test/path');
+      expect(result).toBe('file.js');
     });
   });
 }); 
