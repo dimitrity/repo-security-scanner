@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 
 // Test repository URL (using a public repo for testing)
-const testRepoUrl = 'https://github.com/octocat/Hello-World';
+const testRepoUrl = 'https://github.com/OWASP/NodeGoat';
 
 console.log('Testing change detection functionality...\n');
 

@@ -382,7 +382,7 @@ A Postman collection is included for API testing and development.
 {
   "base_url": "http://localhost:3000",
   "api_key": "your-secure-production-key-2025",
-  "test_repo_github": "https://github.com/octocat/Hello-World",
+  "test_repo_github": "https://github.com/OWASP/NodeGoat",
   "test_repo_gitlab": "https://gitlab.com/gitlab-org/gitlab-foss",
   "test_repo_bitbucket": "https://bitbucket.org/atlassian/atlassian-frontend"
 }

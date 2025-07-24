@@ -29,7 +29,7 @@ describe('Change Detection Integration', () => {
   });
 
   describe('POST /scan', () => {
-    const testRepoUrl = 'https://github.com/octocat/Hello-World';
+    const testRepoUrl = 'https://github.com/OWASP/NodeGoat';
 
     it('should perform full scan on first request', async () => {
       const response = await request(app.getHttpServer())
@@ -106,7 +106,7 @@ describe('Change Detection Integration', () => {
   });
 
   describe('POST /scan/force', () => {
-    const testRepoUrl = 'https://github.com/octocat/Hello-World';
+    const testRepoUrl = 'https://github.com/OWASP/NodeGoat';
 
     it('should bypass change detection and perform scan', async () => {
       // First scan
@@ -131,7 +131,7 @@ describe('Change Detection Integration', () => {
 
   describe('GET /scan/statistics', () => {
     it('should return scan statistics', async () => {
-      const testRepoUrl = 'https://github.com/octocat/Hello-World';
+      const testRepoUrl = 'https://github.com/OWASP/NodeGoat';
 
       // Perform a scan
       await request(app.getHttpServer())
@@ -156,7 +156,7 @@ describe('Change Detection Integration', () => {
 
   describe('GET /scan/records', () => {
     it('should return scan records', async () => {
-      const testRepoUrl = 'https://github.com/octocat/Hello-World';
+      const testRepoUrl = 'https://github.com/OWASP/NodeGoat';
 
       // Perform a scan
       await request(app.getHttpServer())
@@ -198,7 +198,7 @@ describe('Change Detection Integration', () => {
     it('should handle missing API key', async () => {
       await request(app.getHttpServer())
         .post('/scan')
-        .send({ repoUrl: 'https://github.com/octocat/Hello-World' })
+        .send({ repoUrl: 'https://github.com/OWASP/NodeGoat' })
         .expect(401);
     });
 
