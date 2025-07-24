@@ -384,7 +384,7 @@ describe('EnhancedGitScmProvider', () => {
       mockGit.clone.mockRejectedValue(error);
 
       await expect(
-        provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test')
+        provider.cloneRepository('https://github.com/validowner/validrepo.git', '/tmp/test')
       ).rejects.toThrow('Clone failed: Clone failed');
     });
 
@@ -392,8 +392,32 @@ describe('EnhancedGitScmProvider', () => {
       mockGit.clone.mockRejectedValue('String error');
 
       await expect(
-        provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test')
+        provider.cloneRepository('https://github.com/validowner/validrepo.git', '/tmp/test')
       ).rejects.toThrow('Clone failed: Unknown error');
+    });
+
+    it('should validate repository URLs', async () => {
+      await expect(
+        provider.cloneRepository('https://github.com/user/repo.git', '/tmp/test')
+      ).rejects.toThrow('Invalid repository URL: https://github.com/user/repo.git. Please provide a valid Git repository URL.');
+    });
+
+    it('should handle repository not found errors', async () => {
+      const error = new Error('Repository not found');
+      mockGit.clone.mockRejectedValue(error);
+
+      await expect(
+        provider.cloneRepository('https://github.com/validowner/nonexistent.git', '/tmp/test')
+      ).rejects.toThrow('Repository not found: https://github.com/validowner/nonexistent.git. Please verify the repository exists and you have access to it.');
+    });
+
+    it('should handle authentication errors', async () => {
+      const error = new Error('Permission denied');
+      mockGit.clone.mockRejectedValue(error);
+
+      await expect(
+        provider.cloneRepository('https://github.com/validowner/privaterepo.git', '/tmp/test')
+      ).rejects.toThrow('Authentication failed for https://github.com/validowner/privaterepo.git. Please check your credentials or token permissions.');
     });
   });
 
@@ -570,7 +594,7 @@ describe('EnhancedGitScmProvider', () => {
       mockGit.clone.mockRejectedValue(new Error('Clone failed'));
 
       await expect(
-        provider.fetchRepoMetadata('https://github.com/user/repo.git')
+        provider.fetchRepoMetadata('https://github.com/validowner/validrepo.git')
       ).rejects.toThrow('Clone failed: Clone failed');
     });
   });

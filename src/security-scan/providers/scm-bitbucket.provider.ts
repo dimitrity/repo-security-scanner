@@ -225,9 +225,9 @@ export class BitbucketScmProvider extends EnhancedGitScmProvider {
       'User-Agent': 'Repository-Security-Scanner/1.0'
     };
 
-    if (this.config.authentication?.token) {
+    if (this.authConfig?.token) {
       // Bitbucket uses App passwords or OAuth2
-      headers['Authorization'] = `Bearer ${this.config.authentication.token}`;
+      headers['Authorization'] = `Bearer ${this.authConfig.token}`;
     }
 
     return headers;

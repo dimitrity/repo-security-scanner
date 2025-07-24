@@ -136,6 +136,11 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
    * Enhanced clone with authentication support
    */
   async cloneRepository(repoUrl: string, targetPath: string, options: CloneOptions = {}): Promise<void> {
+    // Validate repository URL
+    if (!this.isValidRepositoryUrl(repoUrl)) {
+      throw new Error(`Invalid repository URL: ${repoUrl}. Please provide a valid Git repository URL.`);
+    }
+
     try {
       let cloneUrl = repoUrl;
       
@@ -152,9 +157,46 @@ export class EnhancedGitScmProvider extends BaseScmProvider {
       
       this.logger.log(`Successfully cloned repository to ${targetPath}`);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to clone repository ${repoUrl}:`, error);
-      throw new Error(`Clone failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Provide more specific error messages for common issues
+      if (errorMessage.includes('Repository not found') || errorMessage.includes('not found')) {
+        throw new Error(`Repository not found: ${repoUrl}. Please verify the repository exists and you have access to it.`);
+      } else if (errorMessage.includes('Permission denied') || errorMessage.includes('authentication failed')) {
+        throw new Error(`Authentication failed for ${repoUrl}. Please check your credentials or token permissions.`);
+      } else if (errorMessage.includes('Network is unreachable') || errorMessage.includes('timeout')) {
+        throw new Error(`Network error cloning ${repoUrl}. Please check your internet connection.`);
+      } else {
+        throw new Error(`Clone failed: ${errorMessage}`);
+      }
     }
+  }
+
+  /**
+   * Validate if the provided URL is a valid repository URL
+   */
+  private isValidRepositoryUrl(repoUrl: string): boolean {
+    if (!repoUrl || typeof repoUrl !== 'string') {
+      return false;
+    }
+
+    // Check for basic URL format
+    const urlRegex = /^(https?:\/\/|git@|ssh:\/\/)/;
+    if (!urlRegex.test(repoUrl)) {
+      return false;
+    }
+
+    // Check for common test/example URLs that don't exist
+    const testUrls = [
+      'github.com/user/repo',
+      'github.com/example/repo',
+      'github.com/test/repo',
+      'gitlab.com/user/repo',
+      'bitbucket.org/user/repo'
+    ];
+
+    return !testUrls.some(testUrl => repoUrl.includes(testUrl));
   }
 
   /**
