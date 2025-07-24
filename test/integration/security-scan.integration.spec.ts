@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
-import { SecurityScanService } from '../../src/security-scan.service';
-import { GitScmProvider } from '../../src/scm-git.provider';
-import { SemgrepScanner } from '../../src/scanner-semgrep.service';
+import { SecurityScanService } from '../../src/security-scan/security-scan.service';
+import { EnhancedGitScmProvider } from '../../src/security-scan/providers/scm-git-enhanced.provider';
+import { SemgrepScanner } from '../../src/security-scan/providers/scanner-semgrep.service';
+import { ScmManagerService } from '../../src/security-scan/providers/scm-manager.service';
 import * as tmp from 'tmp-promise';
 import simpleGit from 'simple-git';
 
@@ -17,7 +18,7 @@ jest.mock('child_process', () => ({
 describe('SecurityScan Integration Tests', () => {
   let app: INestApplication;
   let scanService: SecurityScanService;
-  let gitProvider: GitScmProvider;
+  let scmManager: ScmManagerService;
   let semgrepScanner: SemgrepScanner;
 
   const mockTmpDir = {
@@ -41,7 +42,7 @@ describe('SecurityScan Integration Tests', () => {
     await app.init();
 
     scanService = moduleFixture.get<SecurityScanService>(SecurityScanService);
-    gitProvider = new GitScmProvider();
+    scmManager = moduleFixture.get<ScmManagerService>(ScmManagerService);
     semgrepScanner = new SemgrepScanner();
 
     // Setup mocks
@@ -224,7 +225,7 @@ describe('SecurityScan Integration Tests', () => {
       });
 
       // Test git provider
-      await gitProvider.cloneRepository(repoUrl, targetPath);
+      await scmManager.cloneRepository(repoUrl, targetPath);
       expect(mockGit.clone).toHaveBeenCalledWith(repoUrl, targetPath);
 
       // Test semgrep scanner
@@ -241,7 +242,7 @@ describe('SecurityScan Integration Tests', () => {
       mockGit.clone.mockRejectedValue(new Error('Git clone failed'));
 
       // Test that git failure is caught
-      await expect(gitProvider.cloneRepository(repoUrl, targetPath)).rejects.toThrow('Git clone failed');
+      await expect(scmManager.cloneRepository(repoUrl, targetPath)).rejects.toThrow('Git clone failed');
 
       // Mock successful git clone but semgrep failure
       mockGit.clone.mockResolvedValue(undefined);

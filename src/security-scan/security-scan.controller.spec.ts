@@ -3,6 +3,7 @@ import { SecurityScanController } from './security-scan.controller';
 import { SecurityScanService } from './security-scan.service';
 import { ValidationPipe } from '@nestjs/common';
 import { ScanRequestDto } from './dto/scan-request.dto';
+import { ConfigService } from '../config/config.service';
 
 describe('SecurityScanController', () => {
   let controller: SecurityScanController;
@@ -10,6 +11,18 @@ describe('SecurityScanController', () => {
 
   const mockScanService = {
     scanRepository: jest.fn(),
+    forceScanRepository: jest.fn(),
+    getCodeContextForFile: jest.fn(),
+    getScanStatistics: jest.fn(),
+    getAllScanRecords: jest.fn(),
+  };
+
+  const mockConfigService = {
+    isValidApiKey: jest.fn(),
+    getApiKeyCount: jest.fn(),
+    getPort: jest.fn(),
+    getEnvironment: jest.fn(),
+    isProduction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -20,6 +33,10 @@ describe('SecurityScanController', () => {
           provide: SecurityScanService,
           useValue: mockScanService,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
@@ -27,6 +44,9 @@ describe('SecurityScanController', () => {
     service = module.get<SecurityScanService>(SecurityScanService);
 
     jest.clearAllMocks();
+    
+    // Setup default mock returns
+    mockConfigService.isValidApiKey.mockReturnValue(true);
   });
 
   describe('scanRepository', () => {
