@@ -84,7 +84,7 @@ describe('SecurityScanController (e2e)', () => {
   });
 
   describe('POST /scan', () => {
-    const validApiKey = 'test-for-arnika-987';
+    const validApiKey = 'test-api-key';
     const validRepoUrl = 'https://github.com/example/repo';
 
     it('should successfully scan a repository', async () => {
@@ -225,7 +225,7 @@ describe('SecurityScanController (e2e)', () => {
     it('should handle API key with whitespace', async () => {
       const res = await request(app.getHttpServer())
         .post('/scan')
-        .set('x-api-key', ' test-for-arnika-987 ')
+        .set('x-api-key', ' test-api-key ')
         .send({ repoUrl: validRepoUrl });
 
       expect(res.status).toBe(201); // Should succeed because HTTP headers are trimmed
@@ -275,7 +275,7 @@ describe('SecurityScanController (e2e)', () => {
     it('should allow requests from any origin', async () => {
       const res = await request(app.getHttpServer())
         .post('/scan')
-        .set('x-api-key', 'test-for-arnika-987')
+        .set('x-api-key', 'test-api-key')
         .set('Origin', 'https://example.com')
         .send({ repoUrl: 'https://github.com/example/repo' });
 
