@@ -1,16 +1,5 @@
 # Repository Security Scanner
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-  <a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-</p>
-
 ## Project Overview
 
 The Repository Security Scanner is a security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **change detection**, **multi-platform SCM support**, and a web interface for viewing results.
@@ -89,8 +78,6 @@ export class BitbucketScmProvider extends BaseScmProvider {
   // Implement platform-specific logic
 }
 ```
-
-See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed documentation.
 
 ### Repository Platform Support
 
