@@ -327,7 +327,12 @@ describe('SecurityScanService', () => {
     it('should call scanRepository with force flag', async () => {
       const testRepoUrl = 'https://github.com/test/repo';
       const mockResult = {
-        repository: { name: 'test' },
+        repository: { 
+          name: 'test',
+          description: 'Test repository',
+          defaultBranch: 'main',
+          lastCommit: { hash: 'abc123', timestamp: '2023-01-01T00:00:00Z' }
+        },
         scanner: { name: 'Semgrep', version: 'latest' },
         findings: [],
         securityIssues: [],
