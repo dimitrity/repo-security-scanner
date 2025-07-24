@@ -1,0 +1,603 @@
+{
+  "info": {
+    "name": "Repository Security Scanner API",
+    "description": "Complete API testing collection for the Repository Security Scanner NestJS application",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your-secure-production-key-2025",
+      "type": "string"
+    },
+    {
+      "key": "test_repo_github",
+      "value": "https://github.com/octocat/Hello-World",
+      "type": "string"
+    },
+    {
+      "key": "test_repo_gitlab",
+      "value": "https://gitlab.com/gitlab-org/gitlab-foss",
+      "type": "string"
+    },
+    {
+      "key": "test_repo_private",
+      "value": "https://github.com/example/private-repo",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Get UI Homepage",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Serves the web UI - no authentication required"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Repository Scanning",
+      "item": [
+        {
+          "name": "Scan GitHub Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Scans a public GitHub repository for security vulnerabilities"
+          },
+          "response": []
+        },
+        {
+          "name": "Scan GitLab Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_gitlab}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Scans a public GitLab repository for security vulnerabilities"
+          },
+          "response": []
+        },
+        {
+          "name": "Scan Custom Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"https://github.com/user/your-repo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Scan any repository by replacing the URL in the request body"
+          },
+          "response": []
+        },
+        {
+          "name": "Force Scan Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan/force",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "force"]
+            },
+            "description": "Forces a scan even if no changes detected since last scan"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Code Context",
+      "item": [
+        {
+          "name": "Get Code Context",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\",\n  \"filePath\": \"README.md\",\n  \"line\": 5,\n  \"context\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan/context",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "context"]
+            },
+            "description": "Gets code context around a specific line in a file"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Code Context - Minimal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\",\n  \"filePath\": \"README.md\",\n  \"line\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan/context",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "context"]
+            },
+            "description": "Gets code context with default context lines (3)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Statistics & Records",
+      "item": [
+        {
+          "name": "Get Scan Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scan/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "statistics"]
+            },
+            "description": "Gets overall scan statistics including total repositories scanned"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Scan Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scan/records",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "records"]
+            },
+            "description": "Gets all scan records with timestamps and commit hashes"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "item": [
+        {
+          "name": "Missing API Key",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Should return 401 - Missing API key"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid API Key",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                {
+                  "key": "key",
+                  "value": "x-api-key",
+                  "type": "string"
+                },
+                {
+                  "key": "value",
+                  "value": "invalid-api-key",
+                  "type": "string"
+                },
+                {
+                  "key": "in",
+                  "value": "header",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Should return 401 - Invalid API key"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid URL Format",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"not-a-valid-url\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Should return 400 - Invalid URL format"
+          },
+          "response": []
+        },
+        {
+          "name": "Missing Required Field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invalidField\": \"value\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Should return 400 - Missing repoUrl field"
+          },
+          "response": []
+        },
+        {
+          "name": "Extra Properties",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\",\n  \"extraProperty\": \"should-be-ignored\",\n  \"anotherExtra\": 123\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Should return 400 - Extra properties not allowed (forbidNonWhitelisted: true)"
+          },
+          "response": []
+        },
+        {
+          "name": "Non-existent Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"https://github.com/nonexistent/repository123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Should handle non-existent repository gracefully"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "URL Format Testing",
+      "item": [
+        {
+          "name": "GitHub URL with .git",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"https://github.com/octocat/Hello-World.git\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Test GitHub URL ending with .git"
+          },
+          "response": []
+        },
+        {
+          "name": "Bitbucket Repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"https://bitbucket.org/user/repository\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Test Bitbucket repository URL"
+          },
+          "response": []
+        },
+        {
+          "name": "Repository with Subdirectories",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"https://github.com/organization/project/tree/main\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Test URL with tree/branch paths"
+          },
+          "response": []
+        },
+        {
+          "name": "URL with Query Parameters",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"https://github.com/user/repo?tab=readme\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Test URL with query parameters"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Load Testing",
+      "item": [
+        {
+          "name": "Multiple Concurrent Scans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoUrl\": \"{{test_repo_github}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scan",
+              "host": ["{{base_url}}"],
+              "path": ["scan"]
+            },
+            "description": "Use this request with Postman Runner to test multiple concurrent scans"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set dynamic variables if needed",
+          "// pm.collectionVariables.set('timestamp', Date.now());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test scripts for all requests",
+          "pm.test('Response time is reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+          "});",
+          "",
+          "pm.test('Response has correct content type for JSON endpoints', function () {",
+          "    if (pm.request.url.path.includes('scan')) {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    }",
+          "});",
+          "",
+          "// Store scan results for follow-up requests",
+          "if (pm.response.json && pm.response.json().changeDetection) {",
+          "    pm.collectionVariables.set('lastCommitHash', pm.response.json().changeDetection.lastCommitHash);",
+          "}"
+        ]
+      }
+    }
+  ]
+} 

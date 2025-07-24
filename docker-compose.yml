@@ -7,6 +7,11 @@ services:
       - NODE_ENV=production
       - API_KEYS=${API_KEYS:-your-secure-production-key-2025}
       - PORT=3000
+      # GitLab configuration
+      - GITLAB_TOKEN=${GITLAB_TOKEN:-}
+      - GITLAB_ACCESS_TOKEN=${GITLAB_ACCESS_TOKEN:-}
+      # GitHub configuration (existing)
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     volumes:
       # Optional: Mount logs directory if you want to persist logs
       - ./logs:/app/logs

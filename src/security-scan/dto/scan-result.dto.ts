@@ -103,4 +103,33 @@ export class ScanResultDto {
     scanSkipped?: boolean;
     reason?: string;
   };
+  // New structured response properties
+  summary?: {
+    totalSecurityIssues: number;
+    scanners: Array<{
+      name: string;
+      version: string;
+      securityIssuesFound: number;
+      summary: string;
+    }>;
+  };
+  details?: {
+    scanners: Array<{
+      name: string;
+      version: string;
+      totalSecurityIssues: number;
+      severityBreakdown: {
+        high: number;
+        medium: number;
+        low: number;
+        info: number;
+      };
+      securityIssues: {
+        high: Array<any>;
+        medium: Array<any>;
+        low: Array<any>;
+        info: Array<any>;
+      };
+    }>;
+  };
 } 
