@@ -9,7 +9,7 @@ async function bootstrap() {
   // Enable CORS
   const isProduction = process.env.NODE_ENV === 'production';
   app.enableCors({
-    origin: isProduction ? ['http://localhost:8080', 'http://localhost:3000'] : '*',
+    origin: isProduction ? ['http://localhost:8080', 'http://localhost:3000', 'http://localhost:5000'] : '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-api-key'],
