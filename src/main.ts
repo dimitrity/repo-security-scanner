@@ -22,7 +22,7 @@ async function bootstrap() {
   
   await app.listen(port);
   
-  console.log(`🚀 Repository Security Scanner started successfully!`);
+      console.log(`Repository Security Scanner started successfully!`);
   console.log(`📡 Server running on: http://localhost:${port}`);
 }
 

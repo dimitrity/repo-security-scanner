@@ -82,8 +82,8 @@ async function checkServerHealth() {
 }
 
 async function demonstrateProviderSelection(repo) {
-  console.log(`\n🔍 Testing: ${repo.name}`);
-  console.log(`📂 Repository URL: ${repo.url}`);
+      console.log(`\nTesting: ${repo.name}`);
+      console.log(`Repository URL: ${repo.url}`);
   
   try {
     // Test provider selection by making a scan request
@@ -100,17 +100,17 @@ async function demonstrateProviderSelection(repo) {
       
       // Check if this matches our expectations
       if (scanResult.scanner?.version?.includes(repo.expectedProvider.split(' ')[0])) {
-        console.log('✅ Expected provider was selected correctly');
+        console.log('Expected provider was selected correctly');
       } else {
-        console.log(`⚠️  Expected: ${repo.expectedProvider}, Got: ${scanResult.scanner?.version}`);
+        console.log(`Expected: ${repo.expectedProvider}, Got: ${scanResult.scanner?.version}`);
       }
       
       // Show security scan results
       const securityIssues = scanResult.securityIssues || [];
       const allIssues = scanResult.allSecurityIssues || {};
       
-      console.log(`🚨 Security Issues Found: ${securityIssues.length}`);
-      console.log(`🛠️  Scanners Used: ${Object.keys(allIssues).join(', ') || 'None'}`);
+      console.log(`Security Issues Found: ${securityIssues.length}`);
+              console.log(`Scanners Used: ${Object.keys(allIssues).join(', ') || 'None'}`);
       
       // Show scanner breakdown
       for (const [scanner, issues] of Object.entries(allIssues)) {
@@ -126,7 +126,7 @@ async function demonstrateProviderSelection(repo) {
       }
       
     } else {
-      console.log(`❌ Scan failed with status: ${response.status}`);
+      console.log(`Scan failed with status: ${response.status}`);
       if (typeof response.data === 'string') {
         console.log(`Error: ${response.data}`);
       } else {
@@ -135,36 +135,36 @@ async function demonstrateProviderSelection(repo) {
     }
     
   } catch (error) {
-    console.log(`❌ Error during scan: ${error.message}`);
+    console.log(`Error during scan: ${error.message}`);
   }
 }
 
 async function demonstrateProviderHealthCheck() {
-  console.log('\n📊 Checking Provider Health Status...');
+  console.log('\nChecking Provider Health Status...');
   
   try {
     const response = await makeRequest('GET', '/scan/statistics');
     
     if (response.status === 200) {
-      console.log('✅ Statistics endpoint working');
-      console.log(`📈 Total Repositories Scanned: ${response.data.totalRepositories || 0}`);
-      console.log(`🔄 Total Scans Performed: ${response.data.totalScans || 0}`);
+      console.log('Statistics endpoint working');
+      console.log(`Total Repositories Scanned: ${response.data.totalRepositories || 0}`);
+      console.log(`Total Scans Performed: ${response.data.totalScans || 0}`);
     } else {
-      console.log(`❌ Statistics endpoint failed: ${response.status}`);
+      console.log(`Statistics endpoint failed: ${response.status}`);
     }
   } catch (error) {
-    console.log(`❌ Error checking statistics: ${error.message}`);
+    console.log(`Error checking statistics: ${error.message}`);
   }
 }
 
 async function main() {
-  console.log('🚀 SCM Provider Selection and Usage Demonstration');
+  console.log('SCM Provider Selection and Usage Demonstration');
   console.log('=' .repeat(60));
   
   // Check if server is running
   const serverHealthy = await checkServerHealth();
   if (!serverHealthy) {
-    console.log('\n❌ Please start the server first: npm start');
+    console.log('\nPlease start the server first: npm start');
     process.exit(1);
   }
   
@@ -172,29 +172,29 @@ async function main() {
   await demonstrateProviderHealthCheck();
   
   // Demonstrate automatic provider selection for different repository types
-  console.log('\n🏗️  SCM Provider Selection Demonstration');
+  console.log('\nSCM Provider Selection Demonstration');
   console.log('-'.repeat(50));
   
   for (const repo of testRepositories) {
     await demonstrateProviderSelection(repo);
     
     // Add delay between requests to avoid overwhelming the server
-    console.log('\n⏳ Waiting 3 seconds before next test...');
+    console.log('\nWaiting 3 seconds before next test...');
     await new Promise(resolve => setTimeout(resolve, 3000));
   }
   
-  console.log('\n🎉 SCM Provider Demonstration Complete!');
-  console.log('\n📋 Summary:');
-  console.log('- ✅ Automatic provider selection based on repository URL');
-  console.log('- ✅ GitHub, GitLab, and Generic Git support');
-  console.log('- ✅ Seamless fallback between providers');
-  console.log('- ✅ Enhanced metadata extraction for supported platforms');
-  console.log('- ✅ Multi-scanner security analysis');
+  console.log('\nSCM Provider Demonstration Complete!');
+      console.log('\nSummary:');
+    console.log('- Automatic provider selection based on repository URL');
+      console.log('- GitHub, GitLab, and Generic Git support');
+    console.log('- Seamless fallback between providers');
+    console.log('- Enhanced metadata extraction for supported platforms');
+    console.log('- Multi-scanner security analysis');
 }
 
 // Handle errors gracefully
 process.on('unhandledRejection', (error) => {
-  console.error('❌ Unhandled error:', error.message);
+  console.error('Unhandled error:', error.message);
   process.exit(1);
 });
 

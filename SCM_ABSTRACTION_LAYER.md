@@ -4,7 +4,7 @@
 
 The Repository Security Scanner now features a comprehensive **Source Control Management (SCM) Abstraction Layer** that provides a pluggable architecture for supporting multiple SCM platforms. This abstraction makes it easy to add new SCM providers, configure authentication, and manage multi-platform repositories.
 
-## 🚀 Key Features
+## Key Features
 
 ### ✅ **Multi-Provider Support**
 - **GitHub**: Full API integration with authentication
@@ -447,7 +447,7 @@ await scmManager.cloneRepository(repoUrl, targetPath, {
 });
 ```
 
-## 🚀 Performance Optimization
+## Performance Optimization
 
 ### Provider Caching
 
@@ -495,7 +495,7 @@ const metadataResults = await scmManager.fetchMultipleRepositoryMetadata(urls);
 - **Load Balancing**: Distribute requests across provider instances
 - **Metrics Collection**: Detailed performance analytics
 
-## 📝 Migration Guide
+## Migration Guide
 
 ### From Old Git Provider
 

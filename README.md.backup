@@ -15,23 +15,23 @@
 
 The Repository Security Scanner is a comprehensive security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **intelligent change detection**, **multi-platform SCM support**, and a modern web interface for viewing results.
 
-### 🚀 Key Features
+### Key Features
 
-- 🔍 **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
-- 🏗️ **Multi-Platform SCM Support**: GitHub, GitLab, and Bitbucket with intelligent provider selection
-- 🌐 **Modern Web UI**: GitHub-style interface with instant code context viewing
-- 📱 **Embedded Code Context**: View code snippets directly in scan results without additional API calls
-- 🚀 **Intelligent Change Detection**: Skip scans when no repository changes detected
-- 🤖 **Automatic Provider Selection**: Best SCM provider automatically chosen based on repository URL
-- 📊 **Scanner Summary Dashboard**: Real-time issue counts and scanner status
-- 🔐 **Secure API**: API key authentication with input validation and sanitization
-- 🐳 **Docker Ready**: Complete containerization with docker-compose support
-- 🔄 **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
-- 📈 **Scan Statistics**: Track scanning activity and repository history
-- ⚡ **Force Scan Option**: Bypass change detection when needed
-- 🏥 **Health Monitoring**: Provider health checks and performance monitoring
+- **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
+- **Multi-Platform SCM Support**: GitHub, GitLab, and Bitbucket with intelligent provider selection
+- **Modern Web UI**: GitHub-style interface with instant code context viewing
+- **Embedded Code Context**: View code snippets directly in scan results without additional API calls
+- **Intelligent Change Detection**: Skip scans when no repository changes detected
+- **Automatic Provider Selection**: Best SCM provider automatically chosen based on repository URL
+- **Scanner Summary Dashboard**: Real-time issue counts and scanner status
+- **Secure API**: API key authentication with input validation and sanitization
+- **Docker Ready**: Complete containerization with docker-compose support
+- **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
+- **Scan Statistics**: Track scanning activity and repository history
+- **Force Scan Option**: Bypass change detection when needed
+- **Health Monitoring**: Provider health checks and performance monitoring
 
-### 🛡️ Security Scanners
+### Security Scanners
 
 #### Semgrep (Static Analysis)
 - **Purpose**: Code security vulnerabilities, OWASP patterns, custom rules
@@ -43,14 +43,14 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 - **Features**: Entropy-based detection, custom patterns, Git history scanning
 - **Detects**: AWS keys, GitHub tokens, passwords, private keys, etc.
 
-### 🔐 Security Features
+### Security Features
 
 - **API Key Authentication**: Simple and secure API access control
 - **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
 - **Safe Scanner Execution**: Isolated scanner process execution
 
-### 🏗️ SCM Abstraction Layer
+### SCM Abstraction Layer
 
 **Revolutionary multi-provider architecture for seamless source control integration:**
 
@@ -61,7 +61,7 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
   - Enhanced metadata extraction
   - Rate limit handling
   
-- **GitLab**: ✨ **Enhanced Support**
+- **GitLab**: **Enhanced Support**
   - **GitLab.com & Self-hosted**: Full support for both public GitLab.com and private GitLab instances
   - **Authentication**: Personal Access Token support for private repositories
   - **Comprehensive Metadata**: Repository details, contributor stats, commit history
@@ -74,12 +74,12 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
   - Fallback for any Git hosting platform
 
 #### ✅ **Key Capabilities**
-- **🤖 Intelligent Provider Selection**: Best provider automatically chosen based on URL
-- **🔄 Automatic Fallback**: Graceful degradation when providers fail
-- **🔐 Multi-Platform Authentication**: Token-based auth with environment variables
-- **📊 Provider Health Monitoring**: Real-time status and performance tracking
-- **🚀 Easy Extension**: Add new providers with minimal code changes
-- **📈 Analytics & Insights**: Provider usage statistics and recommendations
+- **Intelligent Provider Selection**: Best provider automatically chosen based on URL
+- **Automatic Fallback**: Graceful degradation when providers fail
+- **Multi-Platform Authentication**: Token-based auth with environment variables
+- **Provider Health Monitoring**: Real-time status and performance tracking
+- **Easy Extension**: Add new providers with minimal code changes
+- **Analytics & Insights**: Provider usage statistics and recommendations
 
 #### ✅ **Extensible Design**
 ```typescript
@@ -92,21 +92,21 @@ export class BitbucketScmProvider extends BaseScmProvider {
 
 See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed documentation.
 
-### 🌍 Repository Platform Support
+### Repository Platform Support
 
 The SCM abstraction layer provides unified support for multiple platforms:
 
 | Platform | Support Level | Features |
 |----------|---------------|----------|
-| **GitHub** | ✅ Full | API integration, private repos, metadata, rate limiting |
-| **GitLab** | ✅ Enhanced | SaaS + self-hosted, private repos, comprehensive metadata |
-| **Bitbucket** | 🔄 Planned | API integration, private repos |
-| **Azure DevOps** | 🔄 Planned | Microsoft Azure Repos support |
-| **Generic Git** | ✅ Full | Any Git repository, SSH/HTTPS, fallback support |
+| **GitHub** | Full | API integration, private repos, metadata, rate limiting |
+| **GitLab** | Enhanced | SaaS + self-hosted, private repos, comprehensive metadata |
+| **Bitbucket** | Planned | API integration, private repos |
+| **Azure DevOps** | Planned | Microsoft Azure Repos support |
+| **Generic Git** | Full | Any Git repository, SSH/HTTPS, fallback support |
 
 **Platform Detection**: Repositories are automatically routed to the optimal provider based on hostname and URL patterns.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 

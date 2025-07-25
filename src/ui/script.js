@@ -196,11 +196,11 @@ function displaySecurityIssues(data) {
     };
     
     const severityIcons = {
-        critical: '🔥',
-        high: '⚠️',
-        medium: '⚡',
-        low: '📝',
-        info: 'ℹ️'
+        critical: 'Critical',
+        high: 'High',
+        medium: 'Medium',
+        low: 'Low',
+        info: 'Info'
     };
     
     severityOrder.forEach(severity => {
@@ -212,7 +212,7 @@ function displaySecurityIssues(data) {
     });
     
     if (issues.length === 0) {
-        issueGroupsContainer.innerHTML = '<div class="no-issues">🎉 No security issues found!</div>';
+        issueGroupsContainer.innerHTML = '<div class="no-issues">No security issues found!</div>';
     }
 }
 
