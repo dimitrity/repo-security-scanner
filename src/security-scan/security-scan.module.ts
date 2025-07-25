@@ -5,6 +5,7 @@ import { ApiKeyGuard } from './guards/api-key.guard';
 import { SemgrepScanner } from './providers/scanner-semgrep.service';
 import { GitleaksScanner } from './providers/scanner-gitleaks.service';
 import { ScanStorageService } from './providers/scan-storage.service';
+import { ScanCacheService } from './providers/scan-cache.service';
 import { SecurityScanner } from './interfaces/scanners.interface';
 import { ConfigModule } from '../config/config.module';
 
@@ -23,6 +24,7 @@ import { BitbucketScmProvider } from './providers/scm-bitbucket.provider';
     SecurityScanService,
     ApiKeyGuard,
     ScanStorageService,
+    ScanCacheService,
     
     // Security Scanners
     SemgrepScanner,

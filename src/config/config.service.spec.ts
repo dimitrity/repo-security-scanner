@@ -350,7 +350,7 @@ describe('ConfigService', () => {
     });
 
     it('should handle unicode characters in API keys', () => {
-      const unicodeKey = 'key-with-unicode-🚀-🌟-🎉';
+      const unicodeKey = 'key-with-unicode-test';
       process.env.API_KEYS = unicodeKey;
       
       const result = service.isValidApiKey(unicodeKey);

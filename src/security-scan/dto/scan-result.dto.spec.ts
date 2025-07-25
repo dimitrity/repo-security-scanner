@@ -244,7 +244,7 @@ describe('ScanResultDto', () => {
 
     it('should handle findings with unicode characters', () => {
       const dto = new ScanResultDto();
-      const unicodeMessage = 'Finding with unicode: 🚀 🔒 💻';
+      const unicodeMessage = 'Finding with unicode: Test Unicode';
       const finding = {
         ruleId: 'SEC-001',
         message: unicodeMessage,

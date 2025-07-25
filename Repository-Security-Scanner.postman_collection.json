@@ -592,6 +592,142 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Cache Management",
+      "item": [
+        {
+          "name": "Get Cache Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cache/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["cache", "statistics"]
+            },
+            "description": "Get cache statistics including total entries, size, and age information"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cached Repositories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cache/repositories",
+              "host": ["{{base_url}}"],
+              "path": ["cache", "repositories"]
+            },
+            "description": "Get list of all repositories with cached results"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cached Results for Repository",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cache/repository/{{test_repo_github}}",
+              "host": ["{{base_url}}"],
+              "path": ["cache", "repository", "{{test_repo_github}}"]
+            },
+            "description": "Get all cached results for a specific repository"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear All Cache",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cache",
+              "host": ["{{base_url}}"],
+              "path": ["cache"]
+            },
+            "description": "Clear all cached scan results"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalidate Repository Cache",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cache/{{test_repo_github}}",
+              "host": ["{{base_url}}"],
+              "path": ["cache", "{{test_repo_github}}"]
+            },
+            "description": "Invalidate cache for a specific repository"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Enhanced Analytics",
+      "item": [
+        {
+          "name": "Get Scan History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scan/history/{{test_repo_github}}",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "history", "{{test_repo_github}}"]
+            },
+            "description": "Get detailed scan history for a specific repository"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Stale Repositories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scan/stale",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "stale"]
+            },
+            "description": "Get repositories that haven't been scanned recently (default: 24 hours)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Most Scanned Repositories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scan/most-scanned",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "most-scanned"]
+            },
+            "description": "Get repositories with the highest scan counts"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Most Cached Repositories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scan/most-cached",
+              "host": ["{{base_url}}"],
+              "path": ["scan", "most-cached"]
+            },
+            "description": "Get repositories with the most cache hits"
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "event": [

@@ -19,6 +19,9 @@ The Repository Security Scanner is a security analysis platform built with NestJ
 - **Scan Statistics**: Track scanning activity and repository history
 - **Force Scan Option**: Bypass change detection when needed
 - **Health Monitoring**: Provider health checks and performance monitoring
+- **Intelligent Caching**: Cache scan results with TTL and automatic invalidation
+- **Performance Analytics**: Detailed scan duration and cache hit tracking
+- **Enhanced History**: Comprehensive scan history with performance metrics
 
 ### Security Scanners
 
@@ -38,6 +41,46 @@ The Repository Security Scanner is a security analysis platform built with NestJ
 - **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
 - **Safe Scanner Execution**: Isolated scanner process execution
+
+### Caching System
+
+The Repository Security Scanner includes a sophisticated caching system to optimize performance and reduce redundant scans:
+
+#### **Cache Features**
+- **TTL-based Caching**: Configurable time-to-live for cached results (default: 1 hour)
+- **Commit-based Keys**: Cache entries keyed by repository URL and commit hash
+- **Smart Cache Checking**: Check for cached results even when repository has been updated
+- **Automatic Cleanup**: Periodic cleanup of expired cache entries
+- **Size Management**: Automatic eviction of oldest entries when cache limit reached
+- **Cache Invalidation**: Manual invalidation by repository or specific commit
+
+#### **Performance Benefits**
+- **Reduced Scan Time**: Instant results for unchanged repositories
+- **Smart Cache Utilization**: Serve cached results even when repository has minor updates
+- **Bandwidth Savings**: Avoid unnecessary repository cloning
+- **Resource Optimization**: Reduced CPU and memory usage
+- **Scalability**: Support for high-frequency scanning operations
+
+#### **Cache Management API**
+```bash
+# Get cache statistics
+GET /cache/statistics
+
+# List cached repositories
+GET /cache/repositories
+
+# Clear all cache
+DELETE /cache
+
+# Invalidate specific repository cache
+DELETE /cache/{repository-url}
+```
+
+#### **Enhanced Analytics**
+- **Cache Hit Tracking**: Monitor cache effectiveness
+- **Scan Duration Metrics**: Track performance improvements
+- **Repository History**: Detailed scan history with performance data
+- **Stale Repository Detection**: Identify repositories needing updates
 
 ### SCM Abstraction Layer
 
@@ -290,6 +333,62 @@ GET /scan/records
 x-api-key: your-api-key-here
 ```
 
+#### Get Scan History
+```bash
+GET /scan/history/{repository-url}
+x-api-key: your-api-key-here
+```
+
+#### Get Stale Repositories
+```bash
+GET /scan/stale
+x-api-key: your-api-key-here
+```
+
+#### Get Most Scanned Repositories
+```bash
+GET /scan/most-scanned
+x-api-key: your-api-key-here
+```
+
+#### Get Most Cached Repositories
+```bash
+GET /scan/most-cached
+x-api-key: your-api-key-here
+```
+
+#### Cache Management
+
+##### Get Cache Statistics
+```bash
+GET /cache/statistics
+x-api-key: your-api-key-here
+```
+
+##### Get Cached Repositories
+```bash
+GET /cache/repositories
+x-api-key: your-api-key-here
+```
+
+##### Get Cached Results for Repository
+```bash
+GET /cache/repository/{repository-url}
+x-api-key: your-api-key-here
+```
+
+##### Clear All Cache
+```bash
+DELETE /cache
+x-api-key: your-api-key-here
+```
+
+##### Invalidate Repository Cache
+```bash
+DELETE /cache/{repository-url}
+x-api-key: your-api-key-here
+```
+
 #### Get Code Context
 ```bash
 POST /scan/context
@@ -348,6 +447,13 @@ A Postman collection is included for API testing and development.
 - Scan statistics retrieval
 - Historical scan records
 - Provider health monitoring
+- Enhanced analytics and performance metrics
+
+**Cache Management:**
+- Cache statistics and monitoring
+- Repository cache invalidation
+- Cache performance analytics
+- Cache cleanup operations
 
 **Error Testing:**
 - Authentication validation

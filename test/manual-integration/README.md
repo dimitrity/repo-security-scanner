@@ -94,7 +94,7 @@ Both tests provide rich console output with:
 - ✅ Success indicators
 - ❌ Error indicators
 - 📊 Statistics and metrics
-- 🔍 Detailed analysis results
+- Detailed analysis results
 - ⏳ Progress indicators
 
 ## Troubleshooting
