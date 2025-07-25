@@ -37,6 +37,11 @@
       "type": "string"
     },
     {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "test_repo_github",
               "value": "https://github.com/OWASP/NodeGoat",
       "type": "string"
@@ -58,6 +63,106 @@
     }
   ],
   "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Authenticate with API Key",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiKey\": \"{{api_key}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/api-key",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "api-key"]
+            },
+            "description": "Authenticate with API key and get JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get SIWE Nonce",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/siwe/nonce",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "siwe", "nonce"]
+            },
+            "description": "Get nonce for SIWE (Sign-In with Ethereum) authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Authenticate with SIWE",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"{\\\"address\\\":\\\"0x1234567890123456789012345678901234567890\\\",\\\"domain\\\":\\\"localhost\\\",\\\"uri\\\":\\\"http://localhost:3000\\\",\\\"version\\\":\\\"1\\\",\\\"chainId\\\":1,\\\"nonce\\\":\\\"nonce123\\\",\\\"issuedAt\\\":\\\"2024-01-01T00:00:00.000Z\\\"}\",\n  \"signature\": \"0x1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/siwe/verify",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "siwe", "verify"]
+            },
+            "description": "Authenticate with SIWE signature and get JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify JWT Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify"]
+            },
+            "description": "Verify JWT token and get user information"
+          },
+          "response": []
+        }
+      ]
+    },
     {
       "name": "Health Check",
       "item": [

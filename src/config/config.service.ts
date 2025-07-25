@@ -19,6 +19,20 @@ export class ConfigService {
   }
 
   /**
+   * Get JWT secret from environment
+   */
+  getJwtSecret(): string {
+    return process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+  }
+
+  /**
+   * Get JWT expiration time
+   */
+  getJwtExpiration(): string {
+    return process.env.JWT_EXPIRATION || '24h';
+  }
+
+  /**
    * Get application port from environment
    */
   getPort(): number {

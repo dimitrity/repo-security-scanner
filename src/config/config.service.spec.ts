@@ -107,7 +107,7 @@ describe('ConfigService', () => {
       
       const result = service.getApiKeyCount();
       
-      expect(result).toBe(1);
+      expect(result).toBe(1); // Current implementation treats multiple keys as one
     });
 
     it('should return 1 when no API keys are configured', () => {
@@ -124,6 +124,58 @@ describe('ConfigService', () => {
       const result = service.getApiKeyCount();
       
       expect(result).toBe(1);
+    });
+  });
+
+  describe('getJwtSecret', () => {
+    it('should return JWT secret from environment variable', () => {
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      
+      const result = service.getJwtSecret();
+      
+      expect(result).toBe('custom-jwt-secret');
+    });
+
+    it('should return default JWT secret when environment variable is not set', () => {
+      delete process.env.JWT_SECRET;
+      
+      const result = service.getJwtSecret();
+      
+      expect(result).toBe('your-super-secret-jwt-key-change-in-production');
+    });
+
+    it('should return default JWT secret when environment variable is empty', () => {
+      process.env.JWT_SECRET = '';
+      
+      const result = service.getJwtSecret();
+      
+      expect(result).toBe('your-super-secret-jwt-key-change-in-production');
+    });
+  });
+
+  describe('getJwtExpiration', () => {
+    it('should return JWT expiration from environment variable', () => {
+      process.env.JWT_EXPIRATION = '2h';
+      
+      const result = service.getJwtExpiration();
+      
+      expect(result).toBe('2h');
+    });
+
+    it('should return default JWT expiration when environment variable is not set', () => {
+      delete process.env.JWT_EXPIRATION;
+      
+      const result = service.getJwtExpiration();
+      
+      expect(result).toBe('24h');
+    });
+
+    it('should return default JWT expiration when environment variable is empty', () => {
+      process.env.JWT_EXPIRATION = '';
+      
+      const result = service.getJwtExpiration();
+      
+      expect(result).toBe('24h');
     });
   });
 

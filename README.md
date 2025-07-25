@@ -37,10 +37,118 @@ The Repository Security Scanner is a security analysis platform built with NestJ
 
 ### Security Features
 
-- **API Key Authentication**: Secure API access control
+- **Multi-Method Authentication**: JWT tokens, SIWE (Sign-In with Ethereum), and API key support
 - **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
 - **Safe Scanner Execution**: Isolated scanner process execution
+
+### Authentication
+
+The Repository Security Scanner supports multiple authentication methods for secure API access:
+
+#### **Authentication Methods**
+
+##### **1. JWT Token Authentication (Recommended)**
+- **Bearer Token**: Use JWT tokens for stateless authentication
+- **Token Expiration**: Configurable token lifetime (default: 24 hours)
+- **Secure**: Cryptographically signed tokens with expiration
+
+```bash
+# Get JWT token using API key
+POST /auth/api-key
+Content-Type: application/json
+
+{
+  "apiKey": "your-api-key"
+}
+
+# Use JWT token in requests
+Authorization: Bearer <jwt-token>
+```
+
+##### **2. SIWE (Sign-In with Ethereum)**
+- **Web3 Authentication**: Authenticate using Ethereum wallet signatures
+- **Nonce-based Security**: Prevents replay attacks
+- **Decentralized Identity**: No central authority required
+
+```bash
+# Get SIWE nonce
+POST /auth/siwe/nonce
+
+# Authenticate with SIWE signature
+POST /auth/siwe/verify
+Content-Type: application/json
+
+{
+  "message": "{\"address\":\"0x...\",\"domain\":\"localhost\",\"uri\":\"http://localhost:3000\",\"version\":\"1\",\"chainId\":1,\"nonce\":\"nonce123\",\"issuedAt\":\"2024-01-01T00:00:00.000Z\"}",
+  "signature": "0x..."
+}
+
+# Use JWT token in requests
+Authorization: Bearer <jwt-token>
+```
+
+##### **3. API Key Authentication (Legacy)**
+- **Backward Compatibility**: Existing API key support maintained
+- **Simple Integration**: Easy to implement for existing clients
+- **Header-based**: Use `x-api-key` header
+
+```bash
+# Use API key directly
+x-api-key: your-api-key
+```
+
+#### **Authentication Endpoints**
+
+```bash
+# API Key Authentication
+POST /auth/api-key
+{
+  "apiKey": "your-api-key"
+}
+
+# SIWE Nonce Generation
+POST /auth/siwe/nonce
+
+# SIWE Authentication
+POST /auth/siwe/verify
+{
+  "message": "SIWE message",
+  "signature": "Ethereum signature"
+}
+
+# Token Verification
+POST /auth/verify
+Authorization: Bearer <jwt-token>
+```
+
+#### **Configuration**
+
+Set environment variables for authentication:
+
+```bash
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRATION=24h
+
+# API Key Configuration
+API_KEYS=your-secure-production-key-2025
+```
+
+#### **Authentication Flow**
+
+1. **Client obtains JWT token** via API key or SIWE authentication
+2. **Token used in subsequent requests** via `Authorization: Bearer <token>` header
+3. **Server validates token** and extracts user information
+4. **Request processed** with user context
+
+#### **Security Benefits**
+
+- **Stateless Authentication**: No server-side session storage
+- **Token Expiration**: Automatic token invalidation
+- **Cryptographic Security**: JWT tokens are cryptographically signed
+- **Web3 Integration**: Native Ethereum wallet support
+- **Backward Compatibility**: Existing API key clients continue to work
 
 ### Caching System
 
