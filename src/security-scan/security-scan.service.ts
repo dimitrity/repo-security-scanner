@@ -4,6 +4,7 @@ import * as tmp from 'tmp-promise';
 import { SecurityScanner } from './interfaces/scanners.interface';
 import { ScmManagerService } from './providers/scm-manager.service';
 import { ScanStorageService } from './providers/scan-storage.service';
+import { ScanCacheService } from './providers/scan-cache.service';
 import * as fs from 'fs';
 
 @Injectable()
@@ -14,44 +15,105 @@ export class SecurityScanService {
     private readonly scmManager: ScmManagerService,
     @Inject('SCANNERS') private readonly scanners: SecurityScanner[],
     private readonly scanStorage: ScanStorageService,
+    private readonly scanCache: ScanCacheService,
   ) {}
 
   async scanRepository(repoUrl: string, forceScan: boolean = false): Promise<ScanResultDto> {
-    // 1. Check for changes since last scan
-    const lastScanRecord = this.scanStorage.getLastScanRecord(repoUrl);
-    let changeDetection = {
-      hasChanges: true,
-      lastCommitHash: 'unknown',
-      scanSkipped: false,
-      reason: undefined as string | undefined,
-    };
+    const startTime = Date.now();
+    
+    try {
+      // 1. Get current commit hash first
+      const commitHashResult = await this.scmManager.getLastCommitHash(repoUrl);
+      const currentCommitHash = commitHashResult.hash || 'unknown';
+      
+      this.logger.log(`Current commit hash for ${repoUrl}: ${currentCommitHash}`);
 
-    if (!forceScan && lastScanRecord) {
-      this.logger.log(`Checking for changes since last scan of ${repoUrl}`);
-      this.logger.log(`Last scan commit hash: ${lastScanRecord.lastCommitHash}`);
-      
-      const changeResult = await this.scmManager.hasChangesSince(repoUrl, lastScanRecord.lastCommitHash);
-      this.logger.log(`Change detection result:`, changeResult);
-      
-      if (changeResult.result && !changeResult.result.hasChanges) {
-        this.logger.log(`No changes detected for ${repoUrl}, returning no-change finding instead of performing scan`);
-        const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
-        const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
-        
-        return {
-          repository: metadata,
-          scanner: { name: 'Change Detection', version: '1.0' },
-          securityIssues: [
-            {
-              ruleId: 'CHANGE-DETECTION-001',
-              message: 'No changes detected for the repo',
-              filePath: 'N/A',
-              line: 0,
-              severity: 'info',
+      // 2. Check cache first (unless force scan is requested)
+      if (!forceScan) {
+        // Check for exact commit hash match first
+        const cachedResult = this.scanCache.getCachedResult(repoUrl, currentCommitHash);
+        if (cachedResult) {
+          this.logger.log(`Cache hit for ${repoUrl} at commit ${currentCommitHash}`);
+          
+          // Update storage with cache hit
+          this.scanStorage.updateScanRecord(repoUrl, currentCommitHash, {
+            status: 'cached',
+            duration: Date.now() - startTime,
+            cacheHit: true,
+          });
+
+          return {
+            ...cachedResult,
+            changeDetection: {
+              hasChanges: false,
+              lastCommitHash: currentCommitHash,
+              scanSkipped: true,
+              reason: 'Result served from cache',
             },
-          ],
-          allSecurityIssues: {
-            'Change Detection': [
+          };
+        }
+
+        // If no exact match, check if we have any cached results for this repository
+        if (this.scanCache.hasCachedResults(repoUrl)) {
+          this.logger.log(`Repository ${repoUrl} has cached results, checking if they're still valid`);
+          
+          // Get the last scan record to compare
+          const lastScanRecord = this.scanStorage.getLastScanRecord(repoUrl);
+          if (lastScanRecord && lastScanRecord.lastCommitHash !== currentCommitHash) {
+            // Repository has been updated, check if the changes are significant enough to warrant a new scan
+            const changeResult = await this.scmManager.hasChangesSince(repoUrl, lastScanRecord.lastCommitHash);
+            
+            if (changeResult.result && !changeResult.result.hasChanges) {
+              this.logger.log(`No significant changes detected for ${repoUrl}, serving cached result`);
+              
+              // Get the most recent cached result for this repository
+              const mostRecentCachedResult = this.scanCache.getMostRecentCachedResult(repoUrl);
+              if (mostRecentCachedResult) {
+                // Update storage with cache hit
+                this.scanStorage.updateScanRecord(repoUrl, currentCommitHash, {
+                  status: 'cached',
+                  duration: Date.now() - startTime,
+                  cacheHit: true,
+                });
+
+                return {
+                  ...mostRecentCachedResult,
+                  changeDetection: {
+                    hasChanges: false,
+                    lastCommitHash: currentCommitHash,
+                    scanSkipped: true,
+                    reason: 'No significant changes detected, serving cached result',
+                  },
+                };
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Check for changes since last scan
+      const lastScanRecord = this.scanStorage.getLastScanRecord(repoUrl);
+      let changeDetection = {
+        hasChanges: true,
+        lastCommitHash: currentCommitHash,
+        scanSkipped: false,
+        reason: undefined as string | undefined,
+      };
+
+      if (!forceScan && lastScanRecord) {
+        this.logger.log(`Checking for changes since last scan of ${repoUrl}`);
+        this.logger.log(`Last scan commit hash: ${lastScanRecord.lastCommitHash}`);
+        
+        // If commit hash is the same, no need to check for changes
+        if (lastScanRecord.lastCommitHash === currentCommitHash) {
+          this.logger.log(`No changes detected for ${repoUrl} - same commit hash`);
+          const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
+          const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
+          
+          const noChangeResult = {
+            repository: metadata,
+            scanner: { name: 'Change Detection', version: '1.0' },
+            securityIssues: [
               {
                 ruleId: 'CHANGE-DETECTION-001',
                 message: 'No changes detected for the repo',
@@ -60,127 +122,231 @@ export class SecurityScanService {
                 severity: 'info',
               },
             ],
-          },
-          changeDetection: {
-            hasChanges: false,
-            lastCommitHash: changeResult.result.lastCommitHash,
-            scanSkipped: true,
-            reason: 'No changes detected since last scan',
-          },
-          // Legacy compatibility
-          findings: [
-            {
-              ruleId: 'CHANGE-DETECTION-001',
-              message: 'No changes detected for the repo',
-              filePath: 'N/A',
-              line: 0,
-              severity: 'info',
+            allSecurityIssues: {
+              'Change Detection': [
+                {
+                  ruleId: 'CHANGE-DETECTION-001',
+                  message: 'No changes detected for the repo',
+                  filePath: 'N/A',
+                  line: 0,
+                  severity: 'info',
+                },
+              ],
             },
-          ],
-        };
-      }
-      
-      this.logger.log(`Changes detected for ${repoUrl}, proceeding with scan`);
-      changeDetection = {
-        hasChanges: true,
-        lastCommitHash: changeResult.result?.lastCommitHash || 'unknown',
-        scanSkipped: false,
-        reason: undefined,
-      };
-    } else {
-      this.logger.log(`No previous scan record found for ${repoUrl} or force scan requested`);
-    }
+            changeDetection: {
+              hasChanges: false,
+              lastCommitHash: currentCommitHash,
+              scanSkipped: true,
+              reason: 'No changes detected since last scan',
+            },
+            findings: [
+              {
+                ruleId: 'CHANGE-DETECTION-001',
+                message: 'No changes detected for the repo',
+                filePath: 'N/A',
+                line: 0,
+                severity: 'info',
+              },
+            ],
+          };
 
-    // 2. Clone the repository to a temp directory
-    const tmpDir = await tmp.dir({ unsafeCleanup: true });
-    const repoPath = tmpDir.path;
-    try {
-      this.logger.log(`Cloning repo ${repoUrl} to ${repoPath}`);
-      const cloneResult = await this.scmManager.cloneRepository(repoUrl, repoPath);
-      
-      if (!cloneResult.success) {
-        throw new Error(`Failed to clone repository: ${cloneResult.error}`);
-      }
+          // Cache the no-change result
+          this.scanCache.cacheResult(repoUrl, currentCommitHash, noChangeResult);
+          
+          // Update storage
+          this.scanStorage.updateScanRecord(repoUrl, currentCommitHash, {
+            status: 'success',
+            duration: Date.now() - startTime,
+            findings: 1, // One "no change" finding
+          });
 
-      this.logger.log(`Successfully cloned repository using provider: ${cloneResult.provider}`);
-
-      // 3. Fetch repository metadata
-      const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
-      const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
-
-      // 4. Run all scanners
-      let allFindings: { [scannerName: string]: any[] } = {};
-      let scannerInfos: Array<{ name: string; version: string; findings: any[] }> = [];
-      
-      for (const scanner of this.scanners) {
-        try {
-          const scannerInfo = { name: scanner.getName(), version: scanner.getVersion() };
-          
-          this.logger.log(`Running ${scannerInfo.name} scanner...`);
-          const findings = await scanner.scan(repoPath);
-          
-          // Add code context to each finding
-          const findingsWithContext = await Promise.all(
-            findings.map(async (finding) => {
-              try {
-                this.logger.log(`Extracting context for file: ${finding.filePath}, line: ${finding.line}`);
-                const codeContext = await this.extractCodeContext(repoPath, finding.filePath, finding.line);
-                this.logger.log(`Context extraction result: ${codeContext ? 'SUCCESS' : 'NULL'} for ${finding.filePath}`);
-                return {
-                  ...finding,
-                  scanner: scannerInfo.name,
-                  codeContext,
-                };
-              } catch (error) {
-                this.logger.warn(`Failed to extract code context for ${finding.filePath}:${finding.line}: ${error.message}`);
-                return {
-                  ...finding,
-                  scanner: scannerInfo.name,
-                };
-              }
-            })
-          );
-          
-          // Store findings by scanner name
-          allFindings[scannerInfo.name] = findingsWithContext;
-          scannerInfos.push({ ...scannerInfo, findings: findingsWithContext });
-          this.logger.log(`${scannerInfo.name} found ${findings.length} issues`);
-          
-        } catch (error) {
-          this.logger.error(`Scanner ${scanner.getName()} failed: ${error.message}`);
-          // Continue with other scanners even if one fails
-          // Store empty array for failed scanners
-          allFindings[scanner.getName()] = [];
+          return noChangeResult;
         }
-      }
-      
-      // Use the first scanner's info for backward compatibility, or combine them
-      const scannerInfo = scannerInfos.length > 0 ? scannerInfos[0] : { name: 'Multiple Scanners', version: 'latest' };
+        
+        const changeResult = await this.scmManager.hasChangesSince(repoUrl, lastScanRecord.lastCommitHash);
+        this.logger.log(`Change detection result:`, changeResult);
+        
+        if (changeResult.result && !changeResult.result.hasChanges) {
+          this.logger.log(`No changes detected for ${repoUrl}, returning no-change finding instead of performing scan`);
+          const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
+          const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
+          
+          const noChangeResult = {
+            repository: metadata,
+            scanner: { name: 'Change Detection', version: '1.0' },
+            securityIssues: [
+              {
+                ruleId: 'CHANGE-DETECTION-001',
+                message: 'No changes detected for the repo',
+                filePath: 'N/A',
+                line: 0,
+                severity: 'info',
+              },
+            ],
+            allSecurityIssues: {
+              'Change Detection': [
+                {
+                  ruleId: 'CHANGE-DETECTION-001',
+                  message: 'No changes detected for the repo',
+                  filePath: 'N/A',
+                  line: 0,
+                  severity: 'info',
+                },
+              ],
+            },
+            changeDetection: {
+              hasChanges: false,
+              lastCommitHash: changeResult.result.lastCommitHash,
+              scanSkipped: true,
+              reason: 'No changes detected since last scan',
+            },
+            findings: [
+              {
+                ruleId: 'CHANGE-DETECTION-001',
+                message: 'No changes detected for the repo',
+                filePath: 'N/A',
+                line: 0,
+                severity: 'info',
+              },
+            ],
+          };
 
-      // 5. Update scan record with current commit hash
+          // Cache the no-change result
+          this.scanCache.cacheResult(repoUrl, currentCommitHash, noChangeResult);
+          
+          // Update storage
+          this.scanStorage.updateScanRecord(repoUrl, currentCommitHash, {
+            status: 'success',
+            duration: Date.now() - startTime,
+            findings: 1, // One "no change" finding
+          });
+
+          return noChangeResult;
+        }
+        
+        this.logger.log(`Changes detected for ${repoUrl}, proceeding with scan`);
+        changeDetection = {
+          hasChanges: true,
+          lastCommitHash: changeResult.result?.lastCommitHash || currentCommitHash,
+          scanSkipped: false,
+          reason: undefined,
+        };
+      } else {
+        this.logger.log(`No previous scan record found for ${repoUrl} or force scan requested`);
+      }
+
+      // 4. Clone the repository to a temp directory
+      const tmpDir = await tmp.dir({ unsafeCleanup: true });
+      const repoPath = tmpDir.path;
+      try {
+        this.logger.log(`Cloning repo ${repoUrl} to ${repoPath}`);
+        const cloneResult = await this.scmManager.cloneRepository(repoUrl, repoPath);
+        
+        if (!cloneResult.success) {
+          throw new Error(`Failed to clone repository: ${cloneResult.error}`);
+        }
+
+        this.logger.log(`Successfully cloned repository using provider: ${cloneResult.provider}`);
+
+        // 5. Fetch repository metadata
+        const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
+        const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
+
+        // 6. Run all scanners
+        let allFindings: { [scannerName: string]: any[] } = {};
+        let scannerInfos: Array<{ name: string; version: string; findings: any[] }> = [];
+        
+        for (const scanner of this.scanners) {
+          try {
+            const scannerInfo = { name: scanner.getName(), version: scanner.getVersion() };
+            
+            this.logger.log(`Running ${scannerInfo.name} scanner...`);
+            const findings = await scanner.scan(repoPath);
+            
+            // Add code context to each finding
+            const findingsWithContext = await Promise.all(
+              findings.map(async (finding) => {
+                try {
+                  this.logger.log(`Extracting context for file: ${finding.filePath}, line: ${finding.line}`);
+                  const codeContext = await this.extractCodeContext(repoPath, finding.filePath, finding.line);
+                  this.logger.log(`Context extraction result: ${codeContext ? 'SUCCESS' : 'NULL'} for ${finding.filePath}`);
+                  return {
+                    ...finding,
+                    scanner: scannerInfo.name,
+                    codeContext,
+                  };
+                } catch (error) {
+                  this.logger.warn(`Failed to extract code context for ${finding.filePath}:${finding.line}: ${error.message}`);
+                  return {
+                    ...finding,
+                    scanner: scannerInfo.name,
+                  };
+                }
+              })
+            );
+            
+            // Store findings by scanner name
+            allFindings[scannerInfo.name] = findingsWithContext;
+            scannerInfos.push({ ...scannerInfo, findings: findingsWithContext });
+            this.logger.log(`${scannerInfo.name} found ${findings.length} issues`);
+            
+          } catch (error) {
+            this.logger.error(`Scanner ${scanner.getName()} failed: ${error.message}`);
+            // Continue with other scanners even if one fails
+            // Store empty array for failed scanners
+            allFindings[scanner.getName()] = [];
+          }
+        }
+        
+        // Use the first scanner's info for backward compatibility, or combine them
+        const scannerInfo = scannerInfos.length > 0 ? scannerInfos[0] : { name: 'Multiple Scanners', version: 'latest' };
+
+        // 7. Create structured output with summary and details
+        const structuredOutput = this.createStructuredOutput(
+          metadata,
+          scannerInfos,
+          allFindings,
+          changeDetection,
+          currentCommitHash,
+          repoPath,
+          repoUrl
+        );
+
+        // 8. Cache the result
+        this.scanCache.cacheResult(repoUrl, currentCommitHash, structuredOutput);
+
+        // 9. Update scan record with current commit hash and performance metrics
+        const totalFindings = Object.values(allFindings).reduce((sum, findings) => sum + findings.length, 0);
+        this.scanStorage.updateScanRecord(repoUrl, currentCommitHash, {
+          status: 'success',
+          duration: Date.now() - startTime,
+          findings: totalFindings,
+        });
+
+        // 10. Log raw scan output
+        this.logger.log(`Raw scan output for ${repoUrl}: ${JSON.stringify(allFindings)}`);
+
+        // 11. Return structured result
+        return structuredOutput;
+      } finally {
+        // Cleanup temp directory
+        await tmpDir.cleanup();
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error(`Scan failed for ${repoUrl}: ${error.message}`);
+      
+      // Update storage with failure
       const commitHashResult = await this.scmManager.getLastCommitHash(repoUrl);
       const currentCommitHash = commitHashResult.hash || 'unknown';
-      this.scanStorage.updateScanRecord(repoUrl, currentCommitHash);
+      
+      this.scanStorage.updateScanRecord(repoUrl, currentCommitHash, {
+        status: 'failed',
+        duration,
+        findings: 0,
+      });
 
-      // 6. Log raw scan output
-      this.logger.log(`Raw scan output for ${repoUrl}: ${JSON.stringify(allFindings)}`);
-
-      // 7. Create structured output with summary and details
-      const structuredOutput = this.createStructuredOutput(
-        metadata,
-        scannerInfos,
-        allFindings,
-        changeDetection,
-        currentCommitHash,
-        repoPath,
-        repoUrl
-      );
-
-      // 8. Return structured result
-      return structuredOutput;
-    } finally {
-      // Cleanup temp directory
-      await tmpDir.cleanup();
+      throw error;
     }
   }
 
@@ -310,7 +476,72 @@ export class SecurityScanService {
   }
 
   /**
-   * Force a scan regardless of changes
+   * Get scan history for a repository
+   */
+  getScanHistory(repoUrl: string) {
+    return this.scanStorage.getScanHistory(repoUrl);
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStatistics() {
+    return this.scanCache.getCacheStatistics();
+  }
+
+  /**
+   * Get all cached repositories
+   */
+  getCachedRepositories() {
+    return this.scanCache.getCachedRepositories();
+  }
+
+  /**
+   * Get cached results for a specific repository
+   */
+  getCachedResultsForRepository(repoUrl: string) {
+    return this.scanCache.getCachedResultsForRepository(repoUrl);
+  }
+
+  /**
+   * Clear all cached results
+   */
+  clearCache() {
+    this.scanCache.clearCache();
+    return { message: 'Cache cleared successfully' };
+  }
+
+  /**
+   * Invalidate cache for a specific repository
+   */
+  invalidateRepositoryCache(repoUrl: string) {
+    this.scanCache.invalidateRepository(repoUrl);
+    return { message: `Cache invalidated for repository: ${repoUrl}` };
+  }
+
+  /**
+   * Get repositories that haven't been scanned recently
+   */
+  getStaleRepositories() {
+    return this.scanStorage.getStaleRepositories();
+  }
+
+  /**
+   * Get repositories with the most scans
+   */
+  getMostScannedRepositories() {
+    return this.scanStorage.getMostScannedRepositories();
+  }
+
+  /**
+   * Get repositories with the most cache hits
+   */
+  getMostCachedRepositories() {
+    return this.scanStorage.getMostCachedRepositories();
+  }
+
+  /**
+   * Force scan a repository (bypass cache and change detection)
    */
   async forceScanRepository(repoUrl: string): Promise<ScanResultDto> {
     return this.scanRepository(repoUrl, true);
