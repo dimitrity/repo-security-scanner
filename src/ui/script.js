@@ -4,6 +4,54 @@ const API_KEY = 'your-secure-production-key-2025'; // This matches the backend c
 
 // Global state
 let currentScanData = null;
+let authToken = null;
+
+// Authentication functions
+async function authenticateWithApiKey() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/api-key`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ apiKey: API_KEY })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Authentication failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        authToken = data.token;
+        return true;
+    } catch (error) {
+        console.error('Authentication error:', error);
+        return false;
+    }
+}
+
+async function ensureAuthenticated() {
+    if (!authToken) {
+        const authenticated = await authenticateWithApiKey();
+        if (!authenticated) {
+            throw new Error('Failed to authenticate with API key');
+        }
+    }
+    return authToken;
+}
+
+async function handleApiResponse(response) {
+    if (response.status === 401) {
+        // Token might be expired, try to re-authenticate
+        authToken = null;
+        const authenticated = await authenticateWithApiKey();
+        if (!authenticated) {
+            throw new Error('Authentication failed - please check your API key');
+        }
+        return false; // Indicate that we need to retry the request
+    }
+    return true; // Response is valid
+}
 
 // Main scan functions
 async function scanRepository() {
@@ -32,14 +80,31 @@ async function performScan(repoUrl, endpoint) {
         hideError();
         hideResults();
         
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        // Ensure we have a valid authentication token
+        const token = await ensureAuthenticated();
+        
+        let response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ repoUrl })
         });
+        
+        // Handle token expiration
+        if (!(await handleApiResponse(response))) {
+            // Retry with new token
+            const newToken = await ensureAuthenticated();
+            response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${newToken}`
+                },
+                body: JSON.stringify({ repoUrl })
+            });
+        }
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -336,11 +401,11 @@ async function showCodeContext(issue) {
             }
         }
         
-        const response = await fetch(`${API_BASE_URL}/scan/context`, {
+        let response = await fetch(`${API_BASE_URL}/scan/context`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({
                 repoUrl: extractRepoUrl(currentScanData.repository),
@@ -349,6 +414,25 @@ async function showCodeContext(issue) {
                 context: 5 // Show 5 lines of context around the issue
             })
         });
+        
+        // Handle token expiration
+        if (!(await handleApiResponse(response))) {
+            // Retry with new token
+            const newToken = await ensureAuthenticated();
+            response = await fetch(`${API_BASE_URL}/scan/context`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${newToken}`
+                },
+                body: JSON.stringify({
+                    repoUrl: extractRepoUrl(currentScanData.repository),
+                    filePath: filePath,
+                    line: issue.line,
+                    context: 5 // Show 5 lines of context around the issue
+                })
+            });
+        }
         
         if (!response.ok) {
             throw new Error(`Failed to fetch code context: ${response.statusText}`);

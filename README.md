@@ -23,6 +23,10 @@ The Repository Security Scanner is a security analysis platform built with NestJ
 - **Performance Analytics**: Detailed scan duration and cache hit tracking
 - **Enhanced History**: Comprehensive scan history with performance metrics
 
+### Missing features:
+- **Robust Queue Management**: Next step would be to implement **BullMQ** for robust Queue Management.
+- **Webhook Implementation**: Next improvement would be adding Webhook support to Notify about Scan Complletion on subcription.
+
 ### Security Scanners
 
 #### Semgrep (Static Analysis)
@@ -1425,15 +1429,6 @@ Building a universal repository security scanner presented several significant a
 - **Provider Registry**: Automatic provider selection based on URL patterns and capabilities
 - **Graceful Fallback**: Enhanced Git provider handles any Git repository when specific providers fail
 
-```typescript
-// Unified interface for all SCM platforms
-interface ScmProvider {
-  canHandle(repoUrl: string): boolean;
-  fetchRepoMetadata(repoUrl: string): Promise<RepositoryMetadata>;
-  cloneRepository(repoUrl: string, targetPath: string): Promise<void>;
-}
-```
-
 ### **Challenge 2: Scanner Integration & Output Normalization**
 
 **Problem**: Semgrep and Gitleaks produce different output formats, error codes, and finding structures.
@@ -1442,14 +1437,6 @@ interface ScmProvider {
 - **Scanner Interface**: Common interface for all security scanners
 - **Output Normalization**: Transform scanner-specific outputs into unified finding format
 - **Error Handling**: Graceful handling when scanners fail or produce unexpected output
-
-```typescript
-interface SecurityScanner {
-  scan(repositoryPath: string): Promise<Finding[]>;
-  getName(): string;
-  getVersion(): string;
-}
-```
 
 ### **Challenge 3: Efficient Change Detection**
 
@@ -1471,25 +1458,14 @@ interface SecurityScanner {
 - **Process Isolation**: Prevent concurrent scans from interfering
 - **Security**: Restrict file permissions and prevent path traversal
 
-```typescript
-// Safe temporary directory management
-const tmpDir = await tmp.dir({ unsafeCleanup: true });
-try {
-  await this.cloneRepository(repoUrl, tmpDir.path);
-  return await this.performScan(tmpDir.path);
-} finally {
-  await tmpDir.cleanup(); // Always cleanup
-}
-```
+### **Challenge 5: Authentication and Rate Limiting**
 
-### **Challenge 5: Authentication & Rate Limiting**
-
-**Problem**: Different platforms have varying authentication methods and rate limits.
+**Problem**: Different platforms have varying rate limits and different authetication.
 
 **Solution**:
-- **Flexible Authentication**: Support tokens, OAuth, and anonymous access
 - **Rate Limit Awareness**: Track and respect platform-specific rate limits
 - **Authentication Fallback**: Gracefully degrade to anonymous access
+- **Flexible Authentication**: Support tokens, OAuth, and anonymous access
 - **Token Validation**: Verify authentication status and provide clear errors
 
 ### **Challenge 6: Concurrent Scan Management**
@@ -1499,18 +1475,19 @@ try {
 **Solution**:
 - **Process Isolation**: Each scan runs in isolated environment
 - **Resource Limits**: Control memory and CPU usage per scan
-- **Queue Management**: Handle scan requests efficiently
+- **Queue Management**: Handle scan requests efficiently. Currently, it is the simplest implementation possible. Next step would be adding **BullMQ** to support a more robust queue management. 
 - **Timeout Protection**: Prevent hung scans from blocking others
 
 ### **Challenge 7: Code Context Embedding**
 
-**Problem**: Provide code snippets around security findings without additional API calls.
+**Problem**: Provide code snippets around security findings without additional API calls. It is possible to implement fetching the context each time the user reviews the findings, however it is inefficient and error prone.
 
 **Solution**:
 - **Embedded Context**: Include code snippets directly in scan results
 - **Context Window**: Configurable lines before/after findings
 - **File Caching**: Cache file contents during scan for efficient context retrieval
 - **Fallback Mechanism**: Handle binary files, large files, and encoding issues
+- **Unsolved Issue**: Loading the context is failing on an independent UI App. That was found but was not priortized to be be fixed. It works in the local UI and that satisfies the project requirement for now.
 
 ### **Challenge 8: UI/API Consistency**
 
@@ -1535,6 +1512,16 @@ try {
 ### **Challenge 10: Security & Input Validation**
 
 **Problem**: Prevent malicious repositories from compromising the scanner.
+
+**Solution**:
+- **Input Sanitization**: Validate all repository URLs and parameters
+- **Sandboxed Execution**: Isolate scanner processes from main application
+- **Resource Limits**: Prevent resource exhaustion attacks
+- **API Security**: Authentication, rate limiting, and input validation
+
+### **Challenge 11: Rate limit for the calls to the application**
+
+**Problem**: Prevent the scanner from being overwhelmed by the number of requests.
 
 **Solution**:
 - **Input Sanitization**: Validate all repository URLs and parameters
@@ -1708,10 +1695,4 @@ NODE_ENV=development npm run start:dev
 
 ## Support
 
-- **Issues**: [Create GitHub issues](https://github.com/your-org/repo-security-scanner/issues) for bugs and feature requests
-- **Security**: Report security vulnerabilities privately to maintainers
-- **Community**: Join discussions for questions and contributions
-
 ---
-
-**Built with love using NestJS, TypeScript, and modern security scanning tools.**

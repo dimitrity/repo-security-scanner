@@ -1,13 +1,10 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { AuthService } from '../auth.service';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') implements CanActivate {
-  constructor(private readonly authService: AuthService) {
-    super();
-  }
+export class JwtAuthGuard implements CanActivate {
+  constructor(private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -43,7 +40,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') implements CanActivate {
       }
     }
 
-    // If no valid authentication found, try the default JWT strategy
-    return super.canActivate(context) as Promise<boolean>;
+    throw new UnauthorizedException('No valid authentication provided');
   }
 } 
