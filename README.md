@@ -23,6 +23,10 @@ The Repository Security Scanner is a security analysis platform built with NestJ
 - **Performance Analytics**: Detailed scan duration and cache hit tracking
 - **Enhanced History**: Comprehensive scan history with performance metrics
 
+### Missing features:
+- **Robust Queue Management**: Next step would be to implement **BullMQ** for robust Queue Management.
+- **Webhook Implementation**: Next improvement would be adding Webhook support to Notify about Scan Complletion on subcription.
+
 ### Security Scanners
 
 #### Semgrep (Static Analysis)
@@ -37,10 +41,118 @@ The Repository Security Scanner is a security analysis platform built with NestJ
 
 ### Security Features
 
-- **API Key Authentication**: Secure API access control
+- **Multi-Method Authentication**: JWT tokens, SIWE (Sign-In with Ethereum), and API key support
 - **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
 - **Safe Scanner Execution**: Isolated scanner process execution
+
+### Authentication
+
+The Repository Security Scanner supports multiple authentication methods for secure API access:
+
+#### **Authentication Methods**
+
+##### **1. JWT Token Authentication (Recommended)**
+- **Bearer Token**: Use JWT tokens for stateless authentication
+- **Token Expiration**: Configurable token lifetime (default: 24 hours)
+- **Secure**: Cryptographically signed tokens with expiration
+
+```bash
+# Get JWT token using API key
+POST /auth/api-key
+Content-Type: application/json
+
+{
+  "apiKey": "your-api-key"
+}
+
+# Use JWT token in requests
+Authorization: Bearer <jwt-token>
+```
+
+##### **2. SIWE (Sign-In with Ethereum)**
+- **Web3 Authentication**: Authenticate using Ethereum wallet signatures
+- **Nonce-based Security**: Prevents replay attacks
+- **Decentralized Identity**: No central authority required
+
+```bash
+# Get SIWE nonce
+POST /auth/siwe/nonce
+
+# Authenticate with SIWE signature
+POST /auth/siwe/verify
+Content-Type: application/json
+
+{
+  "message": "{\"address\":\"0x...\",\"domain\":\"localhost\",\"uri\":\"http://localhost:3000\",\"version\":\"1\",\"chainId\":1,\"nonce\":\"nonce123\",\"issuedAt\":\"2024-01-01T00:00:00.000Z\"}",
+  "signature": "0x..."
+}
+
+# Use JWT token in requests
+Authorization: Bearer <jwt-token>
+```
+
+##### **3. API Key Authentication (Legacy)**
+- **Backward Compatibility**: Existing API key support maintained
+- **Simple Integration**: Easy to implement for existing clients
+- **Header-based**: Use `x-api-key` header
+
+```bash
+# Use API key directly
+x-api-key: your-api-key
+```
+
+#### **Authentication Endpoints**
+
+```bash
+# API Key Authentication
+POST /auth/api-key
+{
+  "apiKey": "your-api-key"
+}
+
+# SIWE Nonce Generation
+POST /auth/siwe/nonce
+
+# SIWE Authentication
+POST /auth/siwe/verify
+{
+  "message": "SIWE message",
+  "signature": "Ethereum signature"
+}
+
+# Token Verification
+POST /auth/verify
+Authorization: Bearer <jwt-token>
+```
+
+#### **Configuration**
+
+Set environment variables for authentication:
+
+```bash
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRATION=24h
+
+# API Key Configuration
+API_KEYS=your-secure-production-key-2025
+```
+
+#### **Authentication Flow**
+
+1. **Client obtains JWT token** via API key or SIWE authentication
+2. **Token used in subsequent requests** via `Authorization: Bearer <token>` header
+3. **Server validates token** and extracts user information
+4. **Request processed** with user context
+
+#### **Security Benefits**
+
+- **Stateless Authentication**: No server-side session storage
+- **Token Expiration**: Automatic token invalidation
+- **Cryptographic Security**: JWT tokens are cryptographically signed
+- **Web3 Integration**: Native Ethereum wallet support
+- **Backward Compatibility**: Existing API key clients continue to work
 
 ### Caching System
 
@@ -1317,15 +1429,6 @@ Building a universal repository security scanner presented several significant a
 - **Provider Registry**: Automatic provider selection based on URL patterns and capabilities
 - **Graceful Fallback**: Enhanced Git provider handles any Git repository when specific providers fail
 
-```typescript
-// Unified interface for all SCM platforms
-interface ScmProvider {
-  canHandle(repoUrl: string): boolean;
-  fetchRepoMetadata(repoUrl: string): Promise<RepositoryMetadata>;
-  cloneRepository(repoUrl: string, targetPath: string): Promise<void>;
-}
-```
-
 ### **Challenge 2: Scanner Integration & Output Normalization**
 
 **Problem**: Semgrep and Gitleaks produce different output formats, error codes, and finding structures.
@@ -1334,14 +1437,6 @@ interface ScmProvider {
 - **Scanner Interface**: Common interface for all security scanners
 - **Output Normalization**: Transform scanner-specific outputs into unified finding format
 - **Error Handling**: Graceful handling when scanners fail or produce unexpected output
-
-```typescript
-interface SecurityScanner {
-  scan(repositoryPath: string): Promise<Finding[]>;
-  getName(): string;
-  getVersion(): string;
-}
-```
 
 ### **Challenge 3: Efficient Change Detection**
 
@@ -1363,25 +1458,14 @@ interface SecurityScanner {
 - **Process Isolation**: Prevent concurrent scans from interfering
 - **Security**: Restrict file permissions and prevent path traversal
 
-```typescript
-// Safe temporary directory management
-const tmpDir = await tmp.dir({ unsafeCleanup: true });
-try {
-  await this.cloneRepository(repoUrl, tmpDir.path);
-  return await this.performScan(tmpDir.path);
-} finally {
-  await tmpDir.cleanup(); // Always cleanup
-}
-```
+### **Challenge 5: Authentication and Rate Limiting**
 
-### **Challenge 5: Authentication & Rate Limiting**
-
-**Problem**: Different platforms have varying authentication methods and rate limits.
+**Problem**: Different platforms have varying rate limits and different authetication.
 
 **Solution**:
-- **Flexible Authentication**: Support tokens, OAuth, and anonymous access
 - **Rate Limit Awareness**: Track and respect platform-specific rate limits
 - **Authentication Fallback**: Gracefully degrade to anonymous access
+- **Flexible Authentication**: Support tokens, OAuth, and anonymous access
 - **Token Validation**: Verify authentication status and provide clear errors
 
 ### **Challenge 6: Concurrent Scan Management**
@@ -1391,18 +1475,19 @@ try {
 **Solution**:
 - **Process Isolation**: Each scan runs in isolated environment
 - **Resource Limits**: Control memory and CPU usage per scan
-- **Queue Management**: Handle scan requests efficiently
+- **Queue Management**: Handle scan requests efficiently. Currently, it is the simplest implementation possible. Next step would be adding **BullMQ** to support a more robust queue management. 
 - **Timeout Protection**: Prevent hung scans from blocking others
 
 ### **Challenge 7: Code Context Embedding**
 
-**Problem**: Provide code snippets around security findings without additional API calls.
+**Problem**: Provide code snippets around security findings without additional API calls. It is possible to implement fetching the context each time the user reviews the findings, however it is inefficient and error prone.
 
 **Solution**:
 - **Embedded Context**: Include code snippets directly in scan results
 - **Context Window**: Configurable lines before/after findings
 - **File Caching**: Cache file contents during scan for efficient context retrieval
 - **Fallback Mechanism**: Handle binary files, large files, and encoding issues
+- **Unsolved Issue**: Loading the context is failing on an independent UI App. That was found but was not priortized to be be fixed. It works in the local UI and that satisfies the project requirement for now.
 
 ### **Challenge 8: UI/API Consistency**
 
@@ -1427,6 +1512,16 @@ try {
 ### **Challenge 10: Security & Input Validation**
 
 **Problem**: Prevent malicious repositories from compromising the scanner.
+
+**Solution**:
+- **Input Sanitization**: Validate all repository URLs and parameters
+- **Sandboxed Execution**: Isolate scanner processes from main application
+- **Resource Limits**: Prevent resource exhaustion attacks
+- **API Security**: Authentication, rate limiting, and input validation
+
+### **Challenge 11: Rate limit for the calls to the application**
+
+**Problem**: Prevent the scanner from being overwhelmed by the number of requests.
 
 **Solution**:
 - **Input Sanitization**: Validate all repository URLs and parameters
@@ -1600,10 +1695,4 @@ NODE_ENV=development npm run start:dev
 
 ## Support
 
-- **Issues**: [Create GitHub issues](https://github.com/your-org/repo-security-scanner/issues) for bugs and feature requests
-- **Security**: Report security vulnerabilities privately to maintainers
-- **Community**: Join discussions for questions and contributions
-
 ---
-
-**Built with love using NestJS, TypeScript, and modern security scanning tools.**
