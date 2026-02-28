@@ -12,7 +12,7 @@ export class SecurityScanController {
 
   @Get()
   serveUI(@Res() res: Response) {
-    res.sendFile(join(process.cwd(), 'public', 'index.html'));
+    res.sendFile(join(__dirname, 'ui', 'index.html'));
   }
 
   @UseGuards(ApiKeyGuard)

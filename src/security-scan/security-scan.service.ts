@@ -2,7 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ScanResultDto } from './dto/scan-result.dto';
 import * as tmp from 'tmp-promise';
 import { SecurityScanner } from './interfaces/scanners.interface';
-import { GitScmProvider } from './providers/scm-git.provider';
+import { ScmManagerService } from './providers/scm-manager.service';
 import { ScanStorageService } from './providers/scan-storage.service';
 import * as fs from 'fs';
 
@@ -11,7 +11,7 @@ export class SecurityScanService {
   private readonly logger = new Logger(SecurityScanService.name);
 
   constructor(
-    private readonly scmProvider: GitScmProvider,
+    private readonly scmManager: ScmManagerService,
     @Inject('SCANNERS') private readonly scanners: SecurityScanner[],
     private readonly scanStorage: ScanStorageService,
   ) {}
@@ -30,12 +30,13 @@ export class SecurityScanService {
       this.logger.log(`Checking for changes since last scan of ${repoUrl}`);
       this.logger.log(`Last scan commit hash: ${lastScanRecord.lastCommitHash}`);
       
-      const changeInfo = await this.scmProvider.hasChangesSince(repoUrl, lastScanRecord.lastCommitHash);
-      this.logger.log(`Change detection result:`, changeInfo);
+      const changeResult = await this.scmManager.hasChangesSince(repoUrl, lastScanRecord.lastCommitHash);
+      this.logger.log(`Change detection result:`, changeResult);
       
-      if (!changeInfo.hasChanges) {
+      if (changeResult.result && !changeResult.result.hasChanges) {
         this.logger.log(`No changes detected for ${repoUrl}, returning no-change finding instead of performing scan`);
-        const metadata = await this.scmProvider.fetchRepoMetadata(repoUrl);
+        const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
+        const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
         
         return {
           repository: metadata,
@@ -61,7 +62,8 @@ export class SecurityScanService {
             ],
           },
           changeDetection: {
-            ...changeInfo,
+            hasChanges: false,
+            lastCommitHash: changeResult.result.lastCommitHash,
             scanSkipped: true,
             reason: 'No changes detected since last scan',
           },
@@ -80,7 +82,8 @@ export class SecurityScanService {
       
       this.logger.log(`Changes detected for ${repoUrl}, proceeding with scan`);
       changeDetection = {
-        ...changeInfo,
+        hasChanges: true,
+        lastCommitHash: changeResult.result?.lastCommitHash || 'unknown',
         scanSkipped: false,
         reason: undefined,
       };
@@ -93,10 +96,17 @@ export class SecurityScanService {
     const repoPath = tmpDir.path;
     try {
       this.logger.log(`Cloning repo ${repoUrl} to ${repoPath}`);
-      await this.scmProvider.cloneRepository(repoUrl, repoPath);
+      const cloneResult = await this.scmManager.cloneRepository(repoUrl, repoPath);
+      
+      if (!cloneResult.success) {
+        throw new Error(`Failed to clone repository: ${cloneResult.error}`);
+      }
 
-      // 3. Fetch repository metadata (moved before scanner execution)
-      const metadata = await this.scmProvider.fetchRepoMetadata(repoUrl);
+      this.logger.log(`Successfully cloned repository using provider: ${cloneResult.provider}`);
+
+      // 3. Fetch repository metadata
+      const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
+      const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
 
       // 4. Run all scanners
       let allFindings: { [scannerName: string]: any[] } = {};
@@ -148,7 +158,8 @@ export class SecurityScanService {
       const scannerInfo = scannerInfos.length > 0 ? scannerInfos[0] : { name: 'Multiple Scanners', version: 'latest' };
 
       // 5. Update scan record with current commit hash
-      const currentCommitHash = await this.scmProvider.getLastCommitHash(repoUrl);
+      const commitHashResult = await this.scmManager.getLastCommitHash(repoUrl);
+      const currentCommitHash = commitHashResult.hash || 'unknown';
       this.scanStorage.updateScanRecord(repoUrl, currentCommitHash);
 
       // 6. Log raw scan output
@@ -173,7 +184,38 @@ export class SecurityScanService {
     }
   }
 
+  /**
+   * Get default metadata when SCM provider fails
+   */
+  private getDefaultMetadata(repoUrl: string): any {
+    const repoInfo = this.scmManager.parseRepositoryUrl(repoUrl);
+    const name = repoInfo.repoInfo?.repository || this.extractRepoNameFromUrl(repoUrl);
+    
+    return {
+      name,
+      description: 'Repository information unavailable',
+      defaultBranch: 'main',
+      lastCommit: {
+        hash: 'unknown',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
 
+  /**
+   * Extract repository name from URL as fallback
+   */
+  private extractRepoNameFromUrl(repoUrl: string): string {
+    try {
+      const url = new URL(repoUrl);
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      return pathParts[pathParts.length - 1].replace('.git', '');
+    } catch {
+      // Handle SSH URLs
+      const match = repoUrl.match(/\/([^\/]+)\.git$/);
+      return match ? match[1] : 'unknown';
+    }
+  }
 
   /**
    * Extract code context for a specific file and line
@@ -376,10 +418,11 @@ export class SecurityScanService {
     
     try {
       this.logger.log(`Cloning repo ${repoUrl} for code context`);
-      await this.scmProvider.cloneRepository(repoUrl, repoPath);
+      await this.scmManager.cloneRepository(repoUrl, repoPath);
       
       // Fetch repository metadata
-      const metadata = await this.scmProvider.fetchRepoMetadata(repoUrl);
+      const metadataResult = await this.scmManager.fetchRepositoryMetadata(repoUrl);
+      const metadata = metadataResult.metadata || this.getDefaultMetadata(repoUrl);
       
       // Construct the full file path from repository-relative path
       const fullFilePath = require('path').join(repoPath, filePath);

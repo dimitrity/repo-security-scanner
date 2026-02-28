@@ -1,34 +1,26 @@
 # Repository Security Scanner
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-  <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-  <a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-</p>
-
 ## Project Overview
 
-The Repository Security Scanner is a comprehensive security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features dual scanner integration, intelligent change detection, and a modern web interface for viewing results.
+The Repository Security Scanner is a security analysis platform built with NestJS that automatically scans Git repositories for security vulnerabilities, secrets, and code quality issues. It features **dual scanner integration**, **change detection**, **multi-platform SCM support**, and a web interface for viewing results.
 
-### 🚀 Key Features
+### Key Features
 
-- 🔍 **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
-- 🌐 **Modern Web UI**: GitHub-style interface with instant code context viewing
-- 📱 **Embedded Code Context**: View code snippets directly in scan results without additional API calls
-- 🚀 **Intelligent Change Detection**: Skip scans when no repository changes detected
-- 📊 **Scanner Summary Dashboard**: Real-time issue counts and scanner status
-- 🔐 **Secure API**: API key authentication with input validation and sanitization
-- 🐳 **Docker Ready**: Complete containerization with docker-compose support
-- 🔄 **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
-- 📈 **Scan Statistics**: Track scanning activity and repository history
-- ⚡ **Force Scan Option**: Bypass change detection when needed
+- **Dual Scanner Integration**: Semgrep for static analysis + Gitleaks for secret detection
+- **Multi-Platform SCM Support**: GitHub, GitLab, and Bitbucket with provider selection
+- **Modern Web UI**: GitHub-style interface with instant code context viewing
+- **Embedded Code Context**: View code snippets directly in scan results without additional API calls
+- **Change Detection**: Skip scans when no repository changes detected
+- **Provider Selection**: Best SCM provider automatically chosen based on repository URL
+- **Scanner Summary Dashboard**: Real-time issue counts and scanner status
+- **Secure API**: API key authentication with input validation and sanitization
+- **Docker Ready**: Containerization with docker-compose support
+- **Cross-Platform**: Supports macOS, Linux, Windows, and Docker environments
+- **Scan Statistics**: Track scanning activity and repository history
+- **Force Scan Option**: Bypass change detection when needed
+- **Health Monitoring**: Provider health checks and performance monitoring
 
-### 🛡️ Security Scanners
+### Security Scanners
 
 #### Semgrep (Static Analysis)
 - **Purpose**: Code security vulnerabilities, OWASP patterns, custom rules
@@ -40,29 +32,67 @@ The Repository Security Scanner is a comprehensive security analysis platform bu
 - **Features**: Entropy-based detection, custom patterns, Git history scanning
 - **Detects**: AWS keys, GitHub tokens, passwords, private keys, etc.
 
-### 🔐 Production-Ready Security
+### Security Features
 
-#### API Key Authentication
-- **Multi-Key Support**: Configure multiple API keys for different use cases
-- **Environment-Based**: Automatic development fallback, production enforcement
-- **Secure Validation**: 16-256 character keys with format validation
-- **Audit Logging**: Security-focused logging with key truncation
-- **Dynamic Management**: Runtime key addition/removal capabilities
-
-#### Security Features
-- **Input Validation**: Comprehensive request sanitization
+- **API Key Authentication**: Secure API access control
+- **Input Validation**: Request sanitization and validation
 - **Path Traversal Protection**: Secure file system access
-- **Rate Limiting Ready**: Infrastructure for API rate limiting
-- **Secrets Management**: Integration with cloud secret services
+- **Safe Scanner Execution**: Isolated scanner process execution
 
-### 🌍 Repository Platform Support
+### SCM Abstraction Layer
 
-- **GitHub**: Full API integration for metadata and commit information
-- **GitLab**: API support for repository details
-- **Bitbucket**: API integration for repository metadata
-- **Generic Git**: Fallback support for any accessible Git repository
+**Multi-provider architecture for source control integration:**
 
-## 🚀 Quick Start
+#### **Supported Platforms**
+- **GitHub**: 
+  - Full API integration with authentication
+  - Private repository support
+  - Enhanced metadata extraction
+  - Rate limit handling
+  
+- **GitLab**:
+  - **GitLab.com & Self-hosted**: Full support for both public GitLab.com and private GitLab instances
+  - **Authentication**: Personal Access Token support for private repositories
+  - **Metadata**: Repository details, contributor stats, commit history
+  - **Private Repository Access**: Secure token-based authentication for private repos
+  - **CI/CD Integration**: Compatible with GitLab CI/CD pipelines
+
+- **Enhanced Git**: 
+  - Universal Git repository support
+  - Automatic authentication handling
+  - Fallback for any Git hosting platform
+
+#### **Key Capabilities**
+- **Provider Selection**: Best provider automatically chosen based on URL
+- **Automatic Fallback**: Graceful degradation when providers fail
+- **Multi-Platform Authentication**: Token-based auth with environment variables
+- **Provider Health Monitoring**: Real-time status and performance tracking
+- **Extensible**: Add new providers with code changes
+- **Analytics & Insights**: Provider usage statistics and recommendations
+
+#### **Extensible Design**
+```typescript
+// Adding a new provider:
+@Injectable()
+export class BitbucketScmProvider extends BaseScmProvider {
+  // Implement platform-specific logic
+}
+```
+
+### Repository Platform Support
+
+The SCM abstraction layer provides unified support for multiple platforms:
+
+| Platform | Support Level | Features |
+|----------|---------------|----------|
+| **GitHub** | Full | API integration, private repos, metadata, rate limiting |
+| **GitLab** | Enhanced | SaaS + self-hosted, private repos, comprehensive metadata |
+| **Bitbucket** | Full | API integration, private repos, metadata, rate limiting |
+| **Generic Git** | Full | Any Git repository, SSH/HTTPS, fallback support |
+
+**Platform Detection**: Repositories are automatically routed to the optimal provider based on hostname and URL patterns.
+
+## Quick Start
 
 ### Prerequisites
 
@@ -112,97 +142,88 @@ winget install gitleaks
 
 #### 3. Configuration
 
-**Development Mode (No configuration needed):**
-The application uses a development fallback API key automatically.
+**Setup:**
+The application is preconfigured with a default API key. For production, you can optionally set your own:
 
-**Production Mode - Create `.env` file:**
 ```bash
-# API Configuration
+# Optional: Create .env file for custom configuration
 PORT=3000
-NODE_ENV=production
+API_KEYS=your-custom-api-key-here
 
-# Security (Required in Production)
-# Multiple API keys (recommended)
-API_KEYS=primary-prod-key-2024-abc123,backup-key-def456
-
-# Legacy single API key (backward compatibility)
-API_KEY=your-secure-api-key-here
-
-# Optional: Enhanced metadata support  
+# Optional: Enhanced GitHub metadata support  
 GITHUB_TOKEN=your-github-token
 ```
 
-**API Key Requirements:**
-- Minimum 16 characters
-- Maximum 256 characters
-- Alphanumeric, dashes (-), and underscores (_) only
-- Case sensitive
+**Note:** The frontend and backend are automatically synchronized with the same API key.
 
-### 🏃‍♂️ Running the Application
-
-#### Development Mode
+**Enhanced SCM Support:**
 ```bash
-npm run start:dev
+# Optional: Enhanced GitHub metadata support  
+GITHUB_TOKEN=your-github-token
+
+# Optional: GitLab support (SaaS or self-hosted)
+GITLAB_TOKEN=your-gitlab-token
+# Alternative GitLab token environment variable
+GITLAB_ACCESS_TOKEN=your-gitlab-access-token
+
+# Optional: Bitbucket support
+BITBUCKET_TOKEN=your-bitbucket-app-password
+# Alternative Bitbucket token environment variable  
+BITBUCKET_APP_PASSWORD=your-bitbucket-app-password
 ```
 
-#### Production Mode
+### Running the Application
+
+#### Local Development
 ```bash
+# Start development server
+npm run start:dev
+
+# Or build and run
 npm run build
 npm run start:prod
 ```
 
-#### Docker
+#### Docker (Recommended)
 ```bash
-# Using Docker Compose (Recommended)
+# Start with Docker Compose
 docker-compose up -d
 
-# Or build and run manually
-docker build -t repo-security-scanner .
+# View logs
+docker-compose logs -f
 
-# Development mode (uses fallback API key)
-docker run -p 3000:3000 repo-security-scanner
-
-# Production mode (requires API key)
-docker run -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e API_KEYS=your-production-key-here \
-  repo-security-scanner
+# Stop
+docker-compose down
 ```
 
-### 🔧 Environment Configuration
+### Environment Configuration
 
-#### Quick Setup
-- **Development**: No configuration needed - uses `dev-api-key-for-testing`
-- **Production**: Set `API_KEYS` environment variable
+The application works out of the box with sensible defaults. Optional configuration:
 
-#### Advanced Configuration
 ```bash
-# Multiple API keys (recommended for production)
-export API_KEYS="primary-key-2024-abc123,backup-key-def456,monitor-key-ghi789"
+# Basic Configuration
+export PORT="3000"                              # Application port (default: 3000)
+export API_KEYS="your-custom-api-key"          # Custom API key (optional)
 
-# Single API key (legacy support)
-export API_KEY="your-single-api-key-here"
+# SCM Platform Authentication (Optional)
+export GITHUB_TOKEN="your-github-token"        # Enhanced GitHub metadata and private repos
+export GITLAB_TOKEN="your-gitlab-token"        # GitLab SaaS and self-hosted support
+export BITBUCKET_TOKEN="your-bitbucket-token"  # Bitbucket private repos and enhanced metadata
 
-# Environment settings
-export NODE_ENV="production"
-export PORT="3000"
+# Alternative environment variable names also supported:
+export GITLAB_ACCESS_TOKEN="your-gitlab-token"
+export BITBUCKET_APP_PASSWORD="your-bitbucket-app-password"
 ```
 
-#### Cloud Deployment Examples
-```bash
-# AWS with Secrets Manager
-API_KEYS=$(aws secretsmanager get-secret-value --secret-id prod/scanner/keys --query SecretString --output text)
+**Supported Repository Platforms:**
+- **GitHub** (github.com) - Public repos work without authentication, private repos require `GITHUB_TOKEN`
+- **GitLab** (gitlab.com + self-hosted) - Public repos work without authentication, private repos require `GITLAB_TOKEN`
+- **Bitbucket** (bitbucket.org) - Public repos work without authentication, private repos require `BITBUCKET_TOKEN`
+- **Generic Git** - Any Git repository accessible via HTTPS/SSH
 
-# Kubernetes with secrets
-kubectl create secret generic scanner-keys --from-literal=api-keys="key1,key2"
+For Docker deployment, you can set these in your `docker-compose.yml` or pass them as environment variables.
 
-# Docker with environment file
-docker run --env-file .env repo-security-scanner
-```
-
-📖 **For detailed configuration guide, see [Environment Configuration](ENVIRONMENT_CONFIGURATION.md)**
-
-## 🌐 Web Interface
+## Web Interface
 
 Access the web interface at `http://localhost:3000`
 
@@ -211,41 +232,31 @@ Access the web interface at `http://localhost:3000`
 - **Real-time Results**: Live scanner progress and issue counts
 - **Code Context Viewer**: Click any finding to see highlighted code snippets
 - **Scanner Summary**: Overview of all scanners with issue breakdown
-- **Force Scan**: Bypass change detection for complete rescans
+- **Force Scan**: Bypass change detection for rescans
 - **GitHub-style UI**: Familiar, modern interface design
 
 ### Usage:
 1. Navigate to `http://localhost:3000`
 2. Enter a repository URL (e.g., `https://github.com/user/repo`)
-3. Click "🔍 Scan Repository" or "⚡ Force Scan"
+3. Click "Scan Repository" or "Force Scan"
 4. View results with embedded code context
 5. Click on any finding to see detailed code snippets
 
-## 🔌 API Documentation
+## API Documentation
 
-### 🔐 Authentication
+### Authentication
 
-All API endpoints require the `x-api-key` header:
+All API endpoints require the `x-api-key` header. The default API key is `your-secure-production-key-2025`:
 
-#### Development Mode
 ```bash
-curl -H "x-api-key: dev-api-key-for-testing" http://localhost:3000/scan/statistics
+curl -H "x-api-key: your-secure-production-key-2025" http://localhost:3000/scan/statistics
 ```
 
-#### Production Mode
-```bash
-curl -H "x-api-key: your-production-api-key" http://localhost:3000/scan/statistics
-```
-
-#### Security Features
-- **Multiple Key Support**: Configure primary, backup, and monitoring keys
-- **Key Validation**: Automatic format and security validation
-- **Audit Logging**: Failed authentication attempts logged for security monitoring
-- **Environment Separation**: Different keys for dev/staging/production
+You can customize the API key by setting the `API_KEYS` environment variable.
 
 ### Endpoints
 
-#### 🔍 Scan Repository
+#### Scan Repository
 ```bash
 POST /scan
 Content-Type: application/json
@@ -256,7 +267,7 @@ x-api-key: your-api-key-here
 }
 ```
 
-#### ⚡ Force Scan
+#### Force Scan
 ```bash
 POST /scan/force
 Content-Type: application/json
@@ -267,19 +278,19 @@ x-api-key: your-api-key-here
 }
 ```
 
-#### 📊 Get Statistics
+#### Get Statistics
 ```bash
 GET /scan/statistics
 x-api-key: your-api-key-here
 ```
 
-#### 📋 Get Scan Records
+#### Get Scan Records
 ```bash
 GET /scan/records
 x-api-key: your-api-key-here
 ```
 
-#### 🔍 Get Code Context
+#### Get Code Context
 ```bash
 POST /scan/context
 Content-Type: application/json
@@ -293,13 +304,94 @@ x-api-key: your-api-key-here
 }
 ```
 
-**🔐 Authentication:**
-- **Development**: Use `dev-api-key-for-testing` 
-- **Production**: Configure via `API_KEYS` environment variable
-- All API endpoints require the `x-api-key` header (except static UI)
-- See [Environment Configuration Guide](ENVIRONMENT_CONFIGURATION.md) for details
+**Authentication:**
+- Use API key `your-secure-production-key-2025` in the `x-api-key` header
+- Customize by setting the `API_KEYS` environment variable
+- All API endpoints require authentication (except static UI)
 
-### 📄 API Response Format
+## Postman Collection
+
+A Postman collection is included for API testing and development.
+
+#### Quick Start
+
+1. **Import the Collection:**
+   ```bash
+   # In Postman: File → Import → Upload Files
+   # Select: Repository-Security-Scanner.postman_collection.json
+   ```
+
+2. **Configure Variables:**
+   - `base_url`: `http://localhost:3000` (or your server URL)
+   - `api_key`: `your-secure-production-key-2025` (or your custom key)
+
+3. **Start Testing:**
+   - Use individual requests or run the entire collection
+   - Test various repository platforms (GitHub, GitLab, Bitbucket)
+   - Validate error handling and edge cases
+
+#### Collection Features
+
+**Repository Scanning:**
+- GitHub repository scanning
+- GitLab repository scanning  
+- Bitbucket repository scanning
+- Force scan capabilities
+- Custom repository testing
+
+**Code Context:**
+- Get code context around specific lines
+- Configurable context window
+- Multiple file format support
+
+**Statistics & Records:**
+- Scan statistics retrieval
+- Historical scan records
+- Provider health monitoring
+
+**Error Testing:**
+- Authentication validation
+- Input validation testing
+- URL format verification
+- Non-existent repository handling
+
+**Pre-configured Test Cases:**
+- **Load Testing**: Multiple concurrent scans
+- **URL Format Testing**: Various repository URL patterns
+- **Error Scenarios**: Error handling validation
+- **Multi-Platform**: GitHub, GitLab, Bitbucket, and generic Git
+
+#### Advanced Usage
+
+**Environment Variables:**
+```json
+{
+  "base_url": "http://localhost:3000",
+  "api_key": "your-secure-production-key-2025",
+  "test_repo_github": "https://github.com/OWASP/NodeGoat",
+  "test_repo_gitlab": "https://gitlab.com/gitlab-org/gitlab-foss",
+  "test_repo_bitbucket": "https://bitbucket.org/atlassian/atlassian-frontend"
+}
+```
+
+**Collection Runner:**
+- Use Postman Runner for automated testing
+- Configure iterations for load testing
+- Monitor response times and success rates
+- Export results for performance analysis
+
+**Newman CLI Integration:**
+```bash
+# Install Newman (Postman CLI)
+npm install -g newman
+
+# Run collection from command line
+newman run Repository-Security-Scanner.postman_collection.json \
+  --env-var "base_url=http://localhost:3000" \
+  --env-var "api_key=your-api-key"
+```
+
+### API Response Format
 
 The API returns structured results with embedded code context:
 
@@ -495,7 +587,7 @@ The API returns structured results with embedded code context:
 }
 ```
 
-### 🔄 Change Detection Response
+### Change Detection Response
 
 When no changes are detected:
 ```json
@@ -523,7 +615,7 @@ When no changes are detected:
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Run Tests
 ```bash
@@ -544,33 +636,42 @@ npm run test:ci
 ```
 
 ### Test Coverage
-The project includes comprehensive testing:
+The project includes testing:
 - **Unit Tests**: All services, providers, and utilities
 - **Integration Tests**: API endpoints and scanner integration
-- **E2E Tests**: Complete workflow testing
+- **E2E Tests**: Workflow testing
 - **Change Detection Tests**: Repository change tracking
 
-## 🏗️ Architecture & Project Structure
+## Architecture & Project Structure
 
-### 🎯 System Overview
+### System Overview
 
-The Repository Security Scanner follows a **modular, layered architecture** built on NestJS principles, emphasizing security, scalability, and maintainability.
+The Repository Security Scanner follows a **modular, layered architecture** built on NestJS principles, emphasizing security, scalability, and maintainability. The system features a **SCM abstraction layer** that provides multi-platform repository support.
 
 ```mermaid
 graph TD
     A[Web UI] --> B[Security Scan Controller]
     B --> C[API Key Guard]
     C --> D[Security Scan Service]
-    D --> E[Git SCM Provider]
-    D --> F[Scanner Services]
-    D --> G[Scan Storage Service]
-    E --> H[Repository Cloning]
-    F --> I[Semgrep Scanner]
-    F --> J[Gitleaks Scanner]
-    D --> K[Code Context Extraction]
+    D --> E[SCM Manager Service]
+    E --> F[SCM Provider Registry]
+    F --> G[GitHub Provider]
+    F --> H[GitLab Provider] 
+    F --> I[Enhanced Git Provider]
+    D --> J[Scanner Services]
+    D --> K[Scan Storage Service]
+    J --> L[Semgrep Scanner]
+    J --> M[Gitleaks Scanner]
+    D --> N[Code Context Extraction]
+    
+    style E fill:#e1f5fe
+    style F fill:#e8f5e8
+    style G fill:#f3e5f5
+    style H fill:#fff3e0
+    style I fill:#fce4ec
 ```
 
-### 📁 Project Structure
+### Enhanced Project Structure
 
 ```
 repo-security-scanner-app/
@@ -581,13 +682,19 @@ repo-security-scanner-app/
 │   │   │   ├── scan-result.dto.ts           # Scan response structure  
 │   │   │   └── code-context-request.dto.ts  # Code context requests
 │   │   ├── guards/                   # Authentication & authorization
-│   │   │   ├── api-key.guard.ts             # Production-ready API key auth
+│   │   │   ├── api-key.guard.ts             # API key authentication
 │   │   │   └── api-key.guard.spec.ts        # Comprehensive guard tests
 │   │   ├── interfaces/               # TypeScript contracts
 │   │   │   ├── scanners.interface.ts        # Scanner service contracts
-│   │   │   └── scm.interface.ts             # SCM provider contracts
+│   │   │   └── scm.interface.ts             # Enhanced SCM abstractions
 │   │   ├── providers/                # Service implementations
-│   │   │   ├── scm-git.provider.ts          # Git repository management
+│   │   │   ├── SCM Abstraction Layer
+│   │   │   ├── scm-provider.registry.ts     # Provider registry & selection
+│   │   │   ├── scm-manager.service.ts       # High-level SCM operations  
+│   │   │   ├── scm-git-enhanced.provider.ts # Enhanced Git provider
+│   │   │   ├── scm-github.provider.ts       # GitHub API integration
+│   │   │   ├── scm-gitlab.provider.ts       # GitLab API integration
+│   │   │   ├── Security Scanners
 │   │   │   ├── scanner-semgrep.service.ts   # Semgrep static analysis
 │   │   │   ├── scanner-gitleaks.service.ts  # Gitleaks secret detection
 │   │   │   └── scan-storage.service.ts      # In-memory scan history
@@ -603,44 +710,86 @@ repo-security-scanner-app/
 │   ├── index.html                   # Main UI application
 │   ├── script.js                   # Frontend JavaScript logic
 │   └── style.css                   # GitHub-inspired styling
-├── test/                            # Comprehensive test suites
+├── test/                            # Test suites
 │   ├── integration/                 # Integration test scenarios
 │   │   ├── security-scan.integration.spec.ts  # API integration tests
-│   │   └── change-detection.integration.spec.ts # Change detection tests
+│   │   ├── change-detection.integration.spec.ts # Change detection tests
+│   │   └── gitlab-support.integration.spec.ts   # GitLab integration tests
 │   ├── app.e2e-spec.ts             # End-to-end workflow tests
 │   ├── setup.ts                    # Test environment setup
 │   └── jest-e2e.json              # E2E test configuration
 ├── docker-compose.yml              # Container orchestration
 ├── Dockerfile                      # Multi-stage container build
-├── ENVIRONMENT_CONFIGURATION.md    # Deployment guide
-└── README.md                       # Comprehensive documentation
+├── Documentation
+├── SCM_ABSTRACTION_LAYER.md        # SCM architecture guide
+├── GITLAB_SUPPORT.md               # GitLab integration documentation
+└── README.md                       # Documentation
 ```
 
-### 🏛️ Architectural Layers
+### Enhanced Architectural Layers
 
 #### 1. **Presentation Layer**
 - **Web UI**: Modern GitHub-style interface with real-time updates
 - **REST Controller**: Type-safe API endpoints with validation
-- **Authentication Guard**: Multi-key API authentication with audit logging
+- **Authentication Guard**: Multi-key API authentication with ConfigService
 
-#### 2. **Business Logic Layer**  
-- **Security Scan Service**: Orchestrates scanning workflows
-- **Change Detection**: Intelligent repository change tracking
-- **Code Context Extraction**: Embedded code snippet generation
-- **Result Aggregation**: Multi-scanner result synthesis
+#### 2. **Business Logic Layer**
+- **Security Scan Service**: Orchestrates scanning workflows with multi-provider support
+- **SCM Manager Service**: High-level SCM operations across all providers
+- **Change Detection**: Repository change tracking with provider-specific optimizations
+- **Code Context Extraction**: Embedded code snippet generation with enhanced metadata
+- **Result Aggregation**: Multi-scanner result synthesis with structured output
 
-#### 3. **Service Layer**
-- **Scanner Services**: Pluggable security scanner implementations
-- **SCM Provider**: Repository cloning and metadata extraction  
+#### 3. **SCM Abstraction Layer**
+- **Provider Registry**: Automatic provider selection and health monitoring
+- **GitHub Provider**: Full GitHub API integration with authentication
+- **GitLab Provider**: Enhanced GitLab support (SaaS + self-hosted)
+- **Enhanced Git Provider**: Universal Git repository support with fallback capabilities
+- **Authentication Management**: Multi-platform token-based authentication
+- **Health Monitoring**: Provider status tracking and performance analytics
+
+#### 4. **Service Layer**
+- **Scanner Services**: Pluggable security scanner implementations (Semgrep, Gitleaks)
 - **Storage Service**: Scan history and statistics management
 - **Configuration Service**: Environment-based configuration management
 
-#### 4. **Infrastructure Layer**
+#### 5. **Infrastructure Layer**
 - **Temporary File Management**: Secure repository cloning and cleanup
 - **Process Execution**: Sandboxed scanner process management
-- **Error Handling**: Comprehensive error recovery and logging
+- **Error Handling**: Error recovery and logging
 
-### 🔧 Core Components
+### Enhanced Core Components
+
+#### **SCM Manager Service**
+```typescript
+@Injectable()
+export class ScmManagerService {
+  // High-level SCM operations
+  // Automatic provider selection
+  // Multi-repository operations
+  // Provider health monitoring
+}
+```
+
+#### **SCM Provider Registry**
+```typescript
+@Injectable()
+export class ScmProviderRegistryService {
+  // Provider registration and management
+  // Provider selection
+  // Health monitoring and analytics
+}
+```
+
+#### **Enhanced Git Provider**
+```typescript
+@Injectable()
+export class EnhancedGitScmProvider extends BaseScmProvider {
+  // Universal Git repository support
+  // Authentication handling
+  // Metadata extraction
+}
+```
 
 #### **SecurityScanController**
 ```typescript
@@ -656,24 +805,14 @@ export class SecurityScanController {
 ```typescript
 @Injectable()
 export class SecurityScanService {
-  // Core scanning orchestration
+  // Core scanning orchestration with SCM abstraction
   // Change detection logic
   // Multi-scanner coordination
   // Code context embedding
 }
 ```
 
-#### **ApiKeyGuard** (Production-Ready)
-```typescript
-@Injectable()
-export class ApiKeyGuard implements CanActivate {
-  // Multi-key authentication
-  // Security audit logging
-  // Environment-based validation
-}
-```
-
-#### **ConfigService** (New)
+#### **ConfigService**
 ```typescript
 @Injectable() 
 export class ConfigService implements OnModuleInit {
@@ -692,7 +831,7 @@ export interface SecurityScanner {
 }
 ```
 
-### 🔄 Data Flow Architecture
+### Data Flow Architecture
 
 ```mermaid
 sequenceDiagram
@@ -706,7 +845,7 @@ sequenceDiagram
 
     UI->>C: POST /scan {repoUrl}
     C->>G: Validate API Key
-    G-->>C: ✅ Authenticated
+    G-->>C: Authenticated
     C->>S: scanRepository(repoUrl)
     S->>STORE: Check last scan
     S->>SCM: Clone repository
@@ -718,12 +857,12 @@ sequenceDiagram
     C-->>UI: JSON response
 ```
 
-### 🛡️ Security Architecture
+### Security Architecture
 
 #### **Authentication Flow**
 1. **API Key Validation**: Multi-key support with format validation
 2. **Request Sanitization**: Input validation and path traversal protection  
-3. **Audit Logging**: Security event tracking with key truncation
+3. **Validation**: API key checking
 4. **Environment Separation**: Development fallback vs production enforcement
 
 #### **Scanner Isolation**
@@ -738,7 +877,7 @@ sequenceDiagram
 3. **Secret Detection**: Integrated credential scanning
 4. **Code Context Embedding**: Reduced API call exposure
 
-### 🧩 Module Dependencies
+### Module Dependencies
 
 ```typescript
 @Module({
@@ -762,7 +901,7 @@ sequenceDiagram
 export class SecurityScanModule {}
 ```
 
-### 📊 Performance Architecture
+### Performance Architecture
 
 #### **Optimization Strategies**
 - **Change Detection**: Skip unnecessary scans for unchanged repositories
@@ -773,12 +912,12 @@ export class SecurityScanModule {}
 
 #### **Scalability Considerations**
 - **Stateless Design**: Horizontal scaling ready
-- **Pluggable Scanners**: Easy addition of new security tools
+- **Pluggable Scanners**: Addition of new security tools
 - **Configurable Timeouts**: Resource limit management
 - **Docker Support**: Container orchestration ready
 - **Cloud-Native Configuration**: Environment-based setup
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### Using Docker Compose (Recommended)
 ```bash
@@ -786,8 +925,8 @@ export class SecurityScanModule {}
 git clone <repository-url>
 cd repo-security-scanner-app
 
-# Set environment variables
-echo "API_KEY=your-secure-api-key" > .env
+# Optional: Set custom API key
+echo "API_KEYS=your-custom-api-key" > .env
 
 # Start with Docker Compose
 docker-compose up -d
@@ -808,8 +947,7 @@ docker build -t repo-security-scanner .
 docker run -d \
   --name security-scanner \
   -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e API_KEY=your-secure-api-key \
+  -e API_KEYS=your-custom-api-key \
   repo-security-scanner
 
 # View logs
@@ -821,11 +959,77 @@ docker logs -f security-scanner
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `PORT` | Application port | `3000` | No |
-| `NODE_ENV` | Environment mode | `development` | No |
-| `API_KEY` | API authentication key | - | **Yes** |
+| `API_KEYS` | Custom API key | `your-secure-production-key-2025` | No |
+| **SCM Provider Authentication** |
 | `GITHUB_TOKEN` | GitHub API token for enhanced metadata | - | No |
+| `GITLAB_TOKEN` | GitLab Personal Access Token for private repos | - | No |
+| `GITLAB_ACCESS_TOKEN` | Alternative GitLab token variable name | - | No |
 
-## 🔒 Security Features
+#### **SCM Provider Configuration**
+
+The repository scanner uses an **SCM abstraction layer** that automatically selects the best provider based on repository URLs:
+
+**Automatic Provider Selection:**
+- `https://github.com/user/repo` → **GitHub Provider** (with API integration)
+- `https://gitlab.com/user/repo` → **GitLab Provider** (with enhanced metadata)
+- `https://gitlab.company.com/team/project` → **GitLab Provider** (self-hosted support)
+- `https://any-git-server.com/repo.git` → **Enhanced Git Provider** (universal fallback)
+
+**Authentication Benefits:**
+- **Without tokens**: Public repositories work without authentication
+- **With tokens**: Private repositories + enhanced metadata + higher rate limits
+- **Auto-detection**: No manual provider configuration needed
+- **Fallback support**: Always works even if API fails
+
+**Provider Health Monitoring:**
+```bash
+# Check provider health status
+curl -X GET http://localhost:3000/scan/statistics \
+  -H "x-api-key: your-api-key"
+
+# Returns provider health information and usage statistics
+```
+
+### GitLab Configuration
+
+#### For GitLab.com (Public Repositories)
+No configuration needed - public repositories work out of the box.
+
+#### For Private Repositories or Self-hosted GitLab
+1. **Create Personal Access Token**:
+   - Go to GitLab → User Settings → Access Tokens
+   - Create token with `read_repository` scope
+   - Copy the generated token
+
+2. **Configure Environment**:
+```bash
+# Option 1: Environment variable
+export GITLAB_TOKEN=glpat-your-token-here
+
+# Option 2: Docker
+docker run -e GITLAB_TOKEN=glpat-your-token-here repo-security-scanner
+
+# Option 3: .env file
+echo "GITLAB_TOKEN=glpat-your-token-here" >> .env
+```
+
+3. **Self-hosted GitLab Instances**:
+```bash
+# Scan from self-hosted GitLab
+curl -X POST http://localhost:3000/scan \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://gitlab.your-company.com/team/project"}'
+```
+
+#### GitLab Features Supported
+- **Public & Private Repositories**: Full access with proper authentication
+- **Self-hosted Instances**: Any GitLab instance (CE/EE)
+- **Metadata**: Project details, contributors, commit history
+- **GitLab-specific Data**: Issues, merge requests, CI/CD status, container registry
+- **Security Scanning**: Works with all GitLab repository types
+
+## Security Features
 
 ### Input Validation & Sanitization
 - **Path Validation**: Prevents directory traversal attacks
@@ -835,7 +1039,7 @@ docker logs -f security-scanner
 
 ### Authentication & Authorization
 - **API Key Authentication**: Secure API access control
-- **Request Validation**: Comprehensive input validation
+- **Request Validation**: Input validation
 - **CORS Configuration**: Proper cross-origin resource sharing
 
 ### Secure File Handling
@@ -843,7 +1047,7 @@ docker logs -f security-scanner
 - **Cross-Platform Path Handling**: Secure path resolution across OS
 - **Scanner Output Sanitization**: Safe parsing of scanner results
 
-## 📊 Performance Features
+## Performance Features
 
 - **Change Detection**: Skip scans when no changes detected
 - **Concurrent Scanning**: Multiple scanners run in parallel
@@ -851,7 +1055,7 @@ docker logs -f security-scanner
 - **Memory Management**: Automatic cleanup and garbage collection
 - **Caching**: In-memory scan history and metadata caching
 
-## 🛠️ Development
+## Development
 
 ### Prerequisites for Development
 ```bash
@@ -912,7 +1116,7 @@ providers: [
 ]
 ```
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -928,18 +1132,12 @@ brew install semgrep gitleaks  # macOS
 
 #### API Key Issues
 ```bash
-# Check if API keys are properly configured
-echo $API_KEYS
-
-# Test development key
-curl -H "x-api-key: dev-api-key-for-testing" http://localhost:3000/scan/statistics
-
-# Test production key
-curl -H "x-api-key: your-production-key" http://localhost:3000/scan/statistics
+# Test API connection
+curl -H "x-api-key: your-secure-production-key-2025" http://localhost:3000/scan/statistics
 
 # Common API key errors:
 # 401 "Missing API key" - No x-api-key header provided
-# 401 "Invalid API key" - Key doesn't match configured keys
+# 401 "Invalid API key" - Key doesn't match configured key
 ```
 
 #### Permission Issues
@@ -958,7 +1156,7 @@ sudo chmod 755 /tmp
 export NODE_OPTIONS="--max-old-space-size=4096"
 ```
 
-## 📊 Monitoring & Production
+## Monitoring & Production
 
 ### Health Checks
 ```bash
@@ -976,10 +1174,10 @@ The application provides structured logging for production monitoring:
 
 ```bash
 # Application startup
-🚀 Repository Security Scanner started successfully!
-📡 Server running on: http://localhost:3000  
-🌍 Environment: production
-🔑 API Keys configured: 3
+Repository Security Scanner started successfully!
+Server running on: http://localhost:3000  
+Environment: production
+API Keys configured: 3
 
 # Security events
 [ApiKeyGuard] Invalid API key attempt { keyPrefix: 'inva****', ip: '192.168.1.100' }
@@ -994,40 +1192,266 @@ Track these key metrics in production:
 - **Scanner Performance**: Individual scanner execution times
 - **Repository Coverage**: Number of unique repositories scanned
 
-### Production Deployment Checklist
-- [ ] **API Keys**: Configure strong, unique API keys
-- [ ] **Environment**: Set `NODE_ENV=production`
-- [ ] **Security**: Enable HTTPS and proper CORS
-- [ ] **Monitoring**: Set up health checks and alerting
-- [ ] **Logging**: Configure centralized log aggregation
-- [ ] **Backup**: Implement scan history backup
-- [ ] **Scaling**: Configure horizontal scaling if needed
+### Deployment Checklist
+- [ ] **Environment**: Configure custom API key if needed
+- [ ] **Security**: Enable HTTPS for production
+- [ ] **Monitoring**: Set up basic health checks
+- [ ] **Access**: Ensure scanners (Semgrep, Gitleaks) are installed
 
-## 📚 Additional Resources
+## Design Challenges
 
-- **[Environment Configuration Guide](ENVIRONMENT_CONFIGURATION.md)**: Comprehensive deployment configuration
-- **[Scanner Documentation](https://semgrep.dev/)**: Semgrep official documentation
-- **[Secret Detection Guide](https://github.com/gitleaks/gitleaks)**: Gitleaks configuration and usage
-- **[NestJS Documentation](https://nestjs.com/)**: Framework documentation
-- **[Docker Hub](https://hub.docker.com/)**: Container deployment guides
+Building a universal repository security scanner presented several significant architectural challenges. Here's how we solved them:
 
-## 🤝 Contributing
+### **Challenge 1: Multi-Platform SCM Abstraction**
+
+**Problem**: Different Git platforms (GitHub, GitLab, Bitbucket) have varying APIs, authentication methods, and URL formats.
+
+**Solution**: 
+- **SCM Abstraction Layer**: Created a unified interface (`ScmProvider`) with platform-specific implementations
+- **Provider Registry**: Automatic provider selection based on URL patterns and capabilities
+- **Graceful Fallback**: Enhanced Git provider handles any Git repository when specific providers fail
+
+```typescript
+// Unified interface for all SCM platforms
+interface ScmProvider {
+  canHandle(repoUrl: string): boolean;
+  fetchRepoMetadata(repoUrl: string): Promise<RepositoryMetadata>;
+  cloneRepository(repoUrl: string, targetPath: string): Promise<void>;
+}
+```
+
+### **Challenge 2: Scanner Integration & Output Normalization**
+
+**Problem**: Semgrep and Gitleaks produce different output formats, error codes, and finding structures.
+
+**Solution**:
+- **Scanner Interface**: Common interface for all security scanners
+- **Output Normalization**: Transform scanner-specific outputs into unified finding format
+- **Error Handling**: Graceful handling when scanners fail or produce unexpected output
+
+```typescript
+interface SecurityScanner {
+  scan(repositoryPath: string): Promise<Finding[]>;
+  getName(): string;
+  getVersion(): string;
+}
+```
+
+### **Challenge 3: Efficient Change Detection**
+
+**Problem**: Avoid expensive rescans when repository hasn't changed since last scan.
+
+**Solution**:
+- **Commit Hash Tracking**: Store last scanned commit hash per repository
+- **Change Detection**: Compare current HEAD with stored hash
+- **Force Scan Option**: Override change detection when needed
+- **Metadata Caching**: Cache repository metadata to reduce API calls
+
+### **Challenge 4: Temporary File Management**
+
+**Problem**: Safely clone repositories, perform scans, and cleanup without conflicts or leaks.
+
+**Solution**:
+- **Isolated Temporary Directories**: Each scan gets a unique temp directory
+- **Automatic Cleanup**: Ensure cleanup happens even if scan fails
+- **Process Isolation**: Prevent concurrent scans from interfering
+- **Security**: Restrict file permissions and prevent path traversal
+
+```typescript
+// Safe temporary directory management
+const tmpDir = await tmp.dir({ unsafeCleanup: true });
+try {
+  await this.cloneRepository(repoUrl, tmpDir.path);
+  return await this.performScan(tmpDir.path);
+} finally {
+  await tmpDir.cleanup(); // Always cleanup
+}
+```
+
+### **Challenge 5: Authentication & Rate Limiting**
+
+**Problem**: Different platforms have varying authentication methods and rate limits.
+
+**Solution**:
+- **Flexible Authentication**: Support tokens, OAuth, and anonymous access
+- **Rate Limit Awareness**: Track and respect platform-specific rate limits
+- **Authentication Fallback**: Gracefully degrade to anonymous access
+- **Token Validation**: Verify authentication status and provide clear errors
+
+### **Challenge 6: Concurrent Scan Management**
+
+**Problem**: Handle multiple simultaneous scans without resource exhaustion or conflicts.
+
+**Solution**:
+- **Process Isolation**: Each scan runs in isolated environment
+- **Resource Limits**: Control memory and CPU usage per scan
+- **Queue Management**: Handle scan requests efficiently
+- **Timeout Protection**: Prevent hung scans from blocking others
+
+### **Challenge 7: Code Context Embedding**
+
+**Problem**: Provide code snippets around security findings without additional API calls.
+
+**Solution**:
+- **Embedded Context**: Include code snippets directly in scan results
+- **Context Window**: Configurable lines before/after findings
+- **File Caching**: Cache file contents during scan for efficient context retrieval
+- **Fallback Mechanism**: Handle binary files, large files, and encoding issues
+
+### **Challenge 8: UI/API Consistency**
+
+**Problem**: Ensure web UI and REST API provide consistent experiences and data formats.
+
+**Solution**:
+- **Shared DTOs**: Common data transfer objects for both UI and API
+- **Unified Validation**: Same validation rules across all interfaces
+- **Error Standardization**: Consistent error formats and HTTP status codes
+- **Real-time Updates**: WebSocket support for long-running scans
+
+### **Challenge 9: Scalability & Performance**
+
+**Problem**: Maintain performance as the number of repositories and scan frequency increases.
+
+**Solution**:
+- **Async Processing**: Non-blocking scan operations
+- **Caching**: Cache metadata, scan results, and file contents
+- **Database Optimization**: Efficient storage and retrieval of scan records
+- **Resource Monitoring**: Track memory, CPU, and disk usage
+
+### **Challenge 10: Security & Input Validation**
+
+**Problem**: Prevent malicious repositories from compromising the scanner.
+
+**Solution**:
+- **Input Sanitization**: Validate all repository URLs and parameters
+- **Sandboxed Execution**: Isolate scanner processes from main application
+- **Resource Limits**: Prevent resource exhaustion attacks
+- **API Security**: Authentication, rate limiting, and input validation
+
+### **Lessons Learned**
+
+1. **Abstraction Benefits**: The SCM abstraction layer simplified adding new platforms
+2. **Fail Fast, Fail Safe**: Aggressive error handling prevents cascade failures
+3. **Observability First**: Built-in logging and metrics saved countless debugging hours
+4. **Testing Strategies**: Comprehensive mocking enabled reliable unit tests
+5. **Performance Matters**: Early optimization of hot paths prevented scaling issues
+
+### **Future Improvements**
+
+- **Background Processing**: Queue-based scanning for better resource management
+- **Distributed Scanning**: Multi-node deployment for high-throughput environments
+- **Advanced Caching**: Redis-based caching for improved performance
+- **Real-time Notifications**: WebSocket/SSE for live scan progress updates
+- **Plugin Architecture**: Allow custom scanners and processors
+
+## Additional Resources
+
+- **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)**: Complete guide to the SCM abstraction layer
+- **[GITLAB_SUPPORT.md](./GITLAB_SUPPORT.md)**: Enhanced GitLab integration documentation
+- **[Semgrep Documentation](https://semgrep.dev/)**: Static analysis scanner
+- **[Gitleaks Documentation](https://github.com/gitleaks/gitleaks)**: Secret detection scanner
+- **[NestJS Documentation](https://nestjs.com/)**: Backend framework
+- **[Docker Documentation](https://docs.docker.com/)**: Container deployment
+
+## What's New: SCM Abstraction Layer
+
+### **Multi-Provider Architecture**
+
+The Repository Security Scanner features a **SCM abstraction layer** that handles source control management:
+
+#### **Key Features**
+
+- **Automatic Provider Selection**: No configuration needed - the system automatically chooses the optimal provider based on repository URLs
+- **Fallback**: Graceful degradation when specific providers fail
+- **Extensible Design**: Adding new SCM providers requires code changes
+- **Multi-Platform Authentication**: Unified authentication across GitHub, GitLab, and more
+- **Health Monitoring**: Real-time provider status and performance tracking
+- **Performance**: Provider-specific optimizations for speed and reliability
+
+#### **Usage Examples**
+
+```bash
+# Works automatically with any supported platform:
+curl -X POST http://localhost:3000/scan \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://github.com/user/repo"}'      # → GitHub Provider
+
+curl -X POST http://localhost:3000/scan \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://gitlab.com/user/repo"}'      # → GitLab Provider
+
+curl -X POST http://localhost:3000/scan \
+  -H "x-api-key: your-api-key" \
+  -d '{"repoUrl": "https://git.company.com/repo.git"}'  # → Enhanced Git Provider
+```
+
+#### **Developer Benefits**
+
+- **Backward Compatibility**: Existing API endpoints work unchanged
+- **Enhanced Metadata**: Richer repository information from platform APIs
+- **Error Handling**: Informative error messages and automatic retries
+- **Future-Proof**: Ready for additional platforms and custom providers
+
+#### **Enterprise Features**
+
+- **Self-hosted GitLab**: Full support for GitLab CE/EE instances
+- **Private Repository Support**: Token-based authentication for all platforms
+- **Scalable Architecture**: Provider registry supports load balancing and failover
+- **Monitoring**: Health checks and performance metrics for all providers
+
+> **Result**: A robust, flexible, and maintainable security scanning platform that works with any Git repository.
+
+## Additional Resources
+
+### **Adding New SCM Providers**
+```typescript
+// Adding a new provider:
+@Injectable()
+export class BitbucketScmProvider extends BaseScmProvider {
+  constructor() {
+    super({
+      name: 'Bitbucket Provider',
+      platform: 'bitbucket',
+      hostnames: ['bitbucket.org'],
+      supportsApi: true
+    });
+  }
+  
+  canHandle(repoUrl: string): boolean {
+    return repoUrl.includes('bitbucket.org');
+  }
+  
+  // Implement platform-specific methods...
+}
+```
+
+See **[SCM_ABSTRACTION_LAYER.md](./SCM_ABSTRACTION_LAYER.md)** for detailed guidance.
+
+### **General Contributing**
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/new-feature`)
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+5. Ensure all tests pass (`npm run test:all`)
+6. Update documentation if needed
+7. Submit a pull request
 
-## 📄 License
+### **Testing New Providers**
+```bash
+# Test your new provider
+npm run test:unit -- --testPathPattern=your-provider.spec.ts
+npm run test:integration -- --testPathPattern=your-provider
+```
+
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
 <p align="center">
-  <strong>🔒 Secure by Design | 🚀 Production Ready | 🧪 Thoroughly Tested</strong>
+  <strong>Secure by Design | Easy to Use | Well Tested</strong>
 </p>
 
 #### Repository Access Issues
@@ -1068,13 +1492,12 @@ NODE_ENV=development npm run start:dev
 - Check temporary directory cleanup
 - Verify scanner timeout settings
 
-## 🆘 Support
+## Support
 
 - **Issues**: [Create GitHub issues](https://github.com/your-org/repo-security-scanner/issues) for bugs and feature requests
-- **Documentation**: See [Environment Configuration Guide](ENVIRONMENT_CONFIGURATION.md) for detailed setup
 - **Security**: Report security vulnerabilities privately to maintainers
 - **Community**: Join discussions for questions and contributions
 
 ---
 
-**Built with ❤️ using NestJS, TypeScript, and modern security scanning tools.**
+**Built with love using NestJS, TypeScript, and modern security scanning tools.**

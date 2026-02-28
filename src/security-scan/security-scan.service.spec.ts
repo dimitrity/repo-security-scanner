@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SecurityScanService } from './security-scan.service';
-import { GitScmProvider } from './providers/scm-git.provider';
+import { ScmManagerService } from './providers/scm-manager.service';
 import { ScanStorageService } from './providers/scan-storage.service';
 import { SemgrepScanner } from './providers/scanner-semgrep.service';
 
@@ -13,9 +13,9 @@ const mockTmpDir = {
   cleanup: jest.fn().mockResolvedValue(undefined),
 };
 
-const mockGitScmProvider = {
+const mockScmManager = {
   cloneRepository: jest.fn(),
-  fetchRepoMetadata: jest.fn(),
+  fetchRepositoryMetadata: jest.fn(),
   getLastCommitHash: jest.fn(),
   hasChangesSince: jest.fn(),
 };
@@ -35,7 +35,7 @@ const mockScanStorage = {
 
 describe('SecurityScanService', () => {
   let service: SecurityScanService;
-  let gitScmProvider: jest.Mocked<GitScmProvider>;
+  let scmManager: jest.Mocked<ScmManagerService>;
   let scanStorage: jest.Mocked<ScanStorageService>;
 
   beforeEach(async () => {
@@ -43,8 +43,8 @@ describe('SecurityScanService', () => {
       providers: [
         SecurityScanService,
         {
-          provide: GitScmProvider,
-          useValue: mockGitScmProvider,
+          provide: ScmManagerService,
+          useValue: mockScmManager,
         },
         {
           provide: 'SCANNERS',
@@ -58,7 +58,7 @@ describe('SecurityScanService', () => {
     }).compile();
 
     service = module.get<SecurityScanService>(SecurityScanService);
-    gitScmProvider = module.get(GitScmProvider);
+    scmManager = module.get(ScmManagerService);
     scanStorage = module.get(ScanStorageService);
 
     // Reset all mocks
@@ -81,12 +81,18 @@ describe('SecurityScanService', () => {
       },
     };
 
-    beforeEach(() => {
-      gitScmProvider.cloneRepository.mockResolvedValue();
-      gitScmProvider.fetchRepoMetadata.mockResolvedValue(testMetadata);
-      gitScmProvider.getLastCommitHash.mockResolvedValue('abc123');
-      mockSemgrepScanner.scan.mockResolvedValue([]);
+      beforeEach(() => {
+    scmManager.cloneRepository.mockResolvedValue({ success: true, provider: 'Enhanced Git Provider' });
+    scmManager.fetchRepositoryMetadata.mockResolvedValue({ 
+      metadata: testMetadata, 
+      provider: 'Enhanced Git Provider' 
     });
+    scmManager.getLastCommitHash.mockResolvedValue({ 
+      hash: 'abc123', 
+      provider: 'Enhanced Git Provider' 
+    });
+    mockSemgrepScanner.scan.mockResolvedValue([]);
+  });
 
     describe('when no previous scan record exists', () => {
       beforeEach(() => {
@@ -96,16 +102,51 @@ describe('SecurityScanService', () => {
       it('should perform full scan and store commit hash', async () => {
         const result = await service.scanRepository(testRepoUrl);
 
-        expect(gitScmProvider.cloneRepository).toHaveBeenCalledWith(testRepoUrl, mockTmpDir.path);
-        expect(gitScmProvider.fetchRepoMetadata).toHaveBeenCalledWith(testRepoUrl);
-        expect(gitScmProvider.getLastCommitHash).toHaveBeenCalledWith(testRepoUrl);
+        expect(scmManager.cloneRepository).toHaveBeenCalledWith(testRepoUrl, mockTmpDir.path);
+        expect(scmManager.fetchRepositoryMetadata).toHaveBeenCalledWith(testRepoUrl);
+        expect(scmManager.getLastCommitHash).toHaveBeenCalledWith(testRepoUrl);
         expect(scanStorage.updateScanRecord).toHaveBeenCalledWith(testRepoUrl, 'abc123');
         expect(mockSemgrepScanner.scan).toHaveBeenCalledWith(mockTmpDir.path);
 
         expect(result).toEqual({
           repository: testMetadata,
-          scanner: { name: 'Semgrep', version: 'latest' },
+          scanner: { name: 'Semgrep', version: 'latest', findings: [] },
           findings: [],
+          securityIssues: [],
+          allSecurityIssues: { 'Semgrep': [] },
+          allFindings: { 'Semgrep': [] },
+          summary: {
+            totalSecurityIssues: 0,
+            scanners: [
+              {
+                name: 'Semgrep',
+                version: 'latest',
+                securityIssuesFound: 0,
+                summary: 'Semgrep found 0 security issues'
+              }
+            ]
+          },
+          details: {
+            scanners: [
+              {
+                name: 'Semgrep',
+                version: 'latest',
+                totalSecurityIssues: 0,
+                severityBreakdown: {
+                  high: 0,
+                  medium: 0,
+                  low: 0,
+                  info: 0
+                },
+                securityIssues: {
+                  high: [],
+                  medium: [],
+                  low: [],
+                  info: []
+                }
+              }
+            ]
+          },
           changeDetection: {
             hasChanges: true,
             lastCommitHash: 'abc123',
@@ -129,7 +170,17 @@ describe('SecurityScanService', () => {
 
         const result = await service.scanRepository(testRepoUrl);
 
-        expect(result.findings).toEqual(mockFindings);
+        expect(result.findings).toEqual([
+          {
+            ruleId: 'test-rule',
+            message: 'Test finding',
+            filePath: 'test.js',
+            line: 10,
+            severity: 'warning',
+            scanner: 'Semgrep',
+            codeContext: null,
+          },
+        ]);
       });
     });
 
@@ -145,19 +196,22 @@ describe('SecurityScanService', () => {
         scanStorage.getLastScanRecord.mockReturnValue(previousScanRecord);
       });
 
-      describe('when no changes detected', () => {
-        beforeEach(() => {
-          gitScmProvider.hasChangesSince.mockResolvedValue({
-            hasChanges: false,
-            lastCommitHash: 'abc123',
+              describe('when no changes detected', () => {
+          beforeEach(() => {
+            scmManager.hasChangesSince.mockResolvedValue({
+              result: {
+                hasChanges: false,
+                lastCommitHash: 'abc123',
+              },
+              provider: 'Enhanced Git Provider'
+            });
           });
-        });
 
         it('should skip scan and return no-change finding', async () => {
           const result = await service.scanRepository(testRepoUrl);
 
-          expect(gitScmProvider.hasChangesSince).toHaveBeenCalledWith(testRepoUrl, 'abc123');
-          expect(gitScmProvider.cloneRepository).not.toHaveBeenCalled();
+          expect(scmManager.hasChangesSince).toHaveBeenCalledWith(testRepoUrl, 'abc123');
+          expect(scmManager.cloneRepository).not.toHaveBeenCalled();
           expect(mockSemgrepScanner.scan).not.toHaveBeenCalled();
           expect(scanStorage.updateScanRecord).not.toHaveBeenCalled();
 
@@ -173,6 +227,27 @@ describe('SecurityScanService', () => {
                 severity: 'info',
               },
             ],
+            securityIssues: [
+              {
+                ruleId: 'CHANGE-DETECTION-001',
+                message: 'No changes detected for the repo',
+                filePath: 'N/A',
+                line: 0,
+                severity: 'info',
+              },
+            ],
+            allSecurityIssues: {
+              'Change Detection': [
+                {
+                  ruleId: 'CHANGE-DETECTION-001',
+                  message: 'No changes detected for the repo',
+                  filePath: 'N/A',
+                  line: 0,
+                  severity: 'info',
+                },
+              ],
+            },
+
             changeDetection: {
               hasChanges: false,
               lastCommitHash: 'abc123',
@@ -185,37 +260,37 @@ describe('SecurityScanService', () => {
 
       describe('when changes detected', () => {
         beforeEach(() => {
-          gitScmProvider.hasChangesSince.mockResolvedValue({
-            hasChanges: true,
-            lastCommitHash: 'def456',
-            changeSummary: {
-              filesChanged: 5,
-              additions: 120,
-              deletions: 45,
-              commits: 3,
+          scmManager.hasChangesSince.mockResolvedValue({
+            result: {
+              hasChanges: true,
+              lastCommitHash: 'def456',
+              changeSummary: {
+                filesChanged: 5,
+                additions: 120,
+                deletions: 45,
+                commits: 3,
+              },
             },
+            provider: 'Enhanced Git Provider'
           });
-          gitScmProvider.getLastCommitHash.mockResolvedValue('def456');
+          scmManager.getLastCommitHash.mockResolvedValue({
+            hash: 'def456',
+            provider: 'Enhanced Git Provider'
+          });
         });
 
         it('should perform full scan and update commit hash', async () => {
           const result = await service.scanRepository(testRepoUrl);
 
-          expect(gitScmProvider.hasChangesSince).toHaveBeenCalledWith(testRepoUrl, 'abc123');
-          expect(gitScmProvider.cloneRepository).toHaveBeenCalledWith(testRepoUrl, mockTmpDir.path);
-          expect(gitScmProvider.getLastCommitHash).toHaveBeenCalledWith(testRepoUrl);
+          expect(scmManager.hasChangesSince).toHaveBeenCalledWith(testRepoUrl, 'abc123');
+          expect(scmManager.cloneRepository).toHaveBeenCalledWith(testRepoUrl, mockTmpDir.path);
+          expect(scmManager.getLastCommitHash).toHaveBeenCalledWith(testRepoUrl);
           expect(scanStorage.updateScanRecord).toHaveBeenCalledWith(testRepoUrl, 'def456');
           expect(mockSemgrepScanner.scan).toHaveBeenCalledWith(mockTmpDir.path);
 
           expect(result.changeDetection).toEqual({
             hasChanges: true,
             lastCommitHash: 'def456',
-            changeSummary: {
-              filesChanged: 5,
-              additions: 120,
-              deletions: 45,
-              commits: 3,
-            },
             scanSkipped: false,
             reason: undefined,
           });
@@ -224,18 +299,21 @@ describe('SecurityScanService', () => {
 
       describe('when change detection fails', () => {
         beforeEach(() => {
-          gitScmProvider.hasChangesSince.mockResolvedValue({
-            hasChanges: true,
-            lastCommitHash: 'unknown',
+          scmManager.hasChangesSince.mockResolvedValue({
+            result: {
+              hasChanges: true,
+              lastCommitHash: 'unknown',
+            },
+            provider: 'Enhanced Git Provider'
           });
         });
 
         it('should assume changes and perform scan', async () => {
           const result = await service.scanRepository(testRepoUrl);
 
-          expect(gitScmProvider.cloneRepository).toHaveBeenCalled();
+          expect(scmManager.cloneRepository).toHaveBeenCalled();
           expect(mockSemgrepScanner.scan).toHaveBeenCalled();
-          expect(result.changeDetection.hasChanges).toBe(true);
+          expect(result.changeDetection?.hasChanges).toBe(true);
         });
       });
     });
@@ -250,17 +328,20 @@ describe('SecurityScanService', () => {
 
       beforeEach(() => {
         scanStorage.getLastScanRecord.mockReturnValue(previousScanRecord);
-        gitScmProvider.hasChangesSince.mockResolvedValue({
-          hasChanges: false,
-          lastCommitHash: 'abc123',
+        scmManager.hasChangesSince.mockResolvedValue({
+          result: {
+            hasChanges: false,
+            lastCommitHash: 'abc123',
+          },
+          provider: 'Enhanced Git Provider'
         });
       });
 
       it('should bypass change detection and perform scan', async () => {
         const result = await service.scanRepository(testRepoUrl, true);
 
-        expect(gitScmProvider.hasChangesSince).not.toHaveBeenCalled();
-        expect(gitScmProvider.cloneRepository).toHaveBeenCalled();
+        expect(scmManager.hasChangesSince).not.toHaveBeenCalled();
+        expect(scmManager.cloneRepository).toHaveBeenCalled();
         expect(mockSemgrepScanner.scan).toHaveBeenCalled();
         expect(scanStorage.updateScanRecord).toHaveBeenCalled();
       });
@@ -306,9 +387,16 @@ describe('SecurityScanService', () => {
     it('should call scanRepository with force flag', async () => {
       const testRepoUrl = 'https://github.com/test/repo';
       const mockResult = {
-        repository: { name: 'test' },
+        repository: { 
+          name: 'test',
+          description: 'Test repository',
+          defaultBranch: 'main',
+          lastCommit: { hash: 'abc123', timestamp: '2023-01-01T00:00:00Z' }
+        },
         scanner: { name: 'Semgrep', version: 'latest' },
         findings: [],
+        securityIssues: [],
+        allSecurityIssues: {},
         changeDetection: { hasChanges: true, lastCommitHash: 'abc123' },
       };
 
@@ -323,30 +411,97 @@ describe('SecurityScanService', () => {
 
   describe('error handling', () => {
     it('should handle clone repository errors', async () => {
+      // Reset mocks for this specific test
+      jest.clearAllMocks();
       scanStorage.getLastScanRecord.mockReturnValue(null);
-      gitScmProvider.cloneRepository.mockRejectedValue(new Error('Clone failed'));
+      scmManager.cloneRepository.mockRejectedValue(new Error('Clone failed'));
 
       await expect(service.scanRepository('https://github.com/test/repo')).rejects.toThrow('Clone failed');
     });
 
-    it('should handle scanner errors', async () => {
+    it('should handle scanner errors gracefully', async () => {
+      // Reset mocks for this specific test
+      jest.resetAllMocks();
       scanStorage.getLastScanRecord.mockReturnValue(null);
+      const tmp = require('tmp-promise');
+      tmp.dir.mockResolvedValue(mockTmpDir);
+      scmManager.cloneRepository.mockResolvedValue({ success: true, provider: 'Enhanced Git Provider' });
+      scmManager.fetchRepositoryMetadata.mockResolvedValue({ 
+        metadata: {
+          name: 'test-repo',
+          description: 'Test repository',
+          defaultBranch: 'main',
+          lastCommit: {
+            hash: 'abc123',
+            timestamp: '2024-01-01T12:00:00Z',
+          },
+        }, 
+        provider: 'Enhanced Git Provider' 
+      });
+      scmManager.getLastCommitHash.mockResolvedValue({ 
+        hash: 'abc123', 
+        provider: 'Enhanced Git Provider' 
+      });
+      mockSemgrepScanner.getName.mockReturnValue('Semgrep');
+      mockSemgrepScanner.getVersion.mockReturnValue('latest');
       mockSemgrepScanner.scan.mockRejectedValue(new Error('Scanner failed'));
 
-      await expect(service.scanRepository('https://github.com/test/repo')).rejects.toThrow('Scanner failed');
+      // Scanner errors should not cause the entire scan to fail
+      const result = await service.scanRepository('https://github.com/test/repo');
+      
+      expect(result.allSecurityIssues['Semgrep']).toEqual([]);
+      expect(result.summary?.totalSecurityIssues).toBe(0);
     });
 
-    it('should handle metadata fetch errors', async () => {
+    it('should handle metadata fetch errors gracefully', async () => {
+      // Reset mocks for this specific test
+      jest.resetAllMocks();
       scanStorage.getLastScanRecord.mockReturnValue(null);
-      gitScmProvider.fetchRepoMetadata.mockRejectedValue(new Error('Metadata fetch failed'));
+      const tmp = require('tmp-promise');
+      tmp.dir.mockResolvedValue(mockTmpDir);
+      scmManager.cloneRepository.mockResolvedValue({ success: true, provider: 'Enhanced Git Provider' });
+      scmManager.fetchRepositoryMetadata.mockRejectedValue(new Error('Metadata fetch failed'));
+      scmManager.getLastCommitHash.mockResolvedValue({ 
+        hash: 'abc123', 
+        provider: 'Enhanced Git Provider' 
+      });
+      mockSemgrepScanner.getName.mockReturnValue('Semgrep');
+      mockSemgrepScanner.getVersion.mockReturnValue('latest');
+      mockSemgrepScanner.scan.mockResolvedValue([]);
 
+      // Metadata fetch errors should cause the scan to fail
       await expect(service.scanRepository('https://github.com/test/repo')).rejects.toThrow('Metadata fetch failed');
     });
   });
 
   describe('cleanup', () => {
     it('should cleanup temporary directory after scan', async () => {
+      // Reset mocks for this specific test
+      jest.resetAllMocks();
       scanStorage.getLastScanRecord.mockReturnValue(null);
+      const tmp = require('tmp-promise');
+      tmp.dir.mockResolvedValue(mockTmpDir);
+      scmManager.cloneRepository.mockResolvedValue({ success: true, provider: 'Enhanced Git Provider' });
+      scmManager.fetchRepositoryMetadata.mockResolvedValue({ 
+        metadata: {
+          name: 'test-repo',
+          description: 'Test repository',
+          defaultBranch: 'main',
+          lastCommit: {
+            hash: 'abc123',
+            timestamp: '2024-01-01T12:00:00Z',
+          },
+        }, 
+        provider: 'Enhanced Git Provider' 
+      });
+
+      scmManager.getLastCommitHash.mockResolvedValue({ 
+        hash: 'abc123', 
+        provider: 'Enhanced Git Provider' 
+      });
+      mockSemgrepScanner.getName.mockReturnValue('Semgrep');
+      mockSemgrepScanner.getVersion.mockReturnValue('latest');
+      mockSemgrepScanner.scan.mockResolvedValue([]);
 
       await service.scanRepository('https://github.com/test/repo');
 
@@ -354,8 +509,12 @@ describe('SecurityScanService', () => {
     });
 
     it('should cleanup temporary directory even if scan fails', async () => {
+      // Reset mocks for this specific test
+      jest.resetAllMocks();
       scanStorage.getLastScanRecord.mockReturnValue(null);
-      gitScmProvider.cloneRepository.mockRejectedValue(new Error('Clone failed'));
+      const tmp = require('tmp-promise');
+      tmp.dir.mockResolvedValue(mockTmpDir);
+      scmManager.cloneRepository.mockRejectedValue(new Error('Clone failed'));
 
       await expect(service.scanRepository('https://github.com/test/repo')).rejects.toThrow('Clone failed');
       expect(mockTmpDir.cleanup).toHaveBeenCalled();

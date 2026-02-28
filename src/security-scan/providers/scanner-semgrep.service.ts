@@ -98,15 +98,40 @@ export class SemgrepScanner implements SecurityScanner {
           }
           
           try {
+            // Handle empty output
+            if (!stdout || stdout.trim() === '') {
+              return resolve([]);
+            }
+            
             const semgrepOutput = JSON.parse(stdout);
-            if (!semgrepOutput || !Array.isArray(semgrepOutput.results)) return resolve([]);
-            const findings = semgrepOutput.results.map((result: any) => ({
-              ruleId: result.check_id || 'UNKNOWN',
-              message: result.extra?.message || result.extra?.metadata?.short_description || 'No message',
-              filePath: result.path,
-              line: result.start?.line || 0,
-              severity: result.extra?.severity || 'INFO',
-            }));
+            
+            // Handle different Semgrep output formats
+            let results: any[] = [];
+            if (semgrepOutput && Array.isArray(semgrepOutput.results)) {
+              results = semgrepOutput.results;
+            } else if (Array.isArray(semgrepOutput)) {
+              // Sometimes Semgrep returns an array directly
+              results = semgrepOutput;
+            } else if (semgrepOutput && semgrepOutput.findings) {
+              // Alternative format
+              results = semgrepOutput.findings;
+            }
+            
+            if (results.length === 0) {
+              return resolve([]);
+            }
+            
+            const findings = results.map((result: any) => {
+              return {
+                ruleId: result.check_id || result.rule_id || 'UNKNOWN',
+                message: result.extra?.message || result.extra?.metadata?.short_description || result.message || 'No message',
+                filePath: this.getRelativePath(result.path || result.file || 'unknown', targetPath),
+                line: result.start?.line || result.line || 0,
+                severity: result.extra?.severity || result.severity || 'INFO',
+                scanner: 'Semgrep'
+              };
+            });
+            
             resolve(findings);
           } catch (parseErr) {
             reject(parseErr);
@@ -120,12 +145,35 @@ export class SemgrepScanner implements SecurityScanner {
         // Handle timeout
         setTimeout(() => {
           semgrepProcess.kill('SIGTERM');
-          reject(new Error('Semgrep process timed out'));
+          reject(new Error('Semgrep scan timeout'));
         }, 300000);
       });
     } catch (error) {
-      // Re-throw validation errors
-      throw error;
+      throw new Error(`Semgrep scan failed: ${error.message}`);
+    }
+  }
+
+  private getRelativePath(absolutePath: string, targetPath: string): string {
+    if (!absolutePath || !targetPath) {
+      return absolutePath || 'unknown';
+    }
+    
+    try {
+      // Normalize paths to handle different separators
+      const normalizedAbsolute = path.normalize(absolutePath);
+      const normalizedTarget = path.normalize(targetPath);
+      
+      // If the file path is within the target directory, make it relative
+      if (normalizedAbsolute.startsWith(normalizedTarget)) {
+        const relativePath = path.relative(normalizedTarget, normalizedAbsolute);
+        return relativePath || path.basename(normalizedAbsolute);
+      }
+      
+      // If not within target, return just the filename
+      return path.basename(normalizedAbsolute);
+    } catch (error) {
+      // Fallback to basename if path operations fail
+      return path.basename(absolutePath);
     }
   }
 } 
